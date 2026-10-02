@@ -1,47 +1,100 @@
-# dbd-assistant — Agent Instructions
+# AGENTS.md
 
-## 1. Project goal
+## Project
 
-`dbd-assistant` is a small web application for running a local multiplayer game inspired by Dead by Daylight.
+This is a small web service for assisting a real-life friendly game inspired by Dead by Daylight.
 
-The project is intentionally small.
+The project is called `dbd-assistant`.
 
-The current goal is to build a working MVP that proves the core game loop:
+The goal is to support the physical game, not to replace it with a complex digital simulation.
 
-1. Create a game room.
-2. Join the room.
-3. Assign player roles and character types.
-4. Select quests.
-5. Start the game.
-6. Synchronize game state in realtime.
-7. Complete quests.
-8. Use effects.
-9. Let the killer attack survivors.
-10. Change health and eliminate survivors at 0 HP.
-11. Provide a chat visible only to alive survivors.
-12. Reconnect after temporary network loss and restore current state.
-13. Persist runtime state in SQLite.
-14. Run without Docker and without external infrastructure.
+Prefer pragmatic architecture, fast iteration, understandable code, and easy manual recovery over scalability or abstraction for hypothetical future requirements.
 
-The project is primarily intended for a small private group of players.
+This is a small game assistant, not a platform.
 
-Priorities:
+Prefer boring, explicit, understandable code over clever code.
 
-1. Simplicity.
-2. Correctness of core game rules.
-3. Easy debugging during a live game.
-4. Easy manual recovery.
-5. Fast development.
-6. Maintainable code.
-7. Performance.
+Prefer a library that removes meaningful boilerplate over handwritten infrastructure.
 
-Do not optimize for hypothetical large scale.
+Prefer a simple working implementation now over an abstraction for hypothetical future requirements.
 
----
+## Real-world game context
 
-## 2. Technology stack
+The game takes place in a relatively small physical location with several floors, for example an old boarding house, recreation building, or an airsoft location.
 
-Use the following stack unless there is a concrete technical reason not to:
+Players physically move around the building. The website is an assistant for game state, information, quests, abilities, health, and communication.
+
+Physical props are cheap and simple. They may be purchased from ordinary marketplaces with a limited budget. Examples include printed numbers, cards, signs, locks, colored objects, simple containers, keys, paper notes, and other inexpensive props.
+
+Some quests may require a physical object or marker to be placed in the location. For example, a printed number `5` may be physically placed in a room. A player finds it in the real world, opens quest `5` on the website, and sees the relevant instructions or content.
+
+The physical game may include mechanics that are currently outside the application. For example, after an attack or another condition, a killer may escort a player to a physical "cage" or holding area for a period of time. Do not add such mechanics to the application unless explicitly requested later.
+
+The website should remain a lightweight support tool. Do not assume that every physical action must be represented digitally.
+
+### Important design principle
+
+Interactions with the website should not require players to stare at their phones constantly.
+
+Good interactions are short and deliberate:
+
+* inspect a quest after finding something in the building;
+* activate an ability at an appropriate moment;
+* check health/status;
+* receive an instruction;
+* send an occasional survivor chat message.
+
+Avoid mechanics where several players are simultaneously expected to chase each other through a UI, repeatedly refresh lists, spam buttons, or continuously track each other on their phones.
+
+Physical gameplay should remain the main activity.
+
+## Game content examples
+
+Examples are provided to communicate the intended style, not to define mandatory MVP mechanics.
+
+Suitable survivor roles might be simple archetypes such as:
+
+* Medic: can restore a small amount of health.
+* Scout: has an ability related to finding or revealing information.
+* Technician: can interact with certain quest/object types.
+* Runner: has a temporary movement-related advantage.
+
+Suitable killer types might be simple physical-game archetypes such as:
+
+* Stalker: focuses on pressure and forcing survivors to relocate.
+* Warden: focuses on control of areas or temporary restrictions.
+* Hunter: focuses on direct attacks and short-term debuffs.
+
+Suitable quests are generally based on exploration, observation, simple puzzles, physical objects, or visiting locations.
+
+Examples:
+
+* Find a marked number somewhere in the building and open the corresponding quest on the website.
+* Find three symbols and enter their order.
+* Locate a key hidden in a designated area.
+* Visit a room and confirm that a physical object is present.
+* Find several numbered markers and determine the correct sequence.
+* Bring information from one physical location to another.
+* Complete a simple timed or observation-based objective.
+
+Avoid designing quests that require expensive props, specialized electronics, complex sensors, constant GPS tracking, or mechanics that would not be practical in a small real-world building.
+
+Suitable killer abilities are short, understandable effects that fit physical gameplay.
+
+Examples:
+
+* temporarily reduce survivors' movement speed;
+* briefly stun or disable survivors;
+* force a survivor to go to a particular room;
+* apply a temporary restriction to a group of survivors;
+* deal damage to a selected survivor;
+* activate a simple area or target effect.
+
+These examples are thematic guidance, not a requirement to expand the MVP action system immediately.
+
+Do not create a new generic effect engine just because a future ability might need a new mechanic. Prefer the existing small set of explicit server-side actions. Add a new action only when an actual game mechanic requires it.
+
+## Architecture
 
 ### Frontend
 
@@ -52,153 +105,44 @@ Use the following stack unless there is a concrete technical reason not to:
 * shadcn/ui
 * Zustand
 * React Router
-* Socket.IO Client
+* Socket.IO client
 
 ### Backend
 
 * NestJS
 * TypeScript
-* Socket.IO
+* Socket.IO via NestJS Gateway
 * Prisma
+* SQLite
 
 ### Database
 
-* SQLite
+Use SQLite.
 
-### Validation
+The application should run directly with Node.js and SQLite in production. Docker is not required.
 
-* Prefer Zod for JSON/config validation and shared input schemas where useful.
-* Use NestJS/TypeScript validation mechanisms where they are simpler.
-
-### Deployment
-
-* Node.js
-* SQLite file
-* No Docker required
-* No PostgreSQL required
-* No Redis required
-
-Use existing libraries when they remove meaningful boilerplate.
-
-Do not add libraries merely because they are popular.
-
----
-
-## 3. Core architectural rule
-
-The backend is authoritative.
-
-The frontend is a view and input layer.
-
-The client may request an action:
-
-```text
-"complete quest"
-"attack player"
-"apply effect"
-"send chat message"
-```
-
-The server validates the request, changes state, persists it, and broadcasts the result.
-
-Never trust client-provided:
-
-* role
-* game owner
-* health
-* effect charges
-* target permissions
-* quest permissions
-* game status
-
-Do not implement important game rules only in React.
-
----
-
-## 4. Keep the architecture simple
-
-Use one NestJS application.
-
-Recommended structure:
-
-```text
-apps/
-  web/
-  api/
-```
-
-Backend may be organized into simple feature modules/services:
-
-```text
-game
-player
-quest
-effect
-chat
-config
-realtime
-```
-
-Do not create layers unless they solve an actual problem.
-
-Do NOT introduce:
-
-* microservices
-* CQRS
-* Event Sourcing
-* DDD aggregates
-* custom event buses
-* generic repositories
-* generic CRUD frameworks
-* generic effect engines
-* custom ORM layers
-* plugin systems
-* message brokers
-* background job infrastructure
-
-If ordinary code solves a problem clearly, prefer ordinary code.
-
-The project should remain understandable to one developer who may need to fix it during a live game.
-
----
-
-## 5. Database
-
-Use SQLite through Prisma.
-
-The database is a single file, for example:
+The database file should live somewhere such as:
 
 ```text
 data/game.db
 ```
 
-The application must work without a separate database server.
+SQLite is intentionally preferred because:
 
-Conceptual models:
+* it is a single file;
+* there is no separate database server;
+* memory usage is low;
+* backup and restore are trivial;
+* manual inspection and repair are easy;
+* the expected number of players and writes is small.
 
-```text
-Game
-Player
-CharacterType
-EffectDefinition
-PlayerEffect
-ActiveEffect
-QuestDefinition
-GameQuest
-ChatMessage
-```
+Do not introduce Redis, Kafka, PostgreSQL, MongoDB, Kubernetes, microservices, or other infrastructure unless a concrete requirement appears.
 
-A future `GameEvent`/audit table is possible, but it is NOT part of the MVP.
+## Static configuration vs runtime state
 
-Do not add tables without a concrete requirement.
+Reusable game definitions should live in readable JSON files under version control.
 
----
-
-## 6. Static configuration vs runtime state
-
-Static game definitions are stored as readable JSON files in Git.
-
-Example:
+Suggested structure:
 
 ```text
 config/
@@ -209,215 +153,89 @@ config/
   quests.json
 ```
 
-These definitions are synchronized into SQLite.
+JSON is the source of truth for reusable game content.
 
-Conceptually:
+SQLite is the source of truth for runtime game state.
 
-```text
-JSON
-  ->
-validate
-  ->
-upsert into SQLite
-```
+Use stable IDs in JSON.
 
-Runtime game state lives in SQLite.
-
-The distinction is:
-
-```text
-JSON:
-"What exists in the game?"
-
-SQLite:
-"What is happening in a particular game right now?"
-```
-
----
-
-## 7. Configuration synchronization
-
-Provide a simple command such as:
+A command such as:
 
 ```text
 npm run config:sync
 ```
 
-It should:
+should validate configuration and upsert definitions into SQLite.
 
-1. Load configuration JSON files.
-2. Validate them.
-3. Upsert definitions into SQLite.
-4. Fail clearly when configuration is invalid.
+Changing quests, effects, or character definitions should not require a Prisma migration.
 
-Validation should happen before making database changes whenever practical.
+Prisma migrations are for database schema changes.
 
-Use stable IDs in JSON.
+A running game must not silently change because somebody edited JSON files. Once a game starts or its configuration is finalized, relevant values must be frozen/copied into runtime state so that the game continues using the configuration with which it started.
 
-Example:
+Do not build a general configuration snapshot/versioning framework for the MVP.
 
-```json
-{
-  "id": "medic",
-  "name": "Medic"
-}
-```
+## Game model
 
-Do not use database-generated IDs as references from configuration files.
+`Game` should roughly contain:
 
-Changing game content should NOT require a Prisma database migration.
+* `id`
+* `code`
+* `name`
+* `status` (`LOBBY`, `RUNNING`, `FINISHED`)
+* `ownerPlayerId`
+* `createdAt`
+* `startedAt`
+* `finishedAt`
 
-Prisma migrations are only for schema changes.
+The game owner is separate from the gameplay role.
 
----
+Do not create an `ADMIN` or `GAME_MASTER` gameplay role.
 
-## 8. Running games must not change when config changes
+The owner may also be a normal survivor or killer.
 
-A game must use the configuration that existed when it was started/configured.
+## Player
 
-Editing:
+A player should roughly contain:
 
-```text
-config/effects.json
-```
-
-must not silently alter an already running game.
-
-For example, if an effect had:
-
-```text
-quantity = 1
-```
-
-when the game started, changing the definition to:
-
-```text
-quantity = 3
-```
-
-must not retroactively change that running game.
-
-Use the simplest practical solution:
-
-* copy relevant values into runtime state, or
-* otherwise freeze the values needed by the current game.
-
-Do NOT build a general configuration-versioning framework for the MVP.
-
----
-
-## 9. Game
-
-A game has approximately:
-
-```text
-id
-code
-name
-status
-ownerPlayerId
-createdAt
-startedAt
-finishedAt
-```
-
-Game states:
-
-```text
-LOBBY
-RUNNING
-FINISHED
-```
-
-Do not add `PAUSED` unless explicitly required later.
-
-A game owner can:
-
-* configure the lobby
-* assign roles
-* assign character types
-* select quests
-* start the game
-* finish the game
-
-The owner can also be a normal player.
-
-Do NOT create an `ADMIN` or `GAME_MASTER` player role.
-
-Ownership is separate from gameplay role:
-
-```text
-Player.role = SURVIVOR | KILLER
-
-Game.ownerPlayerId = player ID
-```
-
----
-
-## 10. Player
-
-A player has approximately:
-
-```text
-id
-gameId
-name
-role
-characterTypeId
-health
-maxHealth
-status
-```
+* `id`
+* `gameId`
+* `name`
+* `role`
+* `characterTypeId`
+* `health`
+* `maxHealth`
+* `status`
 
 Roles:
 
-```text
-SURVIVOR
-KILLER
-```
+* `SURVIVOR`
+* `KILLER`
 
-Initial statuses:
+Statuses:
 
-```text
-ALIVE
-DEAD
-DISCONNECTED
-```
+* `ALIVE`
+* `DEAD`
+* `DISCONNECTED`
 
-Do not physically delete dead players during a game.
+Dead players are not deleted.
 
-When a survivor reaches:
+When health reaches `0`, the player becomes `DEAD`.
 
-```text
-health <= 0
-```
+A dead survivor no longer participates in normal survivor actions.
 
-set:
+## Character types
 
-```text
-status = DEAD
-```
+Character types are reusable data/configuration, not class hierarchies.
 
-A dead survivor is no longer an active participant.
+A character type roughly contains:
 
-Do not invent additional death mechanics.
-
----
-
-## 11. Character types
-
-Character types are reusable configuration data.
-
-A character type contains approximately:
-
-```text
-id
-role
-name
-description
-maxHealth
-startingEffects
-```
+* `id`
+* `role`
+* `name`
+* `description`
+* `maxHealth`
+* `startingEffects`
 
 Example:
 
@@ -437,675 +255,424 @@ Example:
 }
 ```
 
-Do not create a class hierarchy for characters.
+Do not create inheritance trees such as `Medic extends Survivor`.
 
-Character types are data, not subclasses.
+Character behavior should mostly be expressed through data and the existing explicit game actions.
 
----
+## Quests
 
-## 12. Effects
+Separate reusable `QuestDefinition` from game-specific `GameQuest`.
 
-An effect is an ability that a player can apply to a target.
+`QuestDefinition` roughly contains:
 
-An effect definition contains approximately:
+* `id`
+* `name`
+* `description`
+* `type`
+* `radius`
+* `settings`
+* optional killer-category information
 
-```text
-id
-name
-description
-action
-quantity
-duration
-cooldown
-allowedTargets
-```
+`GameQuest` roughly contains:
 
-Initial actions:
+* `id`
+* `gameId`
+* `questDefinitionId`
+* `status`
+* `completedBy`
+* `completedAt`
 
-```text
-HEAL
-DAMAGE
-ADD_EFFECT
-REMOVE_EFFECT
-```
+Initial quest status:
 
-Only implement the actions that are actually needed.
+* `AVAILABLE`
+* `COMPLETED`
 
-Do not implement a generic scripting language or universal rules engine.
+Before a game starts, the owner selects/configures quests.
 
-Hardcode action semantics in backend code.
+After the game starts, the selected quests become part of the game state.
 
-Example:
+### Killer-specific quests
 
-```text
-HEAL:
-target.health = min(target.maxHealth, target.health + quantity)
+A quest may optionally be associated with a specific killer character type.
 
-DAMAGE:
-target.health = max(0, target.health - quantity)
-```
+The intended behavior is:
 
----
+* if a quest specifies a killer type, it is relevant to that killer type;
+* if a quest does not specify a killer type, it is a universal quest;
+* a killer should normally see only quests for their own killer type plus universal quests;
+* the server should apply this filtering as part of the actual game data/API behavior, not merely hide irrelevant quests in the frontend.
 
-## 13. Effect charges
+The exact field can stay simple. For example, a nullable `killerCharacterTypeId` is sufficient for the initial implementation.
 
-The list of effects available to a player is separate from effect definitions.
+Do not build a complex category/tag/filter framework just for this.
 
-Conceptually:
+This feature exists primarily to keep the killer's quest list manageable and prevent unrelated killer mechanics from cluttering their UI.
 
-```text
-PlayerEffect
-  playerId
-  effectId
-  charges
-```
-
-Example:
+For example:
 
 ```text
-heal      3
-poison    1
-shield    2
+Quest A -> killerCharacterTypeId = "warden"
+Quest B -> killerCharacterTypeId = "stalker"
+Quest C -> killerCharacterTypeId = null
 ```
 
-Using an effect consumes one charge.
+A `warden` sees A + C.
 
-Do not create a separate special-case system for medkits.
+A `stalker` sees B + C.
 
-Healing is just a `HEAL` effect.
+A killer should not have to mentally filter dozens of mechanics that belong to other killer types.
 
-Use:
+### Quest completion
 
-```text
-charges = null
-```
-
-for unlimited use only if unlimited effects are actually needed.
-
----
-
-## 14. Effect targets
-
-Initial target types:
-
-```text
-SELF
-SURVIVOR
-ALL_SURVIVORS
-KILLER
-```
-
-Examples:
-
-```json
-"allowedTargets": ["SELF"]
-```
-
-or:
-
-```json
-"allowedTargets": ["SURVIVOR", "ALL_SURVIVORS"]
-```
-
-The server must validate target permissions.
-
-The frontend may hide impossible targets for convenience, but this is not a security boundary.
-
----
-
-## 15. Active effects
-
-Effects with a duration may create an active effect record.
-
-Conceptually:
-
-```text
-ActiveEffect
-  effectId
-  sourcePlayerId
-  targetPlayerId
-  appliedAt
-  expiresAt
-```
-
-Use timestamps instead of per-effect timers.
-
-Do NOT use one `setTimeout` for every active effect.
-
-Determine whether an effect is active using:
-
-```text
-now < expiresAt
-```
-
-and whether it has expired using:
-
-```text
-now >= expiresAt
-```
-
-This makes server restarts recoverable.
-
-Do not build a complex scheduler for the MVP.
-
----
-
-## 16. Effect application
-
-When a player requests an effect:
-
-The server validates:
-
-1. The game exists.
-2. The game is running.
-3. The source player belongs to the game.
-4. The source player is allowed to act.
-5. The source player has the effect.
-6. The source player has available charges.
-7. The target belongs to the same game.
-8. The target matches the effect's allowed target types.
-9. Any cooldown/rule required by the effect is satisfied.
-
-Only then apply the effect.
-
-Persist the result before broadcasting the authoritative state.
-
----
-
-## 17. Quests
-
-Separate reusable quest definitions from game-specific quest instances.
-
-### QuestDefinition
-
-Approximately:
-
-```text
-id
-name
-description
-type
-radius
-settings
-```
-
-`settings` may use JSON for quest-specific configuration.
-
-### GameQuest
-
-Approximately:
-
-```text
-id
-gameId
-questDefinitionId
-status
-completedBy
-completedAt
-```
-
-Initial quest statuses:
-
-```text
-AVAILABLE
-COMPLETED
-```
-
-Do not create a separate model for exits.
-
----
-
-## 18. Quest configuration
-
-Example:
-
-```json
-{
-  "id": "generator",
-  "name": "Repair the generator",
-  "description": "Find and repair the generator.",
-  "type": "LOCATION",
-  "radius": 20
-}
-```
-
-The `radius` field may be stored even if physical location checking is not implemented yet.
-
-Do not implement geolocation/radius validation unless explicitly required.
-
----
-
-## 19. Quest completion
-
-A player may request completion of a quest.
+For MVP, quest completion may be a manual button.
 
 The server must validate:
 
-* game is running
-* player belongs to game
-* player is alive when required
-* quest exists in the game
-* quest is not already completed
-* player is allowed to complete it
+* game is running;
+* player belongs to the game;
+* player is allowed to complete the quest;
+* player is alive if the quest requires an active player;
+* quest exists in this game;
+* quest is not already completed;
+* any relevant killer-specific or role-specific restrictions are satisfied.
 
-On success:
+No automatic geolocation/radius validation is required for MVP.
 
-```text
-GameQuest.status = COMPLETED
-```
+A radius field may exist for future mechanics.
 
-Then broadcast the result.
-
-For the MVP, quest completion may be a manual button action.
-
-Do not invent complex automatic quest detection.
-
----
-
-## 20. Killer
-
-The killer may:
-
-* view survivor state
-* view completed quests
-* attack survivors
-* use allowed effects
-
-Basic attack:
-
-```text
-target.health -= 1
-```
-
-If:
-
-```text
-target.health <= 0
-```
-
-the survivor becomes:
-
-```text
-DEAD
-```
-
-The server must verify that the source player is the killer.
-
-Do not add combat systems beyond the explicit requirements.
-
----
-
-## 21. Exits
-
-Represent exits as quests.
-
-Use:
+Exits can simply be quests with:
 
 ```text
 type = EXIT
 ```
 
-Different killers may have different exits by selecting different quest definitions.
+Do not create a separate Exit subsystem.
 
-Do not create a separate exit subsystem unless the rules later require it.
+## Effects
 
----
+Effect definitions roughly contain:
 
-## 22. Survivor chat
+* `id`
+* `name`
+* `description`
+* `action`
+* `quantity`
+* `duration`
+* `cooldown`
+* `allowedTargets`
 
-There is a chat visible only to alive survivors.
+Initial action enum:
 
-Rules:
+* `HEAL`
+* `DAMAGE`
+* `ADD_EFFECT`
+* `REMOVE_EFFECT`
 
-```text
-SURVIVOR + ALIVE
-    ->
-can send/read survivor chat
-```
+Do not create a generic scripting engine.
 
-The server must enforce this.
+Effect semantics should remain explicit in server code.
 
-Do not merely hide the chat through frontend logic.
+`quantity` means the strength/amount of one use.
 
-Use a Socket.IO room such as:
-
-```text
-game:{gameId}:survivors
-```
-
-Chat messages may be persisted.
-
-For MVP, retaining approximately the latest 50–100 messages is sufficient.
-
-Do not implement:
-
-* reactions
-* threads
-* attachments
-* message editing
-* moderation
-* complex chat features
-
----
-
-## 23. Realtime
-
-Use Socket.IO directly.
-
-Rooms:
-
-```text
-game:{gameId}
-game:{gameId}:survivors
-```
-
-Possible events:
-
-```text
-game:state
-game:started
-game:finished
-
-player:state
-player:healthChanged
-player:disconnected
-player:reconnected
-
-quest:completed
-
-effect:applied
-effect:removed
-
-chat:message
-```
-
-Do not create dozens of events in advance.
-
-Prefer a small number of explicit events.
-
-When practical, use a full `game:state` resynchronization after reconnect rather than attempting sophisticated event replay.
-
----
-
-## 24. Reconnect
-
-Temporary network failures are expected.
-
-When a client reconnects:
-
-```text
-Socket reconnect
-    ->
-identify session/player
-    ->
-server loads current state
-    ->
-server sends authoritative game state
-    ->
-Zustand updates
-    ->
-UI recovers
-```
-
-The client must NOT assume it received every event while disconnected.
-
-Do not implement offline action queues for the MVP.
-
-When the server cannot be reached, an action is not considered completed.
-
----
-
-## 25. LAN mode
-
-The application must be runnable on a local network.
+`charges` means how many times the player may use the effect.
 
 Example:
 
-```text
-server: 192.168.1.100
-
-players:
-http://192.168.1.100:3000
+```json
+{
+  "id": "heal",
+  "name": "Аптечка",
+  "description": "Восстанавливает 1 HP.",
+  "action": "HEAL",
+  "quantity": 1,
+  "duration": null,
+  "cooldown": 30,
+  "allowedTargets": [
+    "SELF",
+    "SURVIVOR"
+  ]
+}
 ```
 
-The core game must not require Internet access.
+Healing is an effect. Do not create a separate medkit subsystem.
 
-Do not make external authentication, push services, analytics, cloud databases, or other third-party services mandatory for the game.
-
----
-
-## 26. Frontend
-
-Use:
+Player-specific effect availability can be represented by something like:
 
 ```text
-React
-TypeScript
-Vite
-Tailwind CSS
-shadcn/ui
-Zustand
-React Router
-Socket.IO Client
+PlayerEffect(playerId, effectId, charges)
 ```
 
-Use shadcn/ui instead of writing custom UI primitives for:
+`charges = null` may represent unlimited uses if needed.
 
-* buttons
-* dialogs
-* cards
-* inputs
-* dropdowns
-* tabs
-* badges
-* toasts
-* etc.
+Initial target types:
 
-Do not build a custom component library.
+* `SELF`
+* `SURVIVOR`
+* `ALL_SURVIVORS`
+* `KILLER`
 
----
+The server must validate target permissions.
 
-## 27. Frontend state
+Frontend visibility is only a usability feature, not authorization.
 
-Use Zustand as the client-side representation of server state.
+### Effect usage
 
-Potential state:
+When an effect is used, the server should validate:
+
+* source player has the effect;
+* source has charges remaining;
+* target is valid;
+* game state allows the action;
+* source role/character allows the action;
+* cooldown has expired if applicable.
+
+Persist the result before broadcasting the resulting realtime event.
+
+### Timed effects
+
+Do not use one `setTimeout` per active effect.
+
+Use timestamps.
+
+An active timed effect can roughly contain:
+
+* `effectId`
+* `sourcePlayerId`
+* `targetPlayerId`
+* `appliedAt`
+* `expiresAt`
+
+An effect is active while:
 
 ```text
-currentGame
-currentPlayer
-players
-quests
-effects
-chatMessages
-connectionStatus
+now < expiresAt
 ```
 
-Keep the store simple.
+Cleanup can be lazy or periodic.
 
-Do not introduce Redux or another state management system.
+Do not build a complex scheduler.
 
-The server remains the source of truth.
+For MVP, effects should usually represent a short, clear game-state change rather than requiring players to constantly interact with the app.
 
----
+## Physical-game-first interaction principle
 
-## 28. Frontend screens
+When designing new quests or effects, prefer mechanics that can be resolved primarily through real-world movement and observation.
 
-Initial screens:
+Good:
+
+* "Go to room 3."
+* "Find the red card."
+* "Read the number on the physical marker."
+* "After discovering the object, unlock quest 5 on the website."
+* "The killer activates a temporary area restriction."
+* "A survivor receives an instruction and physically goes somewhere."
+
+Avoid:
+
+* continuous phone tracking;
+* constant GPS polling;
+* real-time player chasing through the UI;
+* repeatedly searching a player list under pressure;
+* simultaneous button-spamming between multiple participants;
+* mechanics that require everyone to keep the website open every second.
+
+The website should answer "what is my current state and what should I do next?" rather than become the main game itself.
+
+## Killer
+
+A killer can:
+
+* view relevant survivors;
+* see survivor health/status as allowed by the game;
+* see their own effects;
+* attack survivors;
+* use allowed effects;
+* see quests relevant to their killer type plus universal quests.
+
+Attack removes `1 HP`.
+
+When health reaches `0`, the survivor becomes `DEAD`.
+
+The server must validate that the source is actually a killer.
+
+Physical mechanics such as escorting a survivor to a cage are currently outside the application.
+
+## Survivor chat
+
+There is one survivor-only chat.
+
+Only alive survivors can send and read survivor chat messages.
+
+The server must enforce this.
+
+Do not rely on the frontend merely hiding chat from killers.
+
+A Socket.IO room may be:
 
 ```text
-Create Game
-Join Game
-Lobby
-Game
+game:${gameId}:survivors
 ```
 
-Optional owner controls may be integrated into the Lobby/Game screens.
+Chat messages may be persisted in SQLite.
 
-Survivor game UI should provide:
+Keeping only the latest 50–100 messages is sufficient for MVP.
 
-* own health
-* own effects
-* available effect actions
-* other survivors
-* quests
-* completed quests
-* survivor chat
-* connection status
+Do not add reactions, threads, attachments, moderation, or other chat platform features.
 
-Killer game UI should provide:
+## Realtime
 
-* survivors
-* survivor health/status
-* killer effects
-* attack action
-* quests
-* connection status
+Use Socket.IO directly through NestJS.
 
-The frontend should show only actions applicable to the current player.
+Do not create a custom realtime abstraction.
 
-Do not rely on UI hiding for actual permission enforcement.
-
----
-
-## 29. Authentication and sessions
-
-Do NOT implement external accounts for the MVP.
-
-No:
-
-* Google login
-* Discord login
-* passwords
-* account registration
-* OAuth provider
-
-A lightweight game session is sufficient.
-
-Joining a game:
+Useful rooms:
 
 ```text
-player enters game code
-    ->
-player enters display name
-    ->
-server creates/identifies player
-    ->
-server returns session identifier
-    ->
-client stores session
+game:${gameId}
+game:${gameId}:survivors
 ```
 
-On reconnect/refresh, the session identifies the player.
+Keep the event set small.
 
-Use a standard session/token mechanism or existing small library if it materially reduces boilerplate.
+Possible events:
 
-Do not implement custom cryptography.
+* `game:state`
+* `game:started`
+* `game:finished`
+* `player:state`
+* `player:healthChanged`
+* `player:disconnected`
+* `player:reconnected`
+* `quest:completed`
+* `effect:applied`
+* `effect:removed`
+* `chat:message`
 
-Do not build a full authentication platform.
+The server is authoritative.
 
----
+After reconnect, the client should identify the player/session, load the current authoritative state, and receive `game:state`.
 
-## 30. Permissions
+The client should then update Zustand from that state.
 
-The permission model is intentionally small.
+Do not rely on replaying missed events.
 
-There are only two concepts:
+Do not implement an offline action queue for MVP.
 
-### Gameplay role
+If the server is unreachable, an action is not considered completed.
+
+The UI should remain open and display the last known state while showing that the connection is unavailable.
+
+## Authentication/session
+
+Do not build OAuth, Google login, Discord login, password accounts, or a full identity system for MVP.
+
+Joining a game should involve:
+
+* game code;
+* display name.
+
+The server creates or identifies the player and returns a lightweight session identifier/token.
+
+The client stores it so that refresh/reconnect can restore the same player.
+
+Use an established lightweight session/token library when it materially reduces boilerplate.
+
+Do not hand-write cryptographic/session infrastructure.
+
+Full authentication can be added later if the project actually needs it.
+
+## Frontend screens
+
+Main screens:
+
+* Create Game
+* Join Game
+* Lobby
+* Game
+
+Owner controls may be integrated into the lobby/game rather than creating a separate admin system.
+
+### Survivor game UI
+
+Should contain roughly:
+
+* own HP;
+* own effects;
+* other survivors;
+* quests;
+* completed quests;
+* survivor chat;
+* connection status.
+
+### Killer game UI
+
+Should contain roughly:
+
+* survivors;
+* HP/status;
+* own effects;
+* attack controls;
+* relevant quests;
+* connection status.
+
+Only appropriate actions should be visible in the UI, while the server independently enforces permissions.
+
+## Testing
+
+Do not aim for exhaustive testing.
+
+Focus on backend game logic.
+
+Important tests include:
+
+* survivor can be attacked;
+* attack removes 1 HP;
+* death occurs at 0 HP;
+* dead survivor cannot perform normal actions;
+* heal cannot exceed maxHealth;
+* effect requires charges;
+* effect consumes a charge;
+* invalid target is rejected;
+* killer cannot perform survivor-only actions;
+* completed quest cannot be completed twice;
+* killer-specific quest visibility/filtering works;
+* universal quests are visible to all relevant killers.
+
+Do not spend large amounts of time testing trivial UI rendering.
+
+## Manual recovery
+
+Manual recovery is an important project requirement.
+
+A developer should be able to inspect and repair:
+
+* `config/*.json`
+* `data/game.db`
+* logs
+
+Example recovery workflow:
 
 ```text
-SURVIVOR
-KILLER
+edit JSON
+npm run config:sync
+restart app
 ```
 
-### Ownership
+SQLite should remain inspectable/editable manually when necessary.
 
-```text
-Game.ownerPlayerId
-```
+Important runtime state must not exist only in:
 
-Do not introduce role hierarchies or permission matrices unless required.
+* process memory;
+* Redis;
+* browser storage;
+* ephemeral timers;
+* external APIs.
 
-Server-side permission checks should be explicit and easy to read.
+Persist anything that must survive a server restart.
 
----
+## Development commands
 
-## 31. Error handling
-
-Use straightforward application errors.
-
-Useful error codes include:
-
-```text
-GAME_NOT_FOUND
-GAME_NOT_RUNNING
-NOT_GAME_OWNER
-PLAYER_NOT_FOUND
-PLAYER_DEAD
-INVALID_TARGET
-EFFECT_NOT_AVAILABLE
-NO_EFFECT_CHARGES
-EFFECT_ON_COOLDOWN
-QUEST_NOT_FOUND
-QUEST_ALREADY_COMPLETED
-NOT_ALLOWED
-```
-
-Do not create a custom error framework.
-
----
-
-## 32. Logging
-
-Use NestJS logging or another existing lightweight logger.
-
-Useful development logs:
-
-```text
-game created
-player joined
-game started
-quest completed
-effect applied
-attack performed
-player died
-player reconnected
-```
-
-Do not build analytics or telemetry infrastructure.
-
-Do not log secrets or session tokens.
-
----
-
-## 33. Testing
-
-The MVP does not require comprehensive test coverage.
-
-Write tests for core game rules:
-
-* survivor can be attacked
-* attack removes 1 HP
-* survivor dies at 0 HP
-* dead survivor cannot perform normal actions
-* heal cannot exceed maxHealth
-* effect requires charges
-* effect consumes a charge
-* invalid targets are rejected
-* survivor-only effects cannot be used on invalid targets
-* killer cannot perform survivor-only actions
-* completed quest cannot be completed again
-
-Prefer unit tests for backend game logic.
-
-Do not spend excessive time testing trivial UI markup.
-
----
-
-## 34. Development commands
-
-Provide simple commands such as:
+Use commands such as:
 
 ```text
 npm run dev
@@ -1115,353 +682,141 @@ npm run lint
 npm run config:sync
 ```
 
-Use the package manager already used by the repository.
+Use the existing package manager.
 
-Do not add build systems or tooling unless required.
+If starting from scratch, npm is fine unless there is a concrete reason to use something else.
 
----
+## Agent behavior
 
-## 35. Implementation workflow
+Read `AGENTS.md` first.
 
-Work in small vertical slices.
+Inspect the existing repository before modifying anything.
 
-Do NOT implement the entire MVP in one enormous change.
+Work in small vertical slices rather than implementing the entire application in one giant change.
 
-Recommended sequence:
+Make the smallest reasonable change.
+
+Run tests/build/typecheck/lint after changes when applicable.
+
+Summarize changed files, checks run, and remaining issues.
+
+Never claim something works unless it was actually checked.
+
+Do not use `any` unless justified.
+
+Do not modify unrelated areas.
+
+Do not silently invent major game mechanics.
+
+When ambiguity materially affects architecture or the data model, ask before making a large architectural decision.
+
+Otherwise choose the simplest reasonable interpretation and move forward.
+
+Do not add dependencies unless they materially simplify implementation.
+
+Prefer existing libraries over handwritten infrastructure.
+
+Avoid "enterprise" architecture.
+
+When creating examples for characters, quests, and effects, keep them consistent with the small physical venue, cheap props, limited budget, and physical-game-first interaction model described above.
+
+Do not automatically turn every example into a new system or database abstraction.
+
+## Implementation sequence
 
 ### Step 1 — Scaffold
 
-Create:
-
-* React/Vite frontend
-* NestJS backend
+* React/Vite
+* NestJS
 * Prisma
 * SQLite
 * Socket.IO
 * Tailwind
 * shadcn/ui
 * Zustand
-
-Only establish the project and verify it builds.
-
-Do not implement game logic yet.
+* verify builds
+* no game logic yet
 
 ### Step 2 — Game and players
 
-Implement:
-
 * create game
 * game code
-* join game
-* player session
+* join
+* session
 * lobby
 * roles
 * character types
 
-Verify multiple browser tabs can join the same game.
+### Step 3 — Realtime
 
-### Step 3 — Realtime state
-
-Implement:
-
-* Socket.IO connection
-* game room
+* Socket.IO
+* room
 * authoritative state
-* basic state synchronization
 * reconnect/resync
 
 ### Step 4 — Quests
 
-Implement:
-
-* quest JSON
-* config synchronization
+* JSON
+* config sync
+* killer-specific quest filtering
 * quest selection
 * game quests
-* quest completion
+* completion
 
-### Step 5 — Health and attack
-
-Implement:
+### Step 5 — Health/attack
 
 * HP
 * killer attack
-* survivor death
+* death
 * role-specific UI
 
 ### Step 6 — Effects
 
-Implement:
-
-* effect definitions
+* definitions
 * player effects
 * charges
 * HEAL
 * DAMAGE
-* target validation
+* targets
 * cooldown if needed
-* simple timed effects
+* timed effects
 
 ### Step 7 — Chat
 
-Implement:
-
-* survivor-only room
+* survivor room
 * send/receive
 * basic persistence
 
 ### Step 8 — Owner controls
 
-Implement:
-
-* role assignment
-* character type assignment
+* role/type assignment
 * quest selection
-* start game
-* finish game
+* start/finish
 
 ### Step 9 — PWA polish
 
-Only after the core game loop works.
-
----
-
-## 36. Scope control
-
-Do not implement hypothetical future requirements.
-
-When choosing between:
-
-```text
-A) simple code that solves the current requirement
-
-B) flexible abstraction for possible future requirements
-```
-
-choose A.
-
-Do not introduce a general system because it "might be useful later".
-
-When a requirement is ambiguous but the architecture is not affected, choose the simplest reasonable interpretation and document it briefly.
-
-When ambiguity materially affects the architecture or data model, stop and ask for clarification.
-
-Do not silently invent major game mechanics.
-
----
-
-## 37. Libraries and dependencies
-
-Prefer existing, well-established libraries when they significantly reduce boilerplate.
-
-Good examples:
-
-```text
-Prisma
-Socket.IO
-Zustand
-shadcn/ui
-Zod
-React Router
-```
-
-A new dependency is justified when it removes meaningful handwritten infrastructure.
-
-Do NOT add a dependency for a problem that can be solved with a few obvious lines of code.
-
-Do not create a custom replacement for an established library.
-
----
-
-## 38. Security and safety of game logic
-
-This is a private game application, not a public banking/security system.
-
-Do not over-engineer security.
-
-However, the server must reliably prevent accidental rule violations:
-
-* survivor cannot perform killer actions
-* killer cannot read survivor-only chat
-* players cannot affect games they do not belong to
-* players cannot spend another player's effect charges
-* players cannot assign themselves arbitrary roles
-* clients cannot directly set HP
-* clients cannot directly mark arbitrary quests completed
-
-Correct server-side validation is more important than elaborate authentication.
-
----
-
-## 39. Manual recovery requirement
-
-The application must remain easy to repair manually.
-
-A developer should be able to access the server and inspect:
-
-```text
-config/*.json
-data/game.db
-application logs
-```
-
-A reasonable recovery workflow may be:
-
-```text
-edit JSON
-npm run config:sync
-restart application
-```
-
-or, when necessary, inspect/edit SQLite directly.
-
-Do not make recovery depend on an external service.
-
-Do not hide important game state in:
-
-* process memory only
-* Redis
-* browser local storage only
-* ephemeral timers
-* external APIs
-
-Important runtime state belongs in SQLite.
-
----
-
-## 40. Restart behavior
-
-After a backend restart, the application must recover:
-
-* games
-* players
-* roles
-* character types
-* health
-* quest state
-* effect charges
-* active timed effects
-* chat history retained by the application
-
-Timed effects must use timestamps such as:
-
-```text
-appliedAt
-expiresAt
-```
-
-not process-local timers.
-
-After restart, the backend should reconstruct the current state from SQLite.
-
----
-
-## 41. Definition of done for MVP
-
-The MVP is done when all of the following work:
-
-* backend starts without Docker
-* frontend starts locally
-* SQLite database works
-* configuration JSON can be validated and synchronized
-* game can be created
-* players can join
-* player sessions survive refresh/reconnect
-* roles can be assigned
-* character types can be assigned
-* game can start
-* game state is synchronized through Socket.IO
-* quests are visible
-* quests can be completed
-* killer can attack survivors
-* health is persisted
-* survivors die at 0 HP
-* effects can be used
-* effect charges work
-* basic timed effects work
-* survivor-only chat works
-* reconnect restores authoritative state
-* application works over a LAN
-* code remains understandable and manually repairable
-
-Visual polish is NOT part of the MVP definition.
-
----
-
-## 42. Agent operating rules
-
-Before changing code:
-
-1. Read this `AGENTS.md`.
-2. Inspect the existing repository.
-3. Understand the relevant existing code.
-4. Do not recreate existing functionality.
-5. Do not make unrelated changes.
-6. Do not introduce new architecture unless necessary for the requested task.
-
-When implementing a task:
-
-1. Make the smallest reasonable change.
-2. Prefer existing libraries over custom infrastructure.
-3. Keep types explicit.
-4. Do not weaken TypeScript with unnecessary `any`.
-5. Do not silently change game rules.
-6. Do not implement future features "while you're here".
-
-After implementing:
-
-1. Run relevant tests.
-2. Run type checking/build.
-3. Run lint if available.
-4. Fix errors caused by the change.
-5. Summarize:
-
-   * what changed
-   * what was tested
-   * any known limitation
-
-Do not claim something works unless it was actually checked.
-
----
-
-## 43. Instructions for agent prompts
-
-When given a task, first map it to the current architecture and MVP scope.
-
-Good task:
-
-```text
-Implement Step 3 from AGENTS.md.
-Do not modify unrelated modules.
-Do not add new abstractions.
-Run tests and build after implementation.
-```
-
-Bad task:
-
-```text
-Build a scalable realtime architecture for future features.
-```
-
-For larger tasks, split them into smaller changes.
-
-Do not generate the entire application in one operation unless explicitly requested.
-
----
-
-## 44. Final principle
-
-The project is a small game assistant.
-
-The preferred architecture is the one that:
-
-* works
-* is easy to understand
-* is easy to debug
-* is easy to run on a small server
-* is easy to run in a LAN
-* is easy to modify during a real game
-* has minimal infrastructure
-* avoids unnecessary abstractions
-
-Choose boring, explicit code over clever code.
+* only after the core game loop works
+
+## MVP done when
+
+* backend starts without Docker;
+* frontend starts;
+* SQLite works;
+* config JSON validates/syncs;
+* game create/join works;
+* player session survives refresh/reconnect;
+* roles and character types can be assigned;
+* game starts;
+* Socket.IO synchronizes state;
+* quests are visible and completable;
+* killer-specific quests are filtered correctly;
+* killer attack works;
+* health persists;
+* death occurs at 0 HP;
+* effects work;
+* charges work;
+* basic timed effects work;
+* survivor chat works;
+* reconnect restores state;
+* LAN works;
+* code remains understandable and manually repairable.# dbd-assistant — Agent Instructions## 1. Project goal`dbd-assistant` is a small web application for running a local multiplayer game inspired by Dead by Daylight.The project is intentionally small.The current goal is to build a working MVP that proves the core game loop:1. Create a game room.2. Join the room.3. Assign player roles and character types.4. Select quests.5. Start the game.6. Synchronize game state in realtime.7. Complete quests.8. Use effects.9. Let the killer attack survivors.10. Change health and eliminate survivors at 0 HP.11. Provide a chat visible only to alive survivors.12. Reconnect after temporary network loss and restore current state.13. Persist runtime state in SQLite.14. Run without Docker and without external infrastructure.The project is primarily intended for a small private group of players.Priorities:1. Simplicity.2. Correctness of core game rules.3. Easy debugging during a live game.4. Easy manual recovery.5. Fast development.6. Maintainable code.7. Performance.Do not optimize for hypothetical large scale.---## 2. Technology stackUse the following stack unless there is a concrete technical reason not to:### Frontend* React* TypeScri
