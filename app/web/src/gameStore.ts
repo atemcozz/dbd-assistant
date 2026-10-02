@@ -81,6 +81,7 @@ type GameStore = {
 }
 
 let realtimeSocket: Socket | null = null
+let questMutationQueue = Promise.resolve()
 
 function readSession(): Session | null {
   const saved = localStorage.getItem(SESSION_KEY)
@@ -211,16 +212,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectQuests: async (questDefinitionIds) => {
     const { session } = get()
     if (!session) return
-    set({ error: null })
-    try {
-      const state = await request<LobbyState>(`/games/${session.gameCode}/quests`, {
-        method: 'PUT',
-        body: JSON.stringify({ questDefinitionIds }),
-      }, session.sessionToken)
-      set({ state })
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Could not save quests' })
-    }
+    questMutationQueue = questMutationQueue.then(async () => {
+      set({ error: null })
+      try {
+        const state = await request<LobbyState>(`/games/${session.gameCode}/quests`, {
+          method: 'PUT',
+          body: JSON.stringify({ questDefinitionIds }),
+        }, session.sessionToken)
+        set({ state })
+      } catch (error) {
+        set({ error: error instanceof Error ? error.message : 'Could not save quests' })
+      }
+    })
+    await questMutationQueue
   },
 
   connectRealtime: () => {
@@ -267,5 +271,6 @@ export async function loadCharacterTypes() {
 }
 
 export async function loadQuestDefinitions() {
-  return request<QuestDefinition[]>('/quest-definitions')
+  const session = useGameStore.getState().session
+  return request<QuestDefinition[]>(`/quest-definitions?code=${encodeURIComponent(session?.gameCode ?? '')}`, undefined, session?.sessionToken)
 }

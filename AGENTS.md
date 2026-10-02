@@ -322,6 +322,14 @@ A `stalker` sees B + C.
 
 A killer should not have to mentally filter dozens of mechanics that belong to other killer types.
 
+Quest visibility in the lobby is role-sensitive:
+
+* the room owner may configure and view quest definitions and selected quests;
+* killers may view selected quests in the lobby;
+* ordinary survivors must not receive quest definitions or selected quest data until the game is running.
+
+After the game starts, selected quests are visible to all players. Killer-specific and universal quests should be presented as separate UI categories, with killer-specific quests first and universal quests second. A killer-specific category is for organization and visibility, not completion permission: only alive survivors may complete quests.
+
 ### Quest completion
 
 For MVP, quest completion may be a manual button.
@@ -758,7 +766,8 @@ Do not automatically turn every example into a new system or database abstractio
 
 * JSON
 * config sync
-* killer-specific quest filtering
+* role-aware quest visibility
+* killer-specific and universal quest grouping
 * quest selection
 * game quests
 * completion

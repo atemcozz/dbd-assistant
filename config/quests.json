@@ -43,5 +43,14 @@
     "radius": null,
     "settings": {},
     "killerCharacterTypeId": null
+  },
+  {
+    "id": "stalker-trail-clue",
+    "name": "The Stalker Trail",
+    "description": "Find the clue left along the Stalker's trail and bring its marked number to the survivor team.",
+    "type": "SURVIVOR_OBJECTIVE",
+    "radius": null,
+    "settings": {},
+    "killerCharacterTypeId": "stalker"
   }
 ]

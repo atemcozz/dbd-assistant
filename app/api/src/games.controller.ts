@@ -13,8 +13,8 @@ export class GamesController {
   }
 
   @Get('quest-definitions')
-  questDefinitions() {
-    return this.gamesService.listQuestDefinitions()
+  questDefinitions(@Headers('x-session-token') sessionToken?: string, @Query('code') code?: string) {
+    return this.gamesService.listQuestDefinitions(sessionToken, code)
   }
 
   @Post('games')

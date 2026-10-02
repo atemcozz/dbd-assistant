@@ -41,7 +41,7 @@ The frontend runs on Vite's default port. The API listens on port `3000` by defa
 
 Create a room from the frontend, then open another browser tab and join with the displayed six-character code. The room owner can assign each player a role and matching character type. Both tabs receive authoritative lobby state over Socket.IO, including after a temporary reconnect.
 
-Quest definitions are reusable JSON configuration. The owner selects survivor objectives in the Quests tab; selected quests receive stable numbers shown as high-contrast physical marker cards. Both survivors and killers can see the selected objectives, but only survivors will be allowed to complete them.
+Quest definitions are reusable JSON configuration. The owner selects survivor objectives in the Quests tab; selected quests receive stable numbers shown as high-contrast physical marker cards. In the lobby, only the owner and killers can see selected quests. Survivors receive them after the game starts, and only survivors can complete them.
 
 ## Verification
 

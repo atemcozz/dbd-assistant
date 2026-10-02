@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { randomBytes } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -107,10 +107,21 @@ export class GamesService {
     return { sessionToken: player.sessionToken, playerId: player.id, state: await this.getState(code, player.sessionToken) }
   }
 
-  async listQuestDefinitions() {
-    const definitions = this.readQuestConfig()
-    await Promise.all(definitions.map((definition) => this.upsertQuestDefinition(definition)))
-    return this.prisma.questDefinition.findMany({ orderBy: { id: 'asc' } })
+  async listQuestDefinitions(sessionToken?: string, codeInput?: string) {
+    if (!sessionToken) throw new ForbiddenException('SESSION_REQUIRED')
+    const viewer = await this.getRealtimeSession(sessionToken)
+    if (viewer.game.status === 'LOBBY' && viewer.role !== PlayerRole.KILLER && viewer.id !== viewer.game.ownerPlayerId) {
+      throw new ForbiddenException('QUESTS_HIDDEN_UNTIL_GAME_START')
+    }
+    await this.syncQuestDefinitions()
+    const code = codeInput ? this.requiredText(codeInput, 'Game code').toUpperCase() : undefined
+    const game = code ? await this.prisma.game.findUnique({ where: { code }, include: { players: true } }) : null
+    if (code && (!game || game.id !== viewer.gameId)) throw new NotFoundException('GAME_NOT_FOUND')
+    const killerTypeIds = new Set((game?.players ?? []).filter((player) => player.role === PlayerRole.KILLER && player.characterTypeId).map((player) => player.characterTypeId as string))
+    return this.prisma.questDefinition.findMany({
+      where: code ? { OR: [{ killerCharacterTypeId: null }, { killerCharacterTypeId: { in: [...killerTypeIds] } }] } : undefined,
+      orderBy: { id: 'asc' },
+    })
   }
 
   async selectQuests(codeInput: string, sessionToken: string, input: QuestSelectionInput) {
@@ -121,20 +132,23 @@ export class GamesService {
       throw new BadRequestException('QUEST_SELECTION_REQUIRED')
     }
     const questDefinitionIds = [...new Set(values)] as string[]
-    const definitions = await this.listQuestDefinitions()
+    await this.syncQuestDefinitions()
+    const killerTypeIds = new Set((await this.prisma.player.findMany({ where: { gameId: game.id, role: PlayerRole.KILLER, characterTypeId: { not: null } }, select: { characterTypeId: true } })).map((player) => player.characterTypeId as string))
+    const definitions = await this.prisma.questDefinition.findMany({ where: { OR: [{ killerCharacterTypeId: null }, { killerCharacterTypeId: { in: [...killerTypeIds] } }] } })
     const availableIds = new Set(definitions.map((definition) => definition.id))
     if (questDefinitionIds.some((id) => !availableIds.has(id))) throw new BadRequestException('INVALID_QUEST_DEFINITION')
 
     await this.prisma.$transaction(async (transaction) => {
-      await transaction.gameQuest.deleteMany({ where: { gameId: game.id } })
-      if (questDefinitionIds.length > 0) {
-        await transaction.gameQuest.createMany({
-          data: questDefinitionIds.map((questDefinitionId, index) => ({
-            gameId: game.id,
-            questDefinitionId,
-            number: index + 1,
-          })),
-        })
+      const existing = await transaction.gameQuest.findMany({ where: { gameId: game.id } })
+      const existingIds = new Set(existing.map((quest) => quest.questDefinitionId))
+      await transaction.gameQuest.deleteMany({ where: { gameId: game.id, questDefinitionId: { notIn: questDefinitionIds } } })
+      await transaction.gameQuest.updateMany({ where: { gameId: game.id }, data: { number: { increment: 100000 } } })
+      for (const [index, questDefinitionId] of questDefinitionIds.entries()) {
+        if (existingIds.has(questDefinitionId)) {
+          await transaction.gameQuest.updateMany({ where: { gameId: game.id, questDefinitionId }, data: { number: index + 1 } })
+        } else {
+          await transaction.gameQuest.create({ data: { gameId: game.id, questDefinitionId, number: index + 1 } })
+        }
       }
     })
     return this.getState(game.code, sessionToken)
@@ -172,6 +186,8 @@ export class GamesService {
     })
     if (!game) throw new NotFoundException('GAME_NOT_FOUND')
     const { players, quests, ...gameState } = game
+    const viewer = sessionToken ? players.find((player) => player.sessionToken === sessionToken) : undefined
+    const canSeeQuests = game.status !== 'LOBBY' || viewer?.role === PlayerRole.KILLER || viewer?.id === game.ownerPlayerId
     return {
       ...gameState,
       players: players.map(({ id, name, role, characterTypeId, health, maxHealth, status, characterType }) => ({
@@ -184,7 +200,7 @@ export class GamesService {
         status,
         characterType,
       })),
-      quests: this.filterQuests(quests),
+      quests: canSeeQuests ? this.filterQuests(quests) : [],
       ...(sessionToken ? { currentPlayerId: players.find((player) => player.sessionToken === sessionToken)?.id } : {}),
     }
   }
@@ -278,6 +294,11 @@ export class GamesService {
       create: { ...definition, settings: JSON.stringify(definition.settings) },
       update: { ...definition, settings: JSON.stringify(definition.settings) },
     })
+  }
+
+  private async syncQuestDefinitions() {
+    const definitions = this.readQuestConfig()
+    await Promise.all(definitions.map((definition) => this.upsertQuestDefinition(definition)))
   }
 
   private readQuestConfig(): QuestConfig[] {
