@@ -5,7 +5,7 @@
   "scripts": {
     "build": "nest build",
     "db:push": "prisma db push --skip-generate",
-    "dev": "npm run db:push && nest start --watch",
+    "dev": "npm run db:push && npm run config:sync && nest start --watch",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "start": "node dist/main.js",
     "test": "jest --runInBand",

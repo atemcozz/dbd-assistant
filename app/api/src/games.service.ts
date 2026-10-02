@@ -9,6 +9,7 @@ import type { GameQuestView, LobbyState } from './game.types'
 type CreateGameInput = { name?: unknown; playerName?: unknown }
 type JoinGameInput = { code?: unknown; playerName?: unknown }
 type QuestSelectionInput = { questDefinitionIds?: unknown }
+
 type QuestConfig = {
   id: string
   name: string
@@ -18,6 +19,8 @@ type QuestConfig = {
   settings: Record<string, unknown>
   killerCharacterTypeId: string | null
 }
+
+
 type PersistedQuest = {
   id: string
   number: number
@@ -115,7 +118,7 @@ export class GamesService {
     if (viewer.game.status === 'LOBBY' && viewer.role !== PlayerRole.KILLER && viewer.id !== viewer.game.ownerPlayerId) {
       throw new ForbiddenException('QUESTS_HIDDEN_UNTIL_GAME_START')
     }
-    await this.syncQuestDefinitions()
+
     const code = codeInput ? this.requiredText(codeInput, 'Game code').toUpperCase() : undefined
     const game = code ? await this.prisma.game.findUnique({ where: { code }, include: { players: true } }) : null
     if (code && (!game || game.id !== viewer.gameId)) throw new NotFoundException('GAME_NOT_FOUND')
@@ -134,7 +137,6 @@ export class GamesService {
       throw new BadRequestException('QUEST_SELECTION_REQUIRED')
     }
     const questDefinitionIds = [...new Set(values)] as string[]
-    await this.syncQuestDefinitions()
     const killerTypeIds = new Set((await this.prisma.player.findMany({ where: { gameId: game.id, role: PlayerRole.KILLER, characterTypeId: { not: null } }, select: { characterTypeId: true } })).map((player) => player.characterTypeId as string))
     const definitions = await this.prisma.questDefinition.findMany({ where: { OR: [{ killerCharacterTypeId: null }, { killerCharacterTypeId: { in: [...killerTypeIds] } }] } })
     const availableIds = new Set(definitions.map((definition) => definition.id))
@@ -379,10 +381,13 @@ export class GamesService {
     return effects.map((entry) => ({ id: entry.id, playerId, effectId: entry.effectId, name: entry.effect.name, description: entry.effect.description, charges: entry.charges, duration: entry.effect.duration, expiresAt: entry.expiresAt, instruction: entry.instruction }))
   }
 
-  private async syncQuestDefinitions() {
+  async syncQuestDefinitions() {
     const definitions = this.readQuestConfig()
     await Promise.all(definitions.map((definition) => this.upsertQuestDefinition(definition)))
   }
+
+
+  
 
   private readQuestConfig(): QuestConfig[] {
     const candidates = [
