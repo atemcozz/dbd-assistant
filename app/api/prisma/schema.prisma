@@ -24,6 +24,11 @@ enum PlayerStatus {
   DISCONNECTED
 }
 
+enum QuestStatus {
+  AVAILABLE
+  COMPLETED
+}
+
 model Game {
   id            String     @id @default(cuid())
   code          String     @unique
@@ -32,6 +37,34 @@ model Game {
   ownerPlayerId String
   createdAt     DateTime   @default(now())
   players       Player[]
+  quests        GameQuest[]
+}
+
+model QuestDefinition {
+  id                    String      @id
+  name                  String
+  description           String
+  type                  String
+  radius                Int?
+  settings              String
+  killerCharacterTypeId String?
+  gameQuests            GameQuest[]
+}
+
+model GameQuest {
+  id                String         @id @default(cuid())
+  gameId            String
+  game              Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  questDefinitionId String
+  questDefinition   QuestDefinition @relation(fields: [questDefinitionId], references: [id])
+  number            Int
+  status            QuestStatus    @default(AVAILABLE)
+  completedBy       String?
+  completedAt       DateTime?
+
+  @@unique([gameId, number])
+  @@unique([gameId, questDefinitionId])
+  @@index([gameId])
 }
 
 model Player {

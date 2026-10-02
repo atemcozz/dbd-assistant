@@ -4,12 +4,14 @@
   "version": "0.1.0",
   "scripts": {
     "build": "nest build",
-    "dev": "nest start --watch",
+    "db:push": "prisma db push --skip-generate",
+    "dev": "npm run db:push && nest start --watch",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "start": "node dist/main.js",
     "test": "jest --runInBand",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
+    "config:sync": "ts-node scripts/config-sync.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

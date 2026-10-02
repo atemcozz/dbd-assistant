@@ -1,11 +1,31 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { randomBytes } from 'node:crypto'
-import { PlayerRole } from '@prisma/client'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { PlayerRole, QuestStatus } from '@prisma/client'
 import { PrismaService } from './prisma.service'
-import type { LobbyState } from './game.types'
+import type { GameQuestView, LobbyState } from './game.types'
 
 type CreateGameInput = { name?: unknown; playerName?: unknown }
 type JoinGameInput = { code?: unknown; playerName?: unknown }
+type QuestSelectionInput = { questDefinitionIds?: unknown }
+type QuestConfig = {
+  id: string
+  name: string
+  description: string
+  type: string
+  radius: number | null
+  settings: Record<string, unknown>
+  killerCharacterTypeId: string | null
+}
+type PersistedQuest = {
+  id: string
+  number: number
+  status: QuestStatus
+  completedBy: string | null
+  completedAt: Date | null
+  questDefinition: Omit<QuestConfig, 'settings'> & { settings: string }
+}
 
 const characterDefinitions = [
   {
@@ -71,7 +91,7 @@ export class GamesService {
       })
     })
 
-    return { sessionToken, playerId: game.ownerPlayerId, state: await this.getState(game.code) }
+    return { sessionToken, playerId: game.ownerPlayerId, state: await this.getState(game.code, sessionToken) }
   }
 
   async joinGame(input: JoinGameInput) {
@@ -84,17 +104,74 @@ export class GamesService {
     const player = await this.prisma.player.create({
       data: { gameId: game.id, name: playerName, sessionToken: this.createSessionToken() },
     })
-    return { sessionToken: player.sessionToken, playerId: player.id, state: await this.getState(code) }
+    return { sessionToken: player.sessionToken, playerId: player.id, state: await this.getState(code, player.sessionToken) }
+  }
+
+  async listQuestDefinitions() {
+    const definitions = this.readQuestConfig()
+    await Promise.all(definitions.map((definition) => this.upsertQuestDefinition(definition)))
+    return this.prisma.questDefinition.findMany({ orderBy: { id: 'asc' } })
+  }
+
+  async selectQuests(codeInput: string, sessionToken: string, input: QuestSelectionInput) {
+    const game = await this.authorizeOwner(codeInput, sessionToken)
+    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
+    const values = input.questDefinitionIds
+    if (!Array.isArray(values) || values.some((value) => typeof value !== 'string')) {
+      throw new BadRequestException('QUEST_SELECTION_REQUIRED')
+    }
+    const questDefinitionIds = [...new Set(values)] as string[]
+    const definitions = await this.listQuestDefinitions()
+    const availableIds = new Set(definitions.map((definition) => definition.id))
+    if (questDefinitionIds.some((id) => !availableIds.has(id))) throw new BadRequestException('INVALID_QUEST_DEFINITION')
+
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.gameQuest.deleteMany({ where: { gameId: game.id } })
+      if (questDefinitionIds.length > 0) {
+        await transaction.gameQuest.createMany({
+          data: questDefinitionIds.map((questDefinitionId, index) => ({
+            gameId: game.id,
+            questDefinitionId,
+            number: index + 1,
+          })),
+        })
+      }
+    })
+    return this.getState(game.code, sessionToken)
+  }
+
+  async completeQuest(codeInput: string, questId: string, sessionToken: string) {
+    const code = this.requiredText(codeInput, 'Game code').toUpperCase()
+    const player = await this.prisma.player.findUnique({ where: { sessionToken } })
+    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
+    if (player.role !== PlayerRole.SURVIVOR) throw new ConflictException('ONLY_SURVIVORS_CAN_COMPLETE_QUESTS')
+    if (player.status !== 'ALIVE') throw new ConflictException('PLAYER_NOT_ACTIVE')
+
+    const game = await this.prisma.game.findUnique({ where: { code } })
+    if (!game || game.id !== player.gameId) throw new NotFoundException('GAME_NOT_FOUND')
+    if (game.status !== 'RUNNING') throw new ConflictException('GAME_NOT_RUNNING')
+
+    const quest = await this.prisma.gameQuest.findFirst({ where: { id: questId, gameId: game.id } })
+    if (!quest) throw new NotFoundException('QUEST_NOT_FOUND')
+    if (quest.status === QuestStatus.COMPLETED) throw new ConflictException('QUEST_ALREADY_COMPLETED')
+    await this.prisma.gameQuest.update({
+      where: { id: quest.id },
+      data: { status: QuestStatus.COMPLETED, completedBy: player.id, completedAt: new Date() },
+    })
+    return this.getState(code, sessionToken)
   }
 
   async getState(codeInput: string, sessionToken?: string): Promise<LobbyState & { currentPlayerId?: string }> {
     const code = codeInput.toUpperCase()
     const game = await this.prisma.game.findUnique({
       where: { code },
-      include: { players: { include: { characterType: true }, orderBy: { createdAt: 'asc' } } },
+      include: {
+        players: { include: { characterType: true }, orderBy: { createdAt: 'asc' } },
+        quests: { include: { questDefinition: true }, orderBy: { number: 'asc' } },
+      },
     })
     if (!game) throw new NotFoundException('GAME_NOT_FOUND')
-    const { players, ...gameState } = game
+    const { players, quests, ...gameState } = game
     return {
       ...gameState,
       players: players.map(({ id, name, role, characterTypeId, health, maxHealth, status, characterType }) => ({
@@ -107,6 +184,7 @@ export class GamesService {
         status,
         characterType,
       })),
+      quests: this.filterQuests(quests),
       ...(sessionToken ? { currentPlayerId: players.find((player) => player.sessionToken === sessionToken)?.id } : {}),
     }
   }
@@ -184,6 +262,35 @@ export class GamesService {
     if (!game) throw new NotFoundException('GAME_NOT_FOUND')
     if (game.id !== player.gameId || game.ownerPlayerId !== player.id) throw new ConflictException('NOT_GAME_OWNER')
     return game
+  }
+
+  private filterQuests(quests: PersistedQuest[]): GameQuestView[] {
+    return quests
+      .map(({ questDefinition, ...quest }) => ({
+        ...quest,
+        definition: questDefinition,
+      }))
+  }
+
+  private async upsertQuestDefinition(definition: QuestConfig) {
+    return this.prisma.questDefinition.upsert({
+      where: { id: definition.id },
+      create: { ...definition, settings: JSON.stringify(definition.settings) },
+      update: { ...definition, settings: JSON.stringify(definition.settings) },
+    })
+  }
+
+  private readQuestConfig(): QuestConfig[] {
+    const candidates = [
+      resolve(process.cwd(), 'config/quests.json'),
+      resolve(process.cwd(), '../../config/quests.json'),
+      resolve(dirname(__dirname), '../../config/quests.json'),
+    ]
+    const filePath = candidates.find((candidate) => existsSync(candidate))
+    if (!filePath) throw new NotFoundException('QUEST_CONFIG_NOT_FOUND')
+    const parsed: unknown = JSON.parse(readFileSync(filePath, 'utf8'))
+    if (!Array.isArray(parsed)) throw new BadRequestException('INVALID_QUEST_CONFIG')
+    return parsed as QuestConfig[]
   }
 
   private async ensureCharacterTypes() {

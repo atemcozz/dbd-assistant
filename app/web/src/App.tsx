@@ -1,6 +1,6 @@
 import { Copy, LogOut, Radio, Shield, Skull, Users, WifiOff } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
-import { loadCharacterTypes, type LobbyPlayer, type Role, useGameStore } from './gameStore'
+import { loadCharacterTypes, loadQuestDefinitions, type GameQuest, type LobbyPlayer, type QuestDefinition, type Role, useGameStore } from './gameStore'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
 function App() {
@@ -77,17 +77,26 @@ function Lobby() {
   const state = useGameStore((store) => store.state)!
   const session = useGameStore((store) => store.session)!
   const characterTypes = useGameStore((store) => store.characterTypes)
+  const questDefinitions = useGameStore((store) => store.questDefinitions)
   const connectionStatus = useGameStore((store) => store.connectionStatus)
   const error = useGameStore((store) => store.error)
   const clearSession = useGameStore((store) => store.clearSession)
   const assignRole = useGameStore((store) => store.assignRole)
   const assignCharacter = useGameStore((store) => store.assignCharacter)
+  const selectQuests = useGameStore((store) => store.selectQuests)
   const [copyLabel, setCopyLabel] = useState('Copy code')
+  const [activeTab, setActiveTab] = useState('players')
+  const [selectedQuestIds, setSelectedQuestIds] = useState(() => state.quests.map((quest) => quest.definition.id))
 
   useEffect(() => {
     if (characterTypes.length > 0) return
     void loadCharacterTypes().then((types) => useGameStore.setState({ characterTypes: types })).catch(() => undefined)
   }, [characterTypes.length])
+
+  useEffect(() => {
+    if (questDefinitions.length > 0) return
+    void loadQuestDefinitions().then((definitions) => useGameStore.setState({ questDefinitions: definitions })).catch(() => undefined)
+  }, [questDefinitions.length])
 
   const isOwner = state.ownerPlayerId === session.playerId
 
@@ -107,11 +116,28 @@ function Lobby() {
       <Separator />
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 py-5 text-sm text-slate-400"><span className="inline-flex items-center gap-2"><Users className="size-4" />{state.players.length} player{state.players.length === 1 ? '' : 's'}</span><ConnectionStatus status={connectionStatus} /><Button className="ml-auto" onClick={clearSession} size="sm" variant="ghost"><LogOut className="size-4" />Leave room</Button></div>
       {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{state.players.map((player) => <PlayerCard key={player.id} player={player} isOwner={isOwner} characterTypes={characterTypes} onRoleChange={(role) => void assignRole(player.id, role)} onCharacterChange={(id) => void assignCharacter(player.id, id)} />)}</section>
+      <Tabs className="w-full" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid h-11 w-full max-w-md grid-cols-2"><TabsTrigger value="players">Players</TabsTrigger><TabsTrigger value="quests">Quests <Badge variant="secondary" className="ml-2">{state.quests.length}</Badge></TabsTrigger></TabsList>
+        <TabsContent value="players" className="mt-5"><section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{state.players.map((player) => <PlayerCard key={player.id} player={player} isOwner={isOwner} characterTypes={characterTypes} onRoleChange={(role) => void assignRole(player.id, role)} onCharacterChange={(id) => void assignCharacter(player.id, id)} />)}</section></TabsContent>
+        <TabsContent value="quests" className="mt-5"><QuestPanel quests={state.quests} definitions={questDefinitions} isOwner={isOwner} selectedQuestIds={selectedQuestIds} onToggle={(id) => setSelectedQuestIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id])} onSave={() => void selectQuests(selectedQuestIds)} /></TabsContent>
+      </Tabs>
       <footer className="flex flex-col gap-2 py-6 text-sm text-slate-500 sm:flex-row sm:justify-between"><span>{isOwner ? 'You are the room owner. Configure the team below.' : 'The room owner is configuring the team.'}</span><span>Game start arrives in the next step.</span></footer>
       </div>
     </main>
   )
+}
+
+function QuestPanel({ quests, definitions, isOwner, selectedQuestIds, onToggle, onSave }: { quests: GameQuest[]; definitions: QuestDefinition[]; isOwner: boolean; selectedQuestIds: string[]; onToggle: (id: string) => void; onSave: () => void }) {
+  return <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <section className="grid gap-4 sm:grid-cols-2">
+      {quests.length === 0 ? <Card className="sm:col-span-2"><CardContent className="p-8 text-center text-sm text-muted-foreground">No quests selected yet.</CardContent></Card> : quests.map((quest) => <QuestCard key={quest.id} quest={quest} />)}
+    </section>
+    {isOwner && <Card className="h-fit"><CardHeader><CardTitle>Quest selection</CardTitle><CardDescription>Choose the survivor objectives for this game. Both sides can see them, but only survivors will complete them.</CardDescription></CardHeader><CardContent className="grid gap-3"><div className="grid gap-2">{definitions.map((definition) => <label key={definition.id} className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 transition-colors hover:bg-accent"><input checked={selectedQuestIds.includes(definition.id)} className="mt-1 size-4 accent-primary" onChange={() => onToggle(definition.id)} type="checkbox" /><span className="grid gap-1"><span className="text-sm font-medium">{definition.name}</span><span className="text-xs text-muted-foreground">{definition.type}</span></span></label>)}</div><Button disabled={selectedQuestIds.length === 0} onClick={onSave}>Pin selected quests</Button></CardContent></Card>}
+  </div>
+}
+
+function QuestCard({ quest }: { quest: GameQuest }) {
+  return <Card className="overflow-hidden border-primary/40 bg-card shadow-md shadow-primary/5"><div className="flex min-h-32"><div className="grid w-24 shrink-0 place-items-center bg-primary px-3 text-center text-primary-foreground"><span className="text-xs font-bold uppercase tracking-[.18em]">Marker</span><strong className="font-display text-5xl leading-none">{quest.number}</strong></div><CardContent className="grid content-center gap-2 p-5"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline">Quest {quest.number}</Badge><Badge variant={quest.status === 'COMPLETED' ? 'secondary' : 'default'}>{quest.status}</Badge></div><h3 className="font-display text-lg font-semibold">{quest.definition.name}</h3><p className="text-sm leading-6 text-muted-foreground">{quest.definition.description}</p></CardContent></div></Card>
 }
 
 function PlayerCard({ player, isOwner, characterTypes, onRoleChange, onCharacterChange }: { player: LobbyPlayer; isOwner: boolean; characterTypes: Awaited<ReturnType<typeof loadCharacterTypes>>; onRoleChange: (role: Role) => void; onCharacterChange: (id: string) => void }) {

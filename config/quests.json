@@ -1,0 +1,47 @@
+[
+  {
+    "id": "find-red-marker",
+    "name": "The Red Marker",
+    "description": "Find the red marker hidden somewhere in the building and record the symbol beside it.",
+    "type": "EXPLORATION",
+    "radius": null,
+    "settings": {},
+    "killerCharacterTypeId": null
+  },
+  {
+    "id": "three-room-sequence",
+    "name": "Three Room Sequence",
+    "description": "Visit the three marked rooms and determine the order from the physical clues.",
+    "type": "PUZZLE",
+    "radius": null,
+    "settings": { "roomCount": 3 },
+    "killerCharacterTypeId": null
+  },
+  {
+    "id": "recover-missing-key",
+    "name": "The Missing Key",
+    "description": "Find the missing key near the marked area and bring its number back to the survivor team.",
+    "type": "SURVIVOR_OBJECTIVE",
+    "radius": null,
+    "settings": {},
+    "killerCharacterTypeId": null
+  },
+  {
+    "id": "decode-blue-symbol",
+    "name": "The Blue Symbol",
+    "description": "Locate the blue symbol and enter its shape order from left to right.",
+    "type": "SURVIVOR_OBJECTIVE",
+    "radius": null,
+    "settings": {},
+    "killerCharacterTypeId": null
+  },
+  {
+    "id": "deliver-medical-note",
+    "name": "The Medical Note",
+    "description": "Find the medical note and deliver its instruction to another survivor in the building.",
+    "type": "SURVIVOR_OBJECTIVE",
+    "radius": null,
+    "settings": {},
+    "killerCharacterTypeId": null
+  }
+]

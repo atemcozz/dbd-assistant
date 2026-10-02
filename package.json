@@ -10,6 +10,6 @@
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
-    "config:sync": "node -e \"console.error('Configuration synchronization is not implemented until the configuration slice.'); process.exit(1)\""
+    "config:sync": "npm run config:sync --workspace=@dbd-assistant/api"
   }
 }

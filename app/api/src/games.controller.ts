@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Headers, Param, Patch, Post, Put, Query } from '@nestjs/common'
 import { PlayerRole } from '@prisma/client'
 import { GamesService } from './games.service'
 import { GameGateway } from './game.gateway'
@@ -10,6 +10,11 @@ export class GamesController {
   @Get('character-types')
   characterTypes(@Query('role') role?: PlayerRole) {
     return this.gamesService.listCharacterTypes(role)
+  }
+
+  @Get('quest-definitions')
+  questDefinitions() {
+    return this.gamesService.listQuestDefinitions()
   }
 
   @Post('games')
@@ -29,6 +34,28 @@ export class GamesController {
   @Get('games/:code')
   state(@Param('code') code: string, @Headers('x-session-token') sessionToken?: string) {
     return this.gamesService.getState(code, sessionToken)
+  }
+
+  @Put('games/:code/quests')
+  async selectQuests(
+    @Param('code') code: string,
+    @Headers('x-session-token') sessionToken: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    const state = await this.gamesService.selectQuests(code, sessionToken, body)
+    await this.gameGateway.broadcastGameState(state.id)
+    return state
+  }
+
+  @Post('games/:code/quests/:questId/complete')
+  async completeQuest(
+    @Param('code') code: string,
+    @Param('questId') questId: string,
+    @Headers('x-session-token') sessionToken: string,
+  ) {
+    const state = await this.gamesService.completeQuest(code, questId, sessionToken)
+    await this.gameGateway.broadcastGameState(state.id)
+    return state
   }
 
   @Patch('games/:code/players/:playerId/role')

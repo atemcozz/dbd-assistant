@@ -34,7 +34,27 @@ export type LobbyState = {
   ownerPlayerId: string
   createdAt: string
   players: LobbyPlayer[]
+  quests: GameQuest[]
   currentPlayerId?: string
+}
+
+export type QuestDefinition = {
+  id: string
+  name: string
+  description: string
+  type: string
+  radius: number | null
+  settings: string
+  killerCharacterTypeId: string | null
+}
+
+export type GameQuest = {
+  id: string
+  number: number
+  status: 'AVAILABLE' | 'COMPLETED'
+  completedBy: string | null
+  completedAt: string | null
+  definition: QuestDefinition
 }
 
 type Session = { gameCode: string; playerId: string; sessionToken: string }
@@ -43,6 +63,7 @@ type GameStore = {
   session: Session | null
   state: LobbyState | null
   characterTypes: CharacterType[]
+  questDefinitions: QuestDefinition[]
   error: string | null
   isLoading: boolean
   connectionStatus: 'idle' | 'connecting' | 'connected' | 'disconnected'
@@ -52,6 +73,7 @@ type GameStore = {
   refreshState: () => Promise<void>
   assignRole: (playerId: string, role: Role) => Promise<void>
   assignCharacter: (playerId: string, characterTypeId: string) => Promise<void>
+  selectQuests: (questDefinitionIds: string[]) => Promise<void>
   connectRealtime: () => void
   disconnectRealtime: () => void
   requestRealtimeState: () => void
@@ -95,6 +117,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   session: null,
   state: null,
   characterTypes: [],
+  questDefinitions: [],
   error: null,
   isLoading: false,
   connectionStatus: 'idle',
@@ -185,6 +208,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  selectQuests: async (questDefinitionIds) => {
+    const { session } = get()
+    if (!session) return
+    set({ error: null })
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/quests`, {
+        method: 'PUT',
+        body: JSON.stringify({ questDefinitionIds }),
+      }, session.sessionToken)
+      set({ state })
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Could not save quests' })
+    }
+  },
+
   connectRealtime: () => {
     const { session } = get()
     if (!session || realtimeSocket?.connected) return
@@ -226,4 +264,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
 export async function loadCharacterTypes() {
   return request<CharacterType[]>('/character-types')
+}
+
+export async function loadQuestDefinitions() {
+  return request<QuestDefinition[]>('/quest-definitions')
 }
