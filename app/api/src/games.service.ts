@@ -1,0 +1,179 @@
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { randomBytes } from 'node:crypto'
+import { PlayerRole } from '@prisma/client'
+import { PrismaService } from './prisma.service'
+import type { LobbyState } from './game.types'
+
+type CreateGameInput = { name?: unknown; playerName?: unknown }
+type JoinGameInput = { code?: unknown; playerName?: unknown }
+
+const characterDefinitions = [
+  {
+    id: 'medic',
+    role: PlayerRole.SURVIVOR,
+    name: 'Medic',
+    description: 'Keeps the team alive.',
+    maxHealth: 3,
+  },
+  {
+    id: 'scout',
+    role: PlayerRole.SURVIVOR,
+    name: 'Scout',
+    description: 'Fast and observant.',
+    maxHealth: 2,
+  },
+  {
+    id: 'stalker',
+    role: PlayerRole.KILLER,
+    name: 'Stalker',
+    description: 'A relentless hunter.',
+    maxHealth: 5,
+  },
+]
+
+@Injectable()
+export class GamesService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async listCharacterTypes(role?: PlayerRole) {
+    await this.ensureCharacterTypes()
+    return this.prisma.characterType.findMany({
+      where: role ? { role } : undefined,
+      orderBy: [{ role: 'asc' }, { name: 'asc' }],
+    })
+  }
+
+  async createGame(input: CreateGameInput) {
+    const name = this.requiredText(input.name, 'Game name')
+    const playerName = this.requiredText(input.playerName, 'Player name')
+    await this.ensureCharacterTypes()
+
+    let code = this.createCode()
+    while (await this.prisma.game.findUnique({ where: { code } })) {
+      code = this.createCode()
+    }
+
+    const sessionToken = this.createSessionToken()
+    const game = await this.prisma.$transaction(async (transaction) => {
+      const createdGame = await transaction.game.create({
+        data: { code, name, ownerPlayerId: 'pending' },
+      })
+      const player = await transaction.player.create({
+        data: {
+          gameId: createdGame.id,
+          name: playerName,
+          sessionToken,
+        },
+      })
+      return transaction.game.update({
+        where: { id: createdGame.id },
+        data: { ownerPlayerId: player.id },
+      })
+    })
+
+    return { sessionToken, playerId: game.ownerPlayerId, state: await this.getState(game.code) }
+  }
+
+  async joinGame(input: JoinGameInput) {
+    const code = this.requiredText(input.code, 'Game code').toUpperCase()
+    const playerName = this.requiredText(input.playerName, 'Player name')
+    const game = await this.prisma.game.findUnique({ where: { code } })
+    if (!game) throw new NotFoundException('GAME_NOT_FOUND')
+    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
+
+    const player = await this.prisma.player.create({
+      data: { gameId: game.id, name: playerName, sessionToken: this.createSessionToken() },
+    })
+    return { sessionToken: player.sessionToken, playerId: player.id, state: await this.getState(code) }
+  }
+
+  async getState(codeInput: string, sessionToken?: string): Promise<LobbyState & { currentPlayerId?: string }> {
+    const code = codeInput.toUpperCase()
+    const game = await this.prisma.game.findUnique({
+      where: { code },
+      include: { players: { include: { characterType: true }, orderBy: { createdAt: 'asc' } } },
+    })
+    if (!game) throw new NotFoundException('GAME_NOT_FOUND')
+    const { players, ...gameState } = game
+    return {
+      ...gameState,
+      players: players.map(({ id, name, role, characterTypeId, health, maxHealth, status, characterType }) => ({
+        id,
+        name,
+        role,
+        characterTypeId,
+        health,
+        maxHealth,
+        status,
+        characterType,
+      })),
+      ...(sessionToken ? { currentPlayerId: players.find((player) => player.sessionToken === sessionToken)?.id } : {}),
+    }
+  }
+
+  async assignRole(codeInput: string, targetPlayerId: string, sessionToken: string, roleInput: unknown) {
+    const game = await this.authorizeOwner(codeInput, sessionToken)
+    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
+    const role = this.parseRole(roleInput)
+    const player = await this.prisma.player.findFirst({ where: { id: targetPlayerId, gameId: game.id } })
+    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
+    await this.prisma.player.update({
+      where: { id: player.id },
+      data: { role, characterTypeId: null, maxHealth: 1, health: 1 },
+    })
+    return this.getState(game.code, sessionToken)
+  }
+
+  async assignCharacter(codeInput: string, targetPlayerId: string, sessionToken: string, characterTypeId: unknown) {
+    const game = await this.authorizeOwner(codeInput, sessionToken)
+    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
+    const player = await this.prisma.player.findFirst({ where: { id: targetPlayerId, gameId: game.id } })
+    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
+    const characterId = this.requiredText(characterTypeId, 'Character type')
+    const character = await this.prisma.characterType.findUnique({ where: { id: characterId } })
+    if (!character || character.role !== player.role) throw new BadRequestException('INVALID_CHARACTER_TYPE')
+    await this.prisma.player.update({
+      where: { id: player.id },
+      data: { characterTypeId: character.id, maxHealth: character.maxHealth, health: character.maxHealth },
+    })
+    return this.getState(game.code, sessionToken)
+  }
+
+  private async authorizeOwner(codeInput: string, sessionToken: string) {
+    const code = codeInput.toUpperCase()
+    const player = await this.prisma.player.findUnique({ where: { sessionToken } })
+    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
+    const game = await this.prisma.game.findUnique({ where: { code } })
+    if (!game) throw new NotFoundException('GAME_NOT_FOUND')
+    if (game.id !== player.gameId || game.ownerPlayerId !== player.id) throw new ConflictException('NOT_GAME_OWNER')
+    return game
+  }
+
+  private async ensureCharacterTypes() {
+    await Promise.all(
+      characterDefinitions.map((definition) =>
+        this.prisma.characterType.upsert({ where: { id: definition.id }, create: definition, update: definition }),
+      ),
+    )
+  }
+
+  private requiredText(value: unknown, label: string) {
+    if (typeof value !== 'string' || value.trim().length === 0 || value.trim().length > 80) {
+      throw new BadRequestException(`${label} is required`)
+    }
+    return value.trim()
+  }
+
+  private parseRole(value: unknown): PlayerRole {
+    if (value !== PlayerRole.SURVIVOR && value !== PlayerRole.KILLER) throw new BadRequestException('INVALID_ROLE')
+    return value
+  }
+
+  private createCode() {
+    return randomBytes(3).toString('hex').toUpperCase()
+  }
+
+  private createSessionToken() {
+    return randomBytes(24).toString('hex')
+  }
+}

@@ -6,3 +6,56 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+enum GameStatus {
+  LOBBY
+  RUNNING
+  FINISHED
+}
+
+enum PlayerRole {
+  SURVIVOR
+  KILLER
+}
+
+enum PlayerStatus {
+  ALIVE
+  DEAD
+  DISCONNECTED
+}
+
+model Game {
+  id            String     @id @default(cuid())
+  code          String     @unique
+  name          String
+  status        GameStatus @default(LOBBY)
+  ownerPlayerId String
+  createdAt     DateTime   @default(now())
+  players       Player[]
+}
+
+model Player {
+  id              String        @id @default(cuid())
+  gameId          String
+  game            Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name            String
+  sessionToken    String        @unique
+  role            PlayerRole    @default(SURVIVOR)
+  characterTypeId String?
+  characterType   CharacterType? @relation(fields: [characterTypeId], references: [id])
+  health          Int           @default(1)
+  maxHealth       Int           @default(1)
+  status          PlayerStatus  @default(ALIVE)
+  createdAt       DateTime      @default(now())
+
+  @@index([gameId])
+}
+
+model CharacterType {
+  id            String       @id
+  role          PlayerRole
+  name          String
+  description   String
+  maxHealth     Int
+  players       Player[]
+}
