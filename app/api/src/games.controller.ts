@@ -90,6 +90,13 @@ export class GamesController {
     return state
   }
 
+  @Post('games/:code/effects/:effectId/use')
+  async useEffect(@Param('code') code: string, @Param('effectId') effectId: string, @Headers('x-session-token') sessionToken: string, @Body('targetPlayerId') targetPlayerId?: string) {
+    const state = await this.gamesService.useEffect(code, effectId, targetPlayerId, sessionToken)
+    await this.gameGateway.broadcastGameState(state.id)
+    return state
+  }
+
   @Patch('games/:code/players/:playerId/role')
   async assignRole(
     @Param('code') code: string,

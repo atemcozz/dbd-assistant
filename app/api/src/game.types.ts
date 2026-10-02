@@ -15,7 +15,9 @@ export type LobbyState = Pick<Game, 'id' | 'code' | 'name' | 'status' | 'ownerPl
   requiredQuestCount: number
   exitsUnlocked: boolean
   chatMessages: ChatMessageView[]
+  effects: PlayerEffectView[]
 }
+export type PlayerEffectView = { id: string; playerId: string; effectId: string; name: string; description: string; charges: number | null; duration: number | null; expiresAt: Date | null; instruction: string | null }
 
 export type ChatMessageView = Pick<ChatMessage, 'id' | 'text' | 'createdAt' | 'playerId'> & { playerName: string; playerStatus: Player['status'] }
 

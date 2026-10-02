@@ -49,7 +49,7 @@ const characterDefinitions = [
     role: PlayerRole.KILLER,
     name: 'Stalker',
     description: 'A relentless hunter.',
-    maxHealth: 5,
+    maxHealth: 0,
   },
 ]
 
@@ -229,6 +229,26 @@ export class GamesService {
     return this.getState(code, sessionToken)
   }
 
+  async useEffect(codeInput: string, effectId: string, targetPlayerId: string | undefined, sessionToken: string) {
+    const code = this.requiredText(codeInput, 'Game code').toUpperCase()
+    const source = await this.prisma.player.findUnique({ where: { sessionToken }, include: { effects: { include: { effect: true } } } })
+    if (!source) throw new NotFoundException('PLAYER_NOT_FOUND')
+    const game = await this.prisma.game.findUnique({ where: { code } })
+    if (!game || game.id !== source.gameId || game.status !== 'RUNNING') throw new ConflictException('GAME_NOT_RUNNING')
+    const owned = source.effects.find((entry) => entry.effectId === effectId)
+    if (!owned) throw new NotFoundException('EFFECT_NOT_AVAILABLE')
+    if (owned.charges !== null && owned.charges <= 0) throw new ConflictException('NO_EFFECT_CHARGES')
+    const targetId = targetPlayerId ?? source.id
+    const target = await this.prisma.player.findFirst({ where: { id: targetId, gameId: game.id } })
+    if (!target) throw new NotFoundException('TARGET_NOT_FOUND')
+    const effect = owned.effect
+    if (effect.action === 'HEAL') await this.prisma.player.update({ where: { id: target.id }, data: { health: Math.min(target.maxHealth, target.health + effect.quantity) } })
+    if (effect.action === 'DAMAGE') await this.prisma.player.update({ where: { id: target.id }, data: { health: Math.max(0, target.health - effect.quantity), status: target.health - effect.quantity <= 0 ? 'DEAD' : target.status } })
+    const expiresAt = effect.duration ? new Date(Date.now() + effect.duration * 1000) : null
+    await this.prisma.playerEffect.update({ where: { id: owned.id }, data: { charges: owned.charges === null ? null : owned.charges - 1, lastUsedAt: new Date(), appliedAt: new Date(), expiresAt, instruction: effect.action === 'TEXT' ? effect.description : null } })
+    return this.getState(code, sessionToken)
+  }
+
   async getState(codeInput: string, sessionToken?: string): Promise<LobbyState & { currentPlayerId?: string }> {
     const code = codeInput.toUpperCase()
     const game = await this.prisma.game.findUnique({
@@ -258,6 +278,7 @@ export class GamesService {
       quests: canSeeQuests ? this.filterQuests(quests) : [],
       exitsUnlocked: quests.filter((quest) => quest.status === QuestStatus.COMPLETED).length >= game.requiredQuestCount,
       chatMessages: viewer?.role === PlayerRole.SURVIVOR ? chatMessages.map((message) => ({ id: message.id, text: message.text, createdAt: message.createdAt, playerId: message.playerId, playerName: message.player.name, playerStatus: message.player.status })) : [],
+      effects: viewer ? await this.getPlayerEffects(viewer.id) : [],
       ...(sessionToken ? { currentPlayerId: players.find((player) => player.sessionToken === sessionToken)?.id } : {}),
     }
   }
@@ -351,6 +372,11 @@ export class GamesService {
       create: { ...definition, settings: JSON.stringify(definition.settings) },
       update: { ...definition, settings: JSON.stringify(definition.settings) },
     })
+  }
+
+  private async getPlayerEffects(playerId: string) {
+    const effects = await this.prisma.playerEffect.findMany({ where: { playerId }, include: { effect: true } })
+    return effects.map((entry) => ({ id: entry.id, playerId, effectId: entry.effectId, name: entry.effect.name, description: entry.effect.description, charges: entry.charges, duration: entry.effect.duration, expiresAt: entry.expiresAt, instruction: entry.instruction }))
   }
 
   private async syncQuestDefinitions() {

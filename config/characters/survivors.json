@@ -1,0 +1,53 @@
+[
+    {
+        "id": "medic",
+        "role": "SURVIVOR",
+        "name": "Medic",
+        "description": "Restores teammates with a compact first-aid kit.",
+        "maxHealth": 3,
+        "startingEffects": [
+            {
+                "effectId": "field-dressing",
+                "charges": 3
+            },
+            {
+                "effectId": "calm-instruction",
+                "charges": 1
+            }
+        ]
+    },
+    {
+        "id": "scout",
+        "role": "SURVIVOR",
+        "name": "Scout",
+        "description": "Finds routes and useful clues quickly.",
+        "maxHealth": 2,
+        "startingEffects": [
+            {
+                "effectId": "quick-step",
+                "charges": 2
+            },
+            {
+                "effectId": "calm-instruction",
+                "charges": 1
+            }
+        ]
+    },
+    {
+        "id": "technician",
+        "role": "SURVIVOR",
+        "name": "Technician",
+        "description": "Keeps the group moving through simple locks and clues.",
+        "maxHealth": 2,
+        "startingEffects": [
+            {
+                "effectId": "field-dressing",
+                "charges": 1
+            },
+            {
+                "effectId": "route-note",
+                "charges": 2
+            }
+        ]
+    }
+]

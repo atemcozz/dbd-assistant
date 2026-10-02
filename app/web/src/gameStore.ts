@@ -38,10 +38,12 @@ export type LobbyState = {
   requiredQuestCount: number
   exitsUnlocked: boolean
   chatMessages: ChatMessage[]
+  effects: PlayerEffect[]
   players: LobbyPlayer[]
   quests: GameQuest[]
   currentPlayerId?: string
 }
+export type PlayerEffect = { id: string; playerId: string; effectId: string; name: string; description: string; charges: number | null; duration: number | null; expiresAt: string | null; instruction: string | null }
 export type ChatMessage = { id: string; text: string; createdAt: string; playerId: string; playerName: string; playerStatus: PlayerStatus }
 
 export type QuestDefinition = {
@@ -83,6 +85,7 @@ type GameStore = {
   startGame: () => Promise<void>
   damagePlayer: (playerId: string) => Promise<void>
   completeQuest: (questId: string) => Promise<void>
+  useEffect: (effectId: string, targetPlayerId?: string) => Promise<void>
   updateSettings: (durationSeconds: number, requiredQuestCount: number) => Promise<void>
   sendChat: (text: string) => Promise<void>
   connectRealtime: () => void
@@ -269,6 +272,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Could not complete quest' })
     }
+  },
+
+  useEffect: async (effectId, targetPlayerId) => {
+    const { session } = get()
+    if (!session) return
+    const state = await request<LobbyState>(`/games/${session.gameCode}/effects/${effectId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId }) }, session.sessionToken)
+    set({ state })
   },
 
   updateSettings: async (durationSeconds, requiredQuestCount) => {

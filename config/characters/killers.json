@@ -1,0 +1,36 @@
+[
+    {
+        "id": "stalker",
+        "role": "KILLER",
+        "name": "Stalker",
+        "description": "Pressures survivors with sudden attacks and restrictions.",
+        "maxHealth": 0,
+        "startingEffects": [
+            {
+                "effectId": "stun-survivor",
+                "charges": 2
+            },
+            {
+                "effectId": "mark-all-survivors",
+                "charges": 1
+            }
+        ]
+    },
+    {
+        "id": "warden",
+        "role": "KILLER",
+        "name": "Warden",
+        "description": "Controls routes and sends survivors elsewhere.",
+        "maxHealth": 0,
+        "startingEffects": [
+            {
+                "effectId": "room-order",
+                "charges": 2
+            },
+            {
+                "effectId": "slow-all-survivors",
+                "charges": 1
+            }
+        ]
+    }
+]

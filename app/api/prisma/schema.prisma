@@ -85,6 +85,7 @@ model Player {
   status          PlayerStatus  @default(ALIVE)
   createdAt       DateTime      @default(now())
   chatMessages    ChatMessage[]
+  effects         PlayerEffect[]
 
   @@index([gameId])
 }
@@ -108,4 +109,30 @@ model CharacterType {
   description   String
   maxHealth     Int
   players       Player[]
+}
+
+model EffectDefinition {
+  id             String @id
+  name           String
+  description    String
+  action         String
+  quantity       Int
+  duration       Int?
+  cooldown       Int
+  allowedTargets String
+  playerEffects  PlayerEffect[]
+}
+
+model PlayerEffect {
+  id          String @id @default(cuid())
+  playerId    String
+  player      Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  effectId    String
+  effect      EffectDefinition @relation(fields: [effectId], references: [id])
+  charges     Int?
+  lastUsedAt  DateTime?
+  appliedAt   DateTime?
+  expiresAt   DateTime?
+  instruction String?
+  @@unique([playerId, effectId])
 }

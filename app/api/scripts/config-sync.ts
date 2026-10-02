@@ -11,6 +11,8 @@ type QuestConfig = {
   settings: Record<string, unknown>
   killerCharacterTypeId: string | null
 }
+type CharacterConfig = { id: string; role: 'SURVIVOR' | 'KILLER'; name: string; description: string; maxHealth: number; startingEffects?: unknown }
+type EffectConfig = { id: string; name: string; description: string; action: string; quantity: number; duration: number | null; cooldown: number; allowedTargets: string[] }
 
 function isQuestConfig(value: unknown): value is QuestConfig {
   if (!value || typeof value !== 'object') return false
@@ -40,6 +42,12 @@ async function main() {
       update: { ...quest, settings: JSON.stringify(quest.settings) },
     })))
     console.log(`Synced ${config.length} quest definitions.`)
+    const characterPaths = ['survivors.json', 'killers.json'].map((file) => resolve(process.cwd(), '../../config/characters', file))
+    const characters = (await Promise.all(characterPaths.map(async (path) => JSON.parse(await readFile(path, 'utf8')) as CharacterConfig[]))).flat()
+    await Promise.all(characters.map(({ startingEffects: _startingEffects, ...character }) => prisma.characterType.upsert({ where: { id: character.id }, create: character, update: character })))
+    const effects = JSON.parse(await readFile(resolve(process.cwd(), '../../config/effects.json'), 'utf8')) as EffectConfig[]
+    await Promise.all(effects.map((effect) => prisma.effectDefinition.upsert({ where: { id: effect.id }, create: { ...effect, allowedTargets: JSON.stringify(effect.allowedTargets) }, update: { ...effect, allowedTargets: JSON.stringify(effect.allowedTargets) } })))
+    console.log(`Synced ${characters.length} characters and ${effects.length} effects.`)
   } finally {
     await prisma.$disconnect()
   }

@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, ClipboardList, Clock3, Copy, Heart, KeyRound, LogOut, MapPin, MessageSquare, Plus, Puzzle, Radio, Shield, Skull, Sparkles, Swords, Users, WifiOff, X } from 'lucide-react'
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { loadCharacterTypes, loadQuestDefinitions, type GameQuest, type LobbyPlayer, type LobbyState, type QuestDefinition, type Role, useGameStore } from './gameStore'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -163,6 +163,7 @@ function GameScreen() {
   const damagePlayer = useGameStore((store) => store.damagePlayer)
   const completeQuest = useGameStore((store) => store.completeQuest)
   const sendChat = useGameStore((store) => store.sendChat)
+  const triggerEffect = useGameStore((store) => store.useEffect)
   const clearSession = useGameStore((store) => store.clearSession)
   const currentPlayer = state.players.find((player) => player.id === session.playerId)!
   const previousHealth = useRef(currentPlayer.health)
@@ -209,7 +210,7 @@ function GameScreen() {
         <TabsContent value="quests" className="mt-5"><GameQuests quests={state.quests} isSurvivor={!isKiller} onComplete={(questId) => setModal({ title: 'Complete quest?', body: 'This quest completion cannot be undone.', confirmLabel: 'Complete quest', onConfirm: () => { setModal(null); void completeQuest(questId) } })} /></TabsContent>
         <TabsContent value="players" className="mt-5"><GamePlayers players={isKiller ? survivors : survivors.filter((player) => player.id !== currentPlayer.id)} isKiller={isKiller} onDamage={confirmDamage} /></TabsContent>
         {!isKiller && <TabsContent value="chat" className="mt-5"><ChatSection messages={state.chatMessages} onSend={(text) => void sendChat(text)} /></TabsContent>}
-        <TabsContent value="effects" className="mt-5"><PlaceholderSection icon={<Sparkles className="size-5" />} title="Effects" text="Effects and abilities arrive in the next slice." /></TabsContent>
+        <TabsContent value="effects" className="mt-5"><EffectsSection effects={state.effects} onUse={(effectId) => setModal({ title: 'Use effect?', body: 'This effect use changes game state and may consume a charge.', confirmLabel: 'Use effect', onConfirm: () => { setModal(null); void triggerEffect(effectId) } })} /></TabsContent>
       </Tabs>
     </div>
     {modal && <Modal {...modal} onClose={() => setModal(null)} />}
@@ -244,8 +245,8 @@ function GameQuestCard({ quest, isSurvivor, onComplete }: { quest: GameQuest; is
   return <div className={cn('rounded-md border p-3 transition-colors', completed ? 'border-primary/60 bg-primary/10' : 'border-border bg-card')}><div className="flex items-center gap-3"><div className={cn('grid size-9 shrink-0 place-items-center rounded-md font-display font-bold', completed ? 'bg-primary text-primary-foreground' : 'bg-muted text-primary')}>{completed ? <Check className="size-4" /> : quest.number}</div><p className="min-w-0 flex-1 truncate text-sm font-medium">{quest.definition.name}</p><Button aria-label="Expand quest" onClick={() => setExpanded((value) => !value)} size="icon" variant="ghost" title={expanded ? 'Collapse quest' : 'Expand quest'}>{expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}</Button></div>{expanded && <div className="mt-3 grid gap-3 border-t border-border pt-3"><p className="text-sm leading-6 text-muted-foreground">{quest.definition.description}</p>{isSurvivor && !completed && <Button onClick={() => onComplete(quest.id)} size="sm"><Check className="size-4" />Mark completed</Button>}{completed && <Badge>Completed</Badge>}</div>}</div>
 }
 
-function PlaceholderSection({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
-  return <Card><CardHeader><CardTitle className="flex items-center gap-2">{icon}{title}</CardTitle><CardDescription>{text}</CardDescription></CardHeader><CardContent><div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Coming soon</div></CardContent></Card>
+function EffectsSection({ effects, onUse }: { effects: LobbyState['effects']; onUse: (effectId: string) => void }) {
+  return <Card><CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="size-5" />Effects</CardTitle><CardDescription>Short, deliberate abilities for the physical trial.</CardDescription></CardHeader><CardContent className="grid gap-3">{effects.length === 0 ? <p className="text-sm text-muted-foreground">No effects assigned.</p> : effects.map((effect) => <div key={effect.id} className="flex items-center gap-3 rounded-md border border-border p-3"><div className="min-w-0 flex-1"><p className="text-sm font-medium">{effect.name}</p><p className="text-xs text-muted-foreground">{effect.description} · charges: {effect.charges ?? '∞'}</p></div><Button size="sm" onClick={() => onUse(effect.effectId)}>Use</Button></div>)}</CardContent></Card>
 }
 
 function HealthDisplay({ health, maxHealth, compact = false }: { health: number; maxHealth: number; compact?: boolean }) {
