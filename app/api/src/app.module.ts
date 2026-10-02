@@ -2,6 +2,7 @@ import { Controller, Get, Module } from '@nestjs/common'
 import { GamesController } from './games.controller'
 import { GamesService } from './games.service'
 import { PrismaService } from './prisma.service'
+import { GameGateway } from './game.gateway'
 
 @Controller()
 class AppController {
@@ -13,6 +14,6 @@ class AppController {
 
 @Module({
   controllers: [AppController, GamesController],
-  providers: [GamesService, PrismaService],
+  providers: [GamesService, PrismaService, GameGateway],
 })
 export class AppModule {}

@@ -111,6 +111,43 @@ export class GamesService {
     }
   }
 
+  async getRealtimeSession(sessionToken: string) {
+    const player = await this.prisma.player.findUnique({
+      where: { sessionToken },
+      include: { game: true },
+    })
+    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
+    return player
+  }
+
+  async getStateById(gameId: string, sessionToken?: string): Promise<LobbyState & { currentPlayerId?: string }> {
+    const game = await this.prisma.game.findUnique({ where: { id: gameId } })
+    if (!game) throw new NotFoundException('GAME_NOT_FOUND')
+    return this.getState(game.code, sessionToken)
+  }
+
+  async markConnected(sessionToken: string) {
+    const player = await this.getRealtimeSession(sessionToken)
+    if (player.status === 'DISCONNECTED') {
+      await this.prisma.player.update({
+        where: { id: player.id },
+        data: { status: 'ALIVE' },
+      })
+    }
+    return player
+  }
+
+  async markDisconnected(sessionToken: string) {
+    const player = await this.getRealtimeSession(sessionToken)
+    if (player.status === 'ALIVE') {
+      await this.prisma.player.update({
+        where: { id: player.id },
+        data: { status: 'DISCONNECTED' },
+      })
+    }
+    return player
+  }
+
   async assignRole(codeInput: string, targetPlayerId: string, sessionToken: string, roleInput: unknown) {
     const game = await this.authorizeOwner(codeInput, sessionToken)
     if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')

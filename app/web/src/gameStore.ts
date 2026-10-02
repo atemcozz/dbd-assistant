@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { io, type Socket } from 'socket.io-client'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const SESSION_KEY = 'dbd-assistant-session'
@@ -44,14 +45,20 @@ type GameStore = {
   characterTypes: CharacterType[]
   error: string | null
   isLoading: boolean
+  connectionStatus: 'idle' | 'connecting' | 'connected' | 'disconnected'
   restoreSession: () => Promise<void>
   createGame: (name: string, playerName: string) => Promise<void>
   joinGame: (code: string, playerName: string) => Promise<void>
   refreshState: () => Promise<void>
   assignRole: (playerId: string, role: Role) => Promise<void>
   assignCharacter: (playerId: string, characterTypeId: string) => Promise<void>
+  connectRealtime: () => void
+  disconnectRealtime: () => void
+  requestRealtimeState: () => void
   clearSession: () => void
 }
+
+let realtimeSocket: Socket | null = null
 
 function readSession(): Session | null {
   const saved = localStorage.getItem(SESSION_KEY)
@@ -90,6 +97,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   characterTypes: [],
   error: null,
   isLoading: false,
+  connectionStatus: 'idle',
 
   restoreSession: async () => {
     const session = readSession()
@@ -177,9 +185,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  connectRealtime: () => {
+    const { session } = get()
+    if (!session || realtimeSocket?.connected) return
+    realtimeSocket?.disconnect()
+    set({ connectionStatus: 'connecting' })
+    realtimeSocket = io(API_URL, {
+      auth: { sessionToken: session.sessionToken },
+      transports: ['websocket', 'polling'],
+    })
+    realtimeSocket.on('connect', () => {
+      set({ connectionStatus: 'connected', error: null })
+      realtimeSocket?.emit('state:request')
+    })
+    realtimeSocket.on('disconnect', () => set({ connectionStatus: 'disconnected' }))
+    realtimeSocket.on('connect_error', (error) => set({ connectionStatus: 'disconnected', error: error.message }))
+    realtimeSocket.on('connection:error', (payload: { message?: string }) => {
+      set({ connectionStatus: 'disconnected', error: payload.message ?? 'Realtime session rejected' })
+    })
+    realtimeSocket.on('game:state', (state: LobbyState) => set({ state, connectionStatus: 'connected', error: null }))
+  },
+
+  disconnectRealtime: () => {
+    realtimeSocket?.disconnect()
+    realtimeSocket = null
+    set({ connectionStatus: 'idle' })
+  },
+
+  requestRealtimeState: () => {
+    realtimeSocket?.emit('state:request')
+  },
+
   clearSession: () => {
+    realtimeSocket?.disconnect()
+    realtimeSocket = null
     localStorage.removeItem(SESSION_KEY)
-    set({ session: null, state: null, error: null })
+    set({ session: null, state: null, error: null, connectionStatus: 'idle' })
   },
 }))
 

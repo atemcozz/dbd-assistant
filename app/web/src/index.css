@@ -37,6 +37,10 @@ input:focus, select:focus { border-color: #8ed9c3; }
 .code-lockup button { justify-self: end; padding: 0; color: #d6e5e1; font-size: .8rem; text-decoration: underline; }
 .lobby-meta, .lobby-footer { display: flex; justify-content: space-between; gap: 18px; padding: 18px 0; color: #8da0a6; font-size: .85rem; }
 .status-dot::before { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #9de1c6; content: ''; }
+.connection-status { display: inline-flex; align-items: center; gap: 7px; }
+.connection-status .status-dot::before { margin-right: 0; }
+.connection-status.disconnected, .connection-status.disconnected .status-dot::before { color: #f2a19a; background: #f2a19a; }
+.connection-status.connecting, .connection-status.connecting .status-dot::before { color: #e3c985; background: #e3c985; }
 .text-button { text-decoration: underline; }
 .player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
 .player-card { min-height: 220px; border: 1px solid #2b3d41; padding: 22px; background: #121c20; }

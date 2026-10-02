@@ -7,5 +7,6 @@ coverage/
 .env.*
 !.env.example
 app/api/data/
+app/api/prisma/data/
 app/api/prisma/*.db
 app/api/prisma/*.db-journal

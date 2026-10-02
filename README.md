@@ -9,7 +9,7 @@ The project currently contains the application foundation and the game lobby sli
 - `app/web`: React, Vite, TypeScript, Tailwind CSS, shadcn/ui metadata, Zustand, and Socket.IO Client dependencies.
 - `app/api`: NestJS, Prisma, SQLite, and Socket.IO server dependencies with a `/health` endpoint, game creation/joining, persisted player sessions, lobby state, roles, and character assignments.
 
-Quest selection, game start, realtime Socket.IO synchronization, and gameplay rules are intentionally not implemented yet.
+Quest selection, game start, and gameplay rules are intentionally not implemented yet. The lobby now uses authenticated Socket.IO state synchronization and reconnect resync.
 
 ## Setup
 
@@ -37,7 +37,7 @@ npm run dev --workspace=@dbd-assistant/api
 
 The frontend runs on Vite's default port. The API listens on port `3000` by default and exposes `GET /health`.
 
-Create a room from the frontend, then open another browser tab and join with the displayed six-character code. The room owner can assign each player a role and matching character type. Lobby polling keeps both tabs updated until realtime synchronization is added in Step 3.
+Create a room from the frontend, then open another browser tab and join with the displayed six-character code. The room owner can assign each player a role and matching character type. Both tabs receive authoritative lobby state over Socket.IO, including after a temporary reconnect.
 
 ## Verification
 

@@ -5,7 +5,8 @@ function App() {
   const state = useGameStore((store) => store.state)
   const session = useGameStore((store) => store.session)
   const restoreSession = useGameStore((store) => store.restoreSession)
-  const refreshState = useGameStore((store) => store.refreshState)
+  const connectRealtime = useGameStore((store) => store.connectRealtime)
+  const disconnectRealtime = useGameStore((store) => store.disconnectRealtime)
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
@@ -14,9 +15,9 @@ function App() {
 
   useEffect(() => {
     if (!session) return
-    const interval = window.setInterval(() => void refreshState(), 2000)
-    return () => window.clearInterval(interval)
-  }, [refreshState, session])
+    connectRealtime()
+    return disconnectRealtime
+  }, [connectRealtime, disconnectRealtime, session])
 
   if (!isReady) return <div className="page-shell"><p className="eyebrow">DBD Assistant</p><p>Restoring session...</p></div>
   if (state && session) return <Lobby />
@@ -66,6 +67,7 @@ function Lobby() {
   const state = useGameStore((store) => store.state)!
   const session = useGameStore((store) => store.session)!
   const characterTypes = useGameStore((store) => store.characterTypes)
+  const connectionStatus = useGameStore((store) => store.connectionStatus)
   const error = useGameStore((store) => store.error)
   const clearSession = useGameStore((store) => store.clearSession)
   const assignRole = useGameStore((store) => store.assignRole)
@@ -88,7 +90,7 @@ function Lobby() {
   return (
     <main className="page-shell lobby-shell">
       <header className="lobby-header"><div><p className="eyebrow">Lobby / waiting room</p><h1>{state.name}</h1></div><div className="code-lockup"><span>Game code</span><strong>{state.code}</strong><button onClick={() => void copyCode()} type="button">{copyLabel}</button></div></header>
-      <div className="lobby-meta"><span>{state.players.length} player{state.players.length === 1 ? '' : 's'}</span><span className="status-dot">Open lobby</span><button className="text-button" onClick={clearSession} type="button">Leave room</button></div>
+      <div className="lobby-meta"><span>{state.players.length} player{state.players.length === 1 ? '' : 's'}</span><span className={`connection-status ${connectionStatus}`}><span className="status-dot" />{connectionStatus === 'connected' ? 'Live connection' : connectionStatus === 'connecting' ? 'Connecting...' : 'Connection unavailable'}</span><button className="text-button" onClick={clearSession} type="button">Leave room</button></div>
       {error && <p className="error-message">{error}</p>}
       <section className="player-grid">{state.players.map((player) => <PlayerCard key={player.id} player={player} isOwner={isOwner} characterTypes={characterTypes} onRoleChange={(role) => void assignRole(player.id, role)} onCharacterChange={(id) => void assignCharacter(player.id, id)} />)}</section>
       <footer className="lobby-footer"><span>{isOwner ? 'You are the room owner. Configure the team below.' : 'The room owner is configuring the team.'}</span><span>Game start arrives in the next step.</span></footer>
