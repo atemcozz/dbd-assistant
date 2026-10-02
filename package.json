@@ -1,0 +1,15 @@
+{
+  "name": "dbd-assistant",
+  "private": true,
+  "workspaces": [
+    "app/web",
+    "app/api"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "config:sync": "node -e \"console.error('Configuration synchronization is not implemented until the configuration slice.'); process.exit(1)\""
+  }
+}
