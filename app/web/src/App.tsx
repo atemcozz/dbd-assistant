@@ -1,6 +1,6 @@
-import { ArrowDown, ArrowUp, ClipboardList, Copy, KeyRound, LogOut, MapPin, Plus, Puzzle, Radio, Shield, Skull, Users, WifiOff, ChevronDown, ChevronUp } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
-import { loadCharacterTypes, loadQuestDefinitions, type GameQuest, type LobbyPlayer, type QuestDefinition, type Role, useGameStore } from './gameStore'
+import { AlertTriangle, ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, ClipboardList, Clock3, Copy, Heart, KeyRound, LogOut, MapPin, MessageSquare, Plus, Puzzle, Radio, Shield, Skull, Sparkles, Swords, Users, WifiOff, X } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { loadCharacterTypes, loadQuestDefinitions, type GameQuest, type LobbyPlayer, type LobbyState, type QuestDefinition, type Role, useGameStore } from './gameStore'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +30,7 @@ function App() {
   }, [connectRealtime, disconnectRealtime, session])
 
   if (!isReady) return <LoadingScreen />
+  if (state && session && state.status === 'RUNNING') return <GameScreen />
   if (state && session) return <Lobby />
   return <Home />
 }
@@ -84,6 +85,7 @@ function Lobby() {
   const assignRole = useGameStore((store) => store.assignRole)
   const assignCharacter = useGameStore((store) => store.assignCharacter)
   const selectQuests = useGameStore((store) => store.selectQuests)
+  const startGame = useGameStore((store) => store.startGame)
   const [copyLabel, setCopyLabel] = useState('Copy code')
   const [activeTab, setActiveTab] = useState('players')
   const [selectedQuestIds, setSelectedQuestIds] = useState(() => state.quests.map((quest) => quest.definition.id))
@@ -144,10 +146,113 @@ function Lobby() {
         <TabsContent value="players" className="mt-5"><section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{state.players.map((player) => <PlayerCard key={player.id} player={player} isOwner={isOwner} characterTypes={characterTypes} onRoleChange={(role) => void assignRole(player.id, role)} onCharacterChange={(id) => void assignCharacter(player.id, id)} />)}</section></TabsContent>
         {(isOwner || state.players.find((player) => player.id === session.playerId)?.role === 'KILLER' || state.status !== 'LOBBY') && <TabsContent value="quests" className="mt-5"><QuestPanel quests={state.quests} definitions={questDefinitions} killerLabels={killerLabels} isOwner={isOwner} selectedQuestIds={selectedQuestIds} onToggle={toggleQuest} onMove={moveQuest} /></TabsContent>}
       </Tabs>
-      <footer className="flex flex-col gap-2 py-6 text-sm text-slate-500 sm:flex-row sm:justify-between"><span>{isOwner ? 'You are the room owner. Configure the team below.' : 'The room owner is configuring the team.'}</span><span>Game start arrives in the next step.</span></footer>
+      <footer className="flex flex-col gap-3 py-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between"><span>{isOwner ? 'You are the room owner. Configure the team below.' : 'The room owner is configuring the team.'}</span>{isOwner ? <Button onClick={() => void startGame()}><Swords className="size-4" />Start game</Button> : <span>Waiting for the room owner to start.</span>}</footer>
       </div>
     </main>
   )
+}
+
+function GameScreen() {
+  const state = useGameStore((store) => store.state)!
+  const session = useGameStore((store) => store.session)!
+  const connectionStatus = useGameStore((store) => store.connectionStatus)
+  const error = useGameStore((store) => store.error)
+  const damagePlayer = useGameStore((store) => store.damagePlayer)
+  const completeQuest = useGameStore((store) => store.completeQuest)
+  const clearSession = useGameStore((store) => store.clearSession)
+  const currentPlayer = state.players.find((player) => player.id === session.playerId)!
+  const previousHealth = useRef(currentPlayer.health)
+  const [remainingSeconds, setRemainingSeconds] = useState(() => getRemainingSeconds(state.startedAt, state.durationSeconds))
+  const [modal, setModal] = useState<{ title: string; body: string; confirmLabel?: string; onConfirm?: () => void } | null>(null)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setRemainingSeconds(getRemainingSeconds(state.startedAt, state.durationSeconds)), 1000)
+    return () => window.clearInterval(timer)
+  }, [state.startedAt, state.durationSeconds])
+
+  useEffect(() => {
+    if (currentPlayer.health < previousHealth.current && currentPlayer.status !== 'DEAD') {
+      setModal({ title: 'You were damaged', body: `Your health is now ${currentPlayer.health}.` })
+    }
+    previousHealth.current = currentPlayer.health
+  }, [currentPlayer.health, currentPlayer.status])
+
+  if (currentPlayer.status === 'DEAD') return <DeathScreen onLeave={clearSession} />
+
+  const isKiller = currentPlayer.role === 'KILLER'
+  const survivors = state.players.filter((player) => player.role === 'SURVIVOR')
+
+  function confirmDamage(playerId: string, playerName: string) {
+    setModal({
+      title: 'Deal 1 damage?',
+      body: `Attack ${playerName}? This removes 1 HP.`,
+      confirmLabel: 'Deal damage',
+      onConfirm: () => {
+        setModal(null)
+        void damagePlayer(playerId)
+      },
+    })
+  }
+
+  return <main className="min-h-screen px-4 pb-8 pt-4 sm:px-8 lg:px-16">
+    <div className="mx-auto max-w-6xl">
+      <GameHeader state={state} player={currentPlayer} remainingSeconds={remainingSeconds} connectionStatus={connectionStatus} onLeave={clearSession} />
+      {error && <p className="my-3 text-sm text-rose-300">{error}</p>}
+      <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
+        <GamePlayers players={isKiller ? survivors : survivors.filter((player) => player.id !== currentPlayer.id)} isKiller={isKiller} onDamage={confirmDamage} />
+        <GameQuests quests={state.quests} isSurvivor={!isKiller} onComplete={(questId) => void completeQuest(questId)} />
+        <PlaceholderSection icon={<MessageSquare className="size-5" />} title="Chat" text={isKiller ? 'Chat is survivor-only.' : 'Survivor chat arrives in the next slice.'} />
+        <PlaceholderSection icon={<Sparkles className="size-5" />} title="Effects" text="Effects and abilities arrive in the next slice." />
+      </div>
+    </div>
+    {modal && <Modal {...modal} onClose={() => setModal(null)} />}
+  </main>
+}
+
+function GameHeader({ state, player, remainingSeconds, connectionStatus, onLeave }: { state: LobbyState; player: LobbyPlayer; remainingSeconds: number; connectionStatus: ReturnType<typeof useGameStore.getState>['connectionStatus']; onLeave: () => void }) {
+  return <header className="sticky top-0 z-20 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:-mx-8 sm:px-8 lg:-mx-16 lg:px-16"><div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4"><div className="min-w-0 flex-1"><p className="truncate font-display text-lg font-semibold text-foreground">{state.name}</p><p className="text-xs text-muted-foreground">{player.role === 'KILLER' ? 'Killer view' : 'Survivor view'} · {connectionStatus === 'connected' ? 'Live' : 'Connection unavailable'}</p></div><div className="flex items-center gap-3"><div className="flex items-center gap-1" aria-label={`${player.health} of ${player.maxHealth} health`}><HealthDisplay health={player.health} maxHealth={player.maxHealth} compact /></div><div className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-semibold tabular-nums"><Clock3 className="size-4 text-primary" />{formatTime(remainingSeconds)}</div><Button aria-label="Leave game" onClick={onLeave} size="icon" variant="ghost" title="Leave game"><LogOut className="size-4" /></Button></div></div></header>
+}
+
+function GamePlayers({ players, isKiller, onDamage }: { players: LobbyPlayer[]; isKiller: boolean; onDamage: (playerId: string, playerName: string) => void }) {
+  return <Card><CardHeader><CardTitle>Players</CardTitle><CardDescription>{isKiller ? 'Choose a survivor to attack.' : 'Your team status.'}</CardDescription></CardHeader><CardContent className="grid gap-3">{players.map((player) => <div key={player.id} className="flex items-center gap-3 rounded-md border border-border p-3"><div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">{player.role === 'KILLER' ? <Skull className="size-4" /> : <Shield className="size-4" />}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{player.name}</p><p className="text-xs text-muted-foreground">{player.characterType?.name ?? 'Unassigned'} · {player.status}</p></div><HealthDisplay health={player.health} maxHealth={player.maxHealth} />{isKiller && player.status === 'ALIVE' && <Button onClick={() => onDamage(player.id, player.name)} size="sm" variant="destructive"><Swords className="size-4" />Damage</Button>}</div>)}</CardContent></Card>
+}
+
+function GameQuests({ quests, isSurvivor, onComplete }: { quests: GameQuest[]; isSurvivor: boolean; onComplete: (questId: string) => void }) {
+  const completed = quests.filter((quest) => quest.status === 'COMPLETED').length
+  return <Card><CardHeader><div className="flex items-center justify-between gap-3"><div><CardTitle>Quests</CardTitle><CardDescription>{completed} of {quests.length} completed</CardDescription></div><Badge variant="secondary">{completed}/{quests.length}</Badge></div></CardHeader><CardContent className="grid gap-3">{quests.map((quest) => <GameQuestCard key={quest.id} quest={quest} isSurvivor={isSurvivor} onComplete={onComplete} />)}</CardContent></Card>
+}
+
+function GameQuestCard({ quest, isSurvivor, onComplete }: { quest: GameQuest; isSurvivor: boolean; onComplete: (questId: string) => void }) {
+  const [expanded, setExpanded] = useState(false)
+  const completed = quest.status === 'COMPLETED'
+  return <div className={cn('rounded-md border p-3 transition-colors', completed ? 'border-primary/60 bg-primary/10' : 'border-border bg-card')}><div className="flex items-center gap-3"><div className={cn('grid size-9 shrink-0 place-items-center rounded-md font-display font-bold', completed ? 'bg-primary text-primary-foreground' : 'bg-muted text-primary')}>{completed ? <Check className="size-4" /> : quest.number}</div><p className="min-w-0 flex-1 truncate text-sm font-medium">{quest.definition.name}</p><Button aria-label="Expand quest" onClick={() => setExpanded((value) => !value)} size="icon" variant="ghost" title={expanded ? 'Collapse quest' : 'Expand quest'}>{expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}</Button></div>{expanded && <div className="mt-3 grid gap-3 border-t border-border pt-3"><p className="text-sm leading-6 text-muted-foreground">{quest.definition.description}</p>{isSurvivor && !completed && <Button onClick={() => onComplete(quest.id)} size="sm"><Check className="size-4" />Mark completed</Button>}{completed && <Badge>Completed</Badge>}</div>}</div>
+}
+
+function PlaceholderSection({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+  return <Card><CardHeader><CardTitle className="flex items-center gap-2">{icon}{title}</CardTitle><CardDescription>{text}</CardDescription></CardHeader><CardContent><div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Coming soon</div></CardContent></Card>
+}
+
+function HealthDisplay({ health, maxHealth, compact = false }: { health: number; maxHealth: number; compact?: boolean }) {
+  return <span className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums">{maxHealth <= 6 ? Array.from({ length: maxHealth }, (_, index) => <Heart key={index} className={cn('size-4', index < health ? 'fill-rose-400 text-rose-400' : 'text-muted-foreground')} />) : <><span>{health}/{maxHealth}</span><Heart className="size-4 fill-rose-400 text-rose-400" /></>}{compact && maxHealth <= 6 && <span className="sr-only">{health} of {maxHealth}</span>}</span>
+}
+
+function Modal({ title, body, confirmLabel, onConfirm, onClose }: { title: string; body: string; confirmLabel?: string; onConfirm?: () => void; onClose: () => void }) {
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/75 p-4 backdrop-blur-sm"><Card className="w-full max-w-md border-border shadow-2xl"><CardHeader><div className="flex items-start justify-between gap-4"><CardTitle className="flex items-center gap-2"><AlertTriangle className="size-5 text-primary" />{title}</CardTitle><Button aria-label="Close modal" onClick={onClose} size="icon" variant="ghost"><X className="size-4" /></Button></div><CardDescription>{body}</CardDescription></CardHeader><CardContent className="flex justify-end gap-2"><Button onClick={onClose} variant="outline">Cancel</Button>{onConfirm && <Button onClick={onConfirm} variant="destructive">{confirmLabel ?? 'OK'}</Button>}</CardContent></Card></div>
+}
+
+function DeathScreen({ onLeave }: { onLeave: () => void }) {
+  return <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-center"><div className="max-w-md"><Skull className="mx-auto size-16 text-destructive" /><h1 className="mt-6 font-display text-5xl font-semibold text-foreground">You are dead</h1><p className="mt-4 text-muted-foreground">Your role in the physical trial has ended.</p><Button className="mt-8" onClick={onLeave} variant="outline">Leave game</Button></div></main>
+}
+
+function getRemainingSeconds(startedAt: string | null, durationSeconds: number) {
+  if (!startedAt) return durationSeconds
+  return Math.max(0, durationSeconds - Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
+}
+
+function formatTime(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0')
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0')
+  return `${minutes}:${seconds}`
 }
 
 function QuestPanel({ quests, definitions, killerLabels, isOwner, selectedQuestIds, onToggle, onMove }: { quests: GameQuest[]; definitions: QuestDefinition[]; killerLabels: Record<string, string | null | undefined>; isOwner: boolean; selectedQuestIds: string[]; onToggle: (id: string) => void; onMove: (id: string, direction: number) => void }) {
@@ -163,7 +268,6 @@ function QuestPanel({ quests, definitions, killerLabels, isOwner, selectedQuestI
     {isOwner && <Card><CardHeader><CardTitle>Quest selection</CardTitle><CardDescription>Choose objectives before the game starts. Adding or removing a quest pins it immediately.</CardDescription></CardHeader><CardContent className="grid gap-7">
       <QuestDefinitionGroup title="Killer-specific quests" definitions={killerDefinitions} killerLabels={killerLabels} selectedQuestIds={selectedQuestIds} onToggle={onToggle} />
     <QuestDefinitionGroup title="Universal quests" definitions={universalDefinitions} killerLabels={killerLabels} selectedQuestIds={selectedQuestIds} onToggle={onToggle} />
-     <QuestDefinitionGroup title="Universal quests" definitions={universalDefinitions} killerLabels={killerLabels} selectedQuestIds={selectedQuestIds} onToggle={onToggle} />
     </CardContent></Card>}
   </div>
 }

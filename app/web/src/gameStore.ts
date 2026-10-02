@@ -33,6 +33,8 @@ export type LobbyState = {
   status: 'LOBBY' | 'RUNNING' | 'FINISHED'
   ownerPlayerId: string
   createdAt: string
+  startedAt: string | null
+  durationSeconds: number
   players: LobbyPlayer[]
   quests: GameQuest[]
   currentPlayerId?: string
@@ -74,6 +76,9 @@ type GameStore = {
   assignRole: (playerId: string, role: Role) => Promise<void>
   assignCharacter: (playerId: string, characterTypeId: string) => Promise<void>
   selectQuests: (questDefinitionIds: string[]) => Promise<void>
+  startGame: () => Promise<void>
+  damagePlayer: (playerId: string) => Promise<void>
+  completeQuest: (questId: string) => Promise<void>
   connectRealtime: () => void
   disconnectRealtime: () => void
   requestRealtimeState: () => void
@@ -225,6 +230,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     })
     await questMutationQueue
+  },
+
+  startGame: async () => {
+    const { session } = get()
+    if (!session) return
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/start`, { method: 'POST' }, session.sessionToken)
+      set({ state, error: null })
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Could not start game' })
+    }
+  },
+
+  damagePlayer: async (playerId) => {
+    const { session } = get()
+    if (!session) return
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/players/${playerId}/damage`, { method: 'POST' }, session.sessionToken)
+      set({ state, error: null })
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Could not damage player' })
+    }
+  },
+
+  completeQuest: async (questId) => {
+    const { session } = get()
+    if (!session) return
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/quests/${questId}/complete`, { method: 'POST' }, session.sessionToken)
+      set({ state, error: null })
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Could not complete quest' })
+    }
   },
 
   connectRealtime: () => {

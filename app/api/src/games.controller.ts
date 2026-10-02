@@ -58,6 +58,24 @@ export class GamesController {
     return state
   }
 
+  @Post('games/:code/start')
+  async startGame(@Param('code') code: string, @Headers('x-session-token') sessionToken: string) {
+    const state = await this.gamesService.startGame(code, sessionToken)
+    await this.gameGateway.broadcastGameState(state.id)
+    return state
+  }
+
+  @Post('games/:code/players/:playerId/damage')
+  async damagePlayer(
+    @Param('code') code: string,
+    @Param('playerId') playerId: string,
+    @Headers('x-session-token') sessionToken: string,
+  ) {
+    const state = await this.gamesService.damagePlayer(code, playerId, sessionToken)
+    await this.gameGateway.broadcastGameState(state.id)
+    return state
+  }
+
   @Patch('games/:code/players/:playerId/role')
   async assignRole(
     @Param('code') code: string,

@@ -9,7 +9,7 @@ The project currently contains the application foundation and the game lobby sli
 - `app/web`: React, Vite, TypeScript, Tailwind CSS, shadcn/ui metadata, Zustand, and Socket.IO Client dependencies.
 - `app/api`: NestJS, Prisma, SQLite, and Socket.IO server dependencies with a `/health` endpoint, game creation/joining, persisted player sessions, lobby state, roles, and character assignments.
 
-Game start and gameplay rules are intentionally not implemented yet. The lobby now uses authenticated Socket.IO state synchronization and reconnect resync. Quest definitions live in `config/quests.json`; owners select and number them in the lobby's separate Quests tab.
+Gameplay rules are intentionally still small. The owner can start a running game from the lobby; the game screen now includes role-specific players, HP, a remaining-time timer, quests, attack controls, damage/death handling, and placeholders for chat/effects. The lobby uses authenticated Socket.IO state synchronization and reconnect resync. Quest definitions live in `config/quests.json`; owners select and number them in the lobby's separate Quests tab.
 
 ## Setup
 

@@ -175,6 +175,36 @@ export class GamesService {
     return this.getState(code, sessionToken)
   }
 
+  async startGame(codeInput: string, sessionToken: string) {
+    const game = await this.authorizeOwner(codeInput, sessionToken)
+    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
+    await this.prisma.game.update({
+      where: { id: game.id },
+      data: { status: 'RUNNING', startedAt: new Date() },
+    })
+    return this.getState(game.code, sessionToken)
+  }
+
+  async damagePlayer(codeInput: string, targetPlayerId: string, sessionToken: string) {
+    const code = this.requiredText(codeInput, 'Game code').toUpperCase()
+    const source = await this.prisma.player.findUnique({ where: { sessionToken } })
+    if (!source) throw new NotFoundException('PLAYER_NOT_FOUND')
+    if (source.role !== PlayerRole.KILLER) throw new ConflictException('ONLY_KILLERS_CAN_ATTACK')
+    const game = await this.prisma.game.findUnique({ where: { code } })
+    if (!game || game.id !== source.gameId) throw new NotFoundException('GAME_NOT_FOUND')
+    if (game.status !== 'RUNNING') throw new ConflictException('GAME_NOT_RUNNING')
+    const target = await this.prisma.player.findFirst({ where: { id: targetPlayerId, gameId: game.id } })
+    if (!target) throw new NotFoundException('PLAYER_NOT_FOUND')
+    if (target.role !== PlayerRole.SURVIVOR) throw new ConflictException('KILLERS_CANNOT_DAMAGE_KILLERS')
+    if (target.status !== 'ALIVE') throw new ConflictException('PLAYER_NOT_ACTIVE')
+    const health = Math.max(0, target.health - 1)
+    await this.prisma.player.update({
+      where: { id: target.id },
+      data: { health, status: health === 0 ? 'DEAD' : 'ALIVE' },
+    })
+    return this.getState(code, sessionToken)
+  }
+
   async getState(codeInput: string, sessionToken?: string): Promise<LobbyState & { currentPlayerId?: string }> {
     const code = codeInput.toUpperCase()
     const game = await this.prisma.game.findUnique({
