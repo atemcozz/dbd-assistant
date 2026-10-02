@@ -86,9 +86,12 @@ function Lobby() {
   const assignCharacter = useGameStore((store) => store.assignCharacter)
   const selectQuests = useGameStore((store) => store.selectQuests)
   const startGame = useGameStore((store) => store.startGame)
+  const updateSettings = useGameStore((store) => store.updateSettings)
   const [copyLabel, setCopyLabel] = useState('Copy code')
   const [activeTab, setActiveTab] = useState('players')
   const [selectedQuestIds, setSelectedQuestIds] = useState(() => state.quests.map((quest) => quest.definition.id))
+  const [durationMinutes, setDurationMinutes] = useState(Math.round(state.durationSeconds / 60))
+  const [requiredQuestCount, setRequiredQuestCount] = useState(state.requiredQuestCount)
   const isOwner = state.ownerPlayerId === session.playerId
   const killerLabels = Object.fromEntries(state.players.filter((player) => player.role === 'KILLER' && player.characterType).map((player) => [player.characterTypeId, player.characterType?.name ?? player.characterTypeId]))
 
@@ -146,7 +149,7 @@ function Lobby() {
         <TabsContent value="players" className="mt-5"><section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{state.players.map((player) => <PlayerCard key={player.id} player={player} isOwner={isOwner} characterTypes={characterTypes} onRoleChange={(role) => void assignRole(player.id, role)} onCharacterChange={(id) => void assignCharacter(player.id, id)} />)}</section></TabsContent>
         {(isOwner || state.players.find((player) => player.id === session.playerId)?.role === 'KILLER' || state.status !== 'LOBBY') && <TabsContent value="quests" className="mt-5"><QuestPanel quests={state.quests} definitions={questDefinitions} killerLabels={killerLabels} isOwner={isOwner} selectedQuestIds={selectedQuestIds} onToggle={toggleQuest} onMove={moveQuest} /></TabsContent>}
       </Tabs>
-      <footer className="flex flex-col gap-3 py-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between"><span>{isOwner ? 'You are the room owner. Configure the team below.' : 'The room owner is configuring the team.'}</span>{isOwner ? <Button onClick={() => void startGame()}><Swords className="size-4" />Start game</Button> : <span>Waiting for the room owner to start.</span>}</footer>
+      <footer className="flex flex-col gap-4 py-6 text-sm text-slate-500"><div className="flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-end">{isOwner ? <><div className="grid gap-2"><Label htmlFor="duration-minutes">Game minutes</Label><Input id="duration-minutes" type="number" min={1} max={1440} value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))} /></div><div className="grid gap-2"><Label htmlFor="required-quests">Required quests</Label><Input id="required-quests" type="number" min={0} max={100} value={requiredQuestCount} onChange={(event) => setRequiredQuestCount(Number(event.target.value))} /></div><Button onClick={() => void updateSettings(durationMinutes * 60, requiredQuestCount)}>Save settings</Button><Button className="sm:ml-auto" onClick={() => void startGame()}><Swords className="size-4" />Start game</Button></> : <span>Waiting for the room owner to configure and start.</span>}</div></footer>
       </div>
     </main>
   )
@@ -159,11 +162,13 @@ function GameScreen() {
   const error = useGameStore((store) => store.error)
   const damagePlayer = useGameStore((store) => store.damagePlayer)
   const completeQuest = useGameStore((store) => store.completeQuest)
+  const sendChat = useGameStore((store) => store.sendChat)
   const clearSession = useGameStore((store) => store.clearSession)
   const currentPlayer = state.players.find((player) => player.id === session.playerId)!
   const previousHealth = useRef(currentPlayer.health)
   const [remainingSeconds, setRemainingSeconds] = useState(() => getRemainingSeconds(state.startedAt, state.durationSeconds))
   const [modal, setModal] = useState<{ title: string; body: string; confirmLabel?: string; onConfirm?: () => void } | null>(null)
+  const [activeTab, setActiveTab] = useState<'status' | 'quests' | 'players' | 'chat' | 'effects'>('status')
 
   useEffect(() => {
     const timer = window.setInterval(() => setRemainingSeconds(getRemainingSeconds(state.startedAt, state.durationSeconds)), 1000)
@@ -198,15 +203,26 @@ function GameScreen() {
     <div className="mx-auto max-w-6xl">
       <GameHeader state={state} player={currentPlayer} remainingSeconds={remainingSeconds} connectionStatus={connectionStatus} onLeave={clearSession} />
       {error && <p className="my-3 text-sm text-rose-300">{error}</p>}
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
-        <GamePlayers players={isKiller ? survivors : survivors.filter((player) => player.id !== currentPlayer.id)} isKiller={isKiller} onDamage={confirmDamage} />
-        <GameQuests quests={state.quests} isSurvivor={!isKiller} onComplete={(questId) => void completeQuest(questId)} />
-        <PlaceholderSection icon={<MessageSquare className="size-5" />} title="Chat" text={isKiller ? 'Chat is survivor-only.' : 'Survivor chat arrives in the next slice.'} />
-        <PlaceholderSection icon={<Sparkles className="size-5" />} title="Effects" text="Effects and abilities arrive in the next slice." />
-      </div>
+      {state.exitsUnlocked && <Card className="mt-5 border-primary bg-primary/10"><CardContent className="flex items-center gap-3 p-4 text-sm font-semibold text-primary"><Sparkles className="size-5" />Required quests complete. Survivors should proceed toward the exits.</CardContent></Card>}
+      <Tabs className="mt-5" value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}><TabsList className="grid h-auto w-full grid-cols-3 gap-1 sm:grid-cols-5"><TabsTrigger value="status">Game</TabsTrigger><TabsTrigger value="quests">Quests</TabsTrigger><TabsTrigger value="players">Players</TabsTrigger>{!isKiller && <TabsTrigger value="chat">Chat</TabsTrigger>}<TabsTrigger value="effects">Effects</TabsTrigger></TabsList>
+        <TabsContent value="status" className="mt-5"><GameStatusPanel player={currentPlayer} isKiller={isKiller} /></TabsContent>
+        <TabsContent value="quests" className="mt-5"><GameQuests quests={state.quests} isSurvivor={!isKiller} onComplete={(questId) => setModal({ title: 'Complete quest?', body: 'This quest completion cannot be undone.', confirmLabel: 'Complete quest', onConfirm: () => { setModal(null); void completeQuest(questId) } })} /></TabsContent>
+        <TabsContent value="players" className="mt-5"><GamePlayers players={isKiller ? survivors : survivors.filter((player) => player.id !== currentPlayer.id)} isKiller={isKiller} onDamage={confirmDamage} /></TabsContent>
+        {!isKiller && <TabsContent value="chat" className="mt-5"><ChatSection messages={state.chatMessages} onSend={(text) => void sendChat(text)} /></TabsContent>}
+        <TabsContent value="effects" className="mt-5"><PlaceholderSection icon={<Sparkles className="size-5" />} title="Effects" text="Effects and abilities arrive in the next slice." /></TabsContent>
+      </Tabs>
     </div>
     {modal && <Modal {...modal} onClose={() => setModal(null)} />}
   </main>
+}
+
+function GameStatusPanel({ player, isKiller }: { player: LobbyPlayer; isKiller: boolean }) {
+  return <Card><CardHeader><CardTitle>Game status</CardTitle><CardDescription>{isKiller ? 'Control the pressure and watch survivor status.' : 'Keep moving through the physical venue.'}</CardDescription></CardHeader><CardContent className="grid gap-4"><div className="rounded-md border border-border p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">Your role</p><p className="mt-1 font-display text-2xl font-semibold">{player.characterType?.name ?? player.role}</p><div className="mt-3"><HealthDisplay health={player.health} maxHealth={player.maxHealth} /></div></div></CardContent></Card>
+}
+
+function ChatSection({ messages, onSend }: { messages: LobbyState['chatMessages']; onSend: (text: string) => void }) {
+  const [text, setText] = useState('')
+  return <Card><CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare className="size-5" />Survivor chat</CardTitle><CardDescription>Only alive survivors can send or read messages.</CardDescription></CardHeader><CardContent className="grid gap-4"><div className="max-h-80 space-y-3 overflow-y-auto">{messages.length === 0 ? <p className="text-sm text-muted-foreground">No messages yet.</p> : messages.map((message) => <div key={message.id} className="rounded-md bg-muted/50 p-3"><p className="text-xs font-semibold">{message.playerStatus === 'DEAD' ? '[DEAD] ' : ''}{message.playerName}</p><p className="mt-1 text-sm">{message.text}</p></div>)}</div><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); if (!text.trim()) return; onSend(text.trim()); setText('') }}><Input value={text} onChange={(event) => setText(event.target.value)} placeholder="Message survivors" maxLength={500} /><Button type="submit">Send</Button></form></CardContent></Card>
 }
 
 function GameHeader({ state, player, remainingSeconds, connectionStatus, onLeave }: { state: LobbyState; player: LobbyPlayer; remainingSeconds: number; connectionStatus: ReturnType<typeof useGameStore.getState>['connectionStatus']; onLeave: () => void }) {

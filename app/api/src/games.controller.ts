@@ -65,6 +65,20 @@ export class GamesController {
     return state
   }
 
+  @Patch('games/:code/settings')
+  async updateSettings(@Param('code') code: string, @Headers('x-session-token') sessionToken: string, @Body() body: Record<string, unknown>) {
+    const state = await this.gamesService.updateSettings(code, sessionToken, body)
+    await this.gameGateway.broadcastGameState(state.id)
+    return state
+  }
+
+  @Post('games/:code/chat')
+  async sendChat(@Param('code') code: string, @Headers('x-session-token') sessionToken: string, @Body() body: Record<string, unknown>) {
+    const state = await this.gamesService.sendChat(code, sessionToken, body)
+    await this.gameGateway.broadcastGameState(state.id)
+    return state
+  }
+
   @Post('games/:code/players/:playerId/damage')
   async damagePlayer(
     @Param('code') code: string,

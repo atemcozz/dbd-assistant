@@ -1,4 +1,4 @@
-import type { CharacterType, Game, GameQuest, QuestDefinition, Player } from '@prisma/client'
+import type { CharacterType, ChatMessage, Game, GameQuest, QuestDefinition, Player } from '@prisma/client'
 
 export type LobbyPlayer = Pick<
   Player,
@@ -10,7 +10,14 @@ export type LobbyPlayer = Pick<
 export type LobbyState = Pick<Game, 'id' | 'code' | 'name' | 'status' | 'ownerPlayerId' | 'createdAt'> & {
   players: LobbyPlayer[]
   quests: GameQuestView[]
+  startedAt: Date | null
+  durationSeconds: number
+  requiredQuestCount: number
+  exitsUnlocked: boolean
+  chatMessages: ChatMessageView[]
 }
+
+export type ChatMessageView = Pick<ChatMessage, 'id' | 'text' | 'createdAt' | 'playerId'> & { playerName: string; playerStatus: Player['status'] }
 
 export type GameQuestView = Pick<GameQuest, 'id' | 'number' | 'status' | 'completedBy' | 'completedAt'> & {
   definition: Pick<QuestDefinition, 'id' | 'name' | 'description' | 'type' | 'radius' | 'settings' | 'killerCharacterTypeId'>

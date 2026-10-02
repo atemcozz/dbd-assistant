@@ -26,6 +26,8 @@ type PersistedQuest = {
   completedAt: Date | null
   questDefinition: Omit<QuestConfig, 'settings'> & { settings: string }
 }
+type SettingsInput = { durationSeconds?: unknown; requiredQuestCount?: unknown }
+type ChatInput = { text?: unknown }
 
 const characterDefinitions = [
   {
@@ -185,6 +187,28 @@ export class GamesService {
     return this.getState(game.code, sessionToken)
   }
 
+  async updateSettings(codeInput: string, sessionToken: string, input: SettingsInput) {
+    const game = await this.authorizeOwner(codeInput, sessionToken)
+    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
+    const durationSeconds = this.optionalInteger(input.durationSeconds, game.durationSeconds, 60, 86400)
+    const requiredQuestCount = this.optionalInteger(input.requiredQuestCount, game.requiredQuestCount, 0, 100)
+    await this.prisma.game.update({ where: { id: game.id }, data: { durationSeconds, requiredQuestCount } })
+    return this.getState(game.code, sessionToken)
+  }
+
+  async sendChat(codeInput: string, sessionToken: string, input: ChatInput) {
+    const code = this.requiredText(codeInput, 'Game code').toUpperCase()
+    const player = await this.prisma.player.findUnique({ where: { sessionToken } })
+    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
+    if (player.role !== PlayerRole.SURVIVOR || player.status !== 'ALIVE') throw new ForbiddenException('SURVIVOR_CHAT_RESTRICTED')
+    const game = await this.prisma.game.findUnique({ where: { code } })
+    if (!game || game.id !== player.gameId) throw new NotFoundException('GAME_NOT_FOUND')
+    if (game.status !== 'RUNNING') throw new ConflictException('GAME_NOT_RUNNING')
+    const text = this.requiredText(input.text, 'Message')
+    await this.prisma.chatMessage.create({ data: { gameId: game.id, playerId: player.id, text: text.slice(0, 500) } })
+    return this.getState(code, sessionToken)
+  }
+
   async damagePlayer(codeInput: string, targetPlayerId: string, sessionToken: string) {
     const code = this.requiredText(codeInput, 'Game code').toUpperCase()
     const source = await this.prisma.player.findUnique({ where: { sessionToken } })
@@ -212,10 +236,11 @@ export class GamesService {
       include: {
         players: { include: { characterType: true }, orderBy: { createdAt: 'asc' } },
         quests: { include: { questDefinition: true }, orderBy: { number: 'asc' } },
+        chatMessages: { include: { player: true }, orderBy: { createdAt: 'asc' }, take: 100 },
       },
     })
     if (!game) throw new NotFoundException('GAME_NOT_FOUND')
-    const { players, quests, ...gameState } = game
+    const { players, quests, chatMessages, ...gameState } = game
     const viewer = sessionToken ? players.find((player) => player.sessionToken === sessionToken) : undefined
     const canSeeQuests = game.status !== 'LOBBY' || viewer?.role === PlayerRole.KILLER || viewer?.id === game.ownerPlayerId
     return {
@@ -231,6 +256,8 @@ export class GamesService {
         characterType,
       })),
       quests: canSeeQuests ? this.filterQuests(quests) : [],
+      exitsUnlocked: quests.filter((quest) => quest.status === QuestStatus.COMPLETED).length >= game.requiredQuestCount,
+      chatMessages: viewer?.role === PlayerRole.SURVIVOR ? chatMessages.map((message) => ({ id: message.id, text: message.text, createdAt: message.createdAt, playerId: message.playerId, playerName: message.player.name, playerStatus: message.player.status })) : [],
       ...(sessionToken ? { currentPlayerId: players.find((player) => player.sessionToken === sessionToken)?.id } : {}),
     }
   }
@@ -357,6 +384,12 @@ export class GamesService {
       throw new BadRequestException(`${label} is required`)
     }
     return value.trim()
+  }
+
+  private optionalInteger(value: unknown, fallback: number, minimum: number, maximum: number) {
+    if (value === undefined) return fallback
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum || value > maximum) throw new BadRequestException('INVALID_GAME_SETTING')
+    return value
   }
 
   private parseRole(value: unknown): PlayerRole {

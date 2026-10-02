@@ -38,8 +38,10 @@ model Game {
   createdAt     DateTime   @default(now())
   startedAt     DateTime?
   durationSeconds Int       @default(3600)
+  requiredQuestCount Int    @default(0)
   players       Player[]
   quests        GameQuest[]
+  chatMessages  ChatMessage[]
 }
 
 model QuestDefinition {
@@ -82,8 +84,21 @@ model Player {
   maxHealth       Int           @default(1)
   status          PlayerStatus  @default(ALIVE)
   createdAt       DateTime      @default(now())
+  chatMessages    ChatMessage[]
 
   @@index([gameId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  gameId    String
+  game      Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId  String
+  player    Player @relation(fields: [playerId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([gameId, createdAt])
 }
 
 model CharacterType {
