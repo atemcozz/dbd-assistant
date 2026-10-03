@@ -104,10 +104,10 @@ function GameQuestCard({
           : 'border-border bg-card',
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <div
           className={cn(
-            'grid size-9 shrink-0 place-items-center rounded-md font-display font-bold',
+            'grid size-8 shrink-0 place-items-center rounded-md font-display font-bold sm:size-9',
             completed
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-primary',
@@ -118,7 +118,7 @@ function GameQuestCard({
         <p className="min-w-0 flex-1 truncate text-sm font-medium">
           {quest.definition.name}
         </p>
-        <Badge variant="secondary" className="shrink-0 text-xs">
+        <Badge variant="secondary" className="shrink-0 text-xs hidden sm:flex">
           {quest.definition.cost} очков
         </Badge>
         <Button
@@ -133,6 +133,9 @@ function GameQuestCard({
       </div>
       {expanded && (
         <div className="mt-3 grid gap-3 border-t border-border pt-3">
+           <p className="min-w-0 flex-1 truncate text-sm font-medium">
+          {quest.definition.name}
+        </p>
           <p className="text-sm leading-6 text-muted-foreground">
             {quest.definition.description}
           </p>

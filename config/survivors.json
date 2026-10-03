@@ -36,7 +36,7 @@
         "charges": null
       },
       {
-        "effectId": "force-shout",
+        "effectId": "killer-breath",
         "charges": null
       }
     ]
@@ -55,10 +55,6 @@
       {
         "effectId": "field-dressing",
         "charges": null
-      },
-      {
-        "effectId": "no-turning",
-        "charges": null
       }
     ]
   },
@@ -75,10 +71,6 @@
       },
       {
         "effectId": "killer-breath",
-        "charges": null
-      },
-      {
-        "effectId": "forced-room",
         "charges": null
       }
     ]

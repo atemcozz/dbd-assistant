@@ -1510,7 +1510,7 @@ describe('Game logic', () => {
   })
 
   describe('Game end conditions', () => {
-    it('startGame with no survivors finishes immediately with killer win', async () => {
+    it('startGame with no survivors starts normally (no instant killer win)', async () => {
       const owner = await gamesService.createGame('No Survivors', 'KillerOnly')
 
       await gamesService.updateSettings(
@@ -1542,8 +1542,10 @@ describe('Game logic', () => {
         owner.sessionToken,
       )
 
-      expect(state.status).toBe(GameStatus.FINISHED)
-      expect(state.winner).toBe('KILLER')
+      // Killer wins only when every survivor is dead — a game with no
+      // survivors at all is a misconfigured lobby, not a win.
+      expect(state.status).toBe(GameStatus.RUNNING)
+      expect(state.winner).toBeNull()
     })
 
     it('timeout with survivors still alive is a draw — both lose', async () => {
@@ -1648,7 +1650,7 @@ describe('Game logic', () => {
       expect(ownerPlayer?.status).toBe(PlayerStatus.DEAD)
     })
 
-    it('all survivors disconnected finishes the game with killer win', async () => {
+    it('survivor disconnect does not win the game for the killer', async () => {
       const { owner, survivor } = await setupRunningGame()
 
       await prisma.player.update({
@@ -1661,8 +1663,10 @@ describe('Game logic', () => {
         survivor.sessionToken,
       )
 
-      expect(state.status).toBe(GameStatus.FINISHED)
-      expect(state.winner).toBe('KILLER')
+      // Killer wins only when every survivor is DEAD — a disconnect
+      // (phone reload, bad signal) must not decide the game.
+      expect(state.status).toBe(GameStatus.RUNNING)
+      expect(state.winner).toBeNull()
     })
 
     it('actions still work after the game officially finishes', async () => {

@@ -33,9 +33,9 @@ export function GamePlayers({
         {players.map((player) => (
           <div
             key={player.id}
-            className="flex items-center gap-3 rounded-md border border-border p-3"
+            className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3"
           >
-            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+            <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary sm:size-9">
               {player.status === 'ESCAPED' ? (
                 <DoorOpen className="size-4 text-success" />
               ) : player.role === 'KILLER' ? (
@@ -44,9 +44,9 @@ export function GamePlayers({
                 <Shield className="size-4" />
               )}
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-32">
               <p className="truncate text-sm font-medium">{player.name}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 {player.characterType?.name ?? 'Не назначен'} ·{' '}
                 {player.status}
 

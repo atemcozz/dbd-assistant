@@ -87,6 +87,30 @@ async function main() {
           `Character ${character.id} references unknown effect ${item.effectId}`,
         )
       }
+
+      const effect = effectsJson.find((e) => e.id === item.effectId)!
+
+      // Killers must never own killer-targeting effects (stun-killer,
+      // killer-breath) — otherwise one killer could stun another killer.
+      if (
+        character.role === 'KILLER' &&
+        effect.allowedTargets.includes('KILLER')
+      ) {
+        throw new Error(
+          `Killer ${character.id} references killer-targeting effect ${item.effectId}`,
+        )
+      }
+
+      // Group effects (ALL_SURVIVORS) are killer-only by server rule —
+      // linking one to a survivor would just make it unusable.
+      if (
+        character.role === 'SURVIVOR' &&
+        effect.allowedTargets.includes('ALL_SURVIVORS')
+      ) {
+        throw new Error(
+          `Survivor ${character.id} references killer-only group effect ${item.effectId}`,
+        )
+      }
     }
   }
 

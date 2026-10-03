@@ -386,6 +386,12 @@ export class EffectsService {
       target.role === PlayerRole.KILLER &&
       allowedTargets.includes('KILLER')
     ) {
+      // Killer-targeting effects (stun-killer, killer-breath) belong to
+      // survivors. A killer must never be able to target another killer,
+      // even if a config mistake links a killer to such an effect.
+      if (sourceRole !== PlayerRole.SURVIVOR) {
+        throw new ForbiddenException('KILLERS_CANNOT_TARGET_KILLERS')
+      }
       return [target]
     }
 

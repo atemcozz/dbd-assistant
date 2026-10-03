@@ -267,7 +267,7 @@ export function Lobby() {
           value={activeTab}
           onValueChange={setActiveTab}
         >
-          <TabsList className="grid h-11 w-full max-w-2xl grid-cols-2 sm:grid-cols-5">
+          <TabsList className="grid h-auto w-full max-w-2xl grid-cols-2 gap-1 sm:grid-cols-5">
             <TabsTrigger value="players">[ Игроки ]</TabsTrigger>
             {canSeeQuestsTab && (
               <TabsTrigger value="quests">
@@ -382,14 +382,14 @@ export function Lobby() {
           )}
         </Tabs>
         <footer className="flex flex-col gap-4 py-6 text-sm text-muted-foreground">
-          <div className="flex items-center justify-between rounded-md border border-border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-4">
             {isOwner ? (
               <>
                 <span>
                   {durationMinutes} мин. · {requiredQuestPoints} очков для выходов ·{' '}
                   {state.exits.length} выходов
                 </span>
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex w-full flex-col items-start gap-1 sm:w-auto sm:items-end">
                   {!hasExits && (
                     <span className="text-xs font-semibold text-destructive">
                       Выберите хотя бы один выход

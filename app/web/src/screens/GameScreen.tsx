@@ -335,7 +335,7 @@ export function GameScreen() {
              <TabsTrigger value="effects" className="relative">
               [ Эффекты ]
               {activeEffectCount > 0 && (
-                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1 text-xs font-bold text-warning-foreground animate-pulse">
+                <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground animate-pulse sm:ml-1 sm:h-5 sm:min-w-5 sm:text-xs">
                   {activeEffectCount}
                 </span>
               )}

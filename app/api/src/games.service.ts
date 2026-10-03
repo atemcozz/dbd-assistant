@@ -192,22 +192,9 @@ export class GamesService {
       },
     })
 
-    // No survivors in the room — nothing to hunt or save. End immediately
-    // so the client can show the same end-game modal as a timeout win.
-    const survivorCount = await this.prisma.player.count({
-      where: { gameId: game.id, role: PlayerRole.SURVIVOR },
-    })
-
-    if (survivorCount === 0) {
-      await this.prisma.game.update({
-        where: { id: game.id },
-        data: {
-          status: GameStatus.FINISHED,
-          finishedAt: new Date(),
-          winner: 'KILLER',
-        },
-      })
-    }
+    // A game with no survivors is a misconfigured lobby, but it is NOT an
+    // instant killer win — the killer only wins when every survivor is dead.
+    // The game simply runs until the timeout (draw) or the owner finishes it.
 
     return this.getState(game.code, sessionToken)
   }
@@ -578,8 +565,11 @@ async getStateById(
 
   // Win conditions that can fire mid-game (not only on timeout):
   // - every survivor has escaped → survivors win;
-  // - no survivors left alive (all dead or left the room) → killer wins;
-  // - no killers left in the room (dead/disconnected) → survivors win.
+  // - every survivor is dead → killer wins;
+  // - every killer is dead → survivors win.
+  // Disconnects never decide a game. A player who only reloaded their
+  // phone comes back ALIVE on reconnect, so a temporary network loss
+  // must not award a win to anyone.
   // Called from getState after actions that change player status.
   async finishIfDecided(gameId: string) {
     const game = await this.prisma.game.findUnique({
@@ -614,13 +604,16 @@ async getStateById(
       return
     }
 
-    // No survivors left alive (all dead or disconnected) — killer wins.
-    // Covers killing the last survivor mid-game, not only the clock running out.
-    const survivorsInRoom = survivors.filter(
-      (s) => s.status === PlayerStatus.ALIVE,
-    )
-
-    if (survivors.length > 0 && survivorsInRoom.length === 0) {
+    // Every survivor is dead — killer wins. Covers killing the last
+    // survivor mid-game, not only the clock running out.
+    // DISCONNECTED deliberately does not count: a survivor who only
+    // reloaded their phone must not hand the killer a free win.
+    // (A mix of escaped and dead survivors never gives the killer a win —
+    // the escaped ones are still in the game as survivors.)
+    if (
+      survivors.length > 0 &&
+      survivors.every((s) => s.status === PlayerStatus.DEAD)
+    ) {
       await this.prisma.game.update({
         where: { id: gameId },
         data: {
@@ -632,13 +625,10 @@ async getStateById(
       return
     }
 
-    // Killers existed but none remain in the room — survivors win.
+    // Every killer is dead — survivors win. Same rule as above:
+    // a killer who only reloaded must not hand survivors the win.
     // (No killers at all is a misconfigured lobby; leave the game running.)
-    const killersInRoom = killers.filter(
-      (k) => k.status === PlayerStatus.ALIVE,
-    )
-
-    if (killers.length > 0 && killersInRoom.length === 0) {
+    if (killers.length > 0 && killers.every((k) => k.status === PlayerStatus.DEAD)) {
       await this.prisma.game.update({
         where: { id: gameId },
         data: {

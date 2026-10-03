@@ -382,17 +382,17 @@ function QuestCard({
 
   return (
     <Card className="overflow-hidden border-primary/40 bg-card shadow-md shadow-primary/5">
-      <div className="flex min-h-32">
+      <div className="flex min-h-24 sm:min-h-32">
         {/* Big number panel — corresponds to a physical prop in the venue. */}
-        <div className="grid w-24 shrink-0 place-items-center bg-primary px-3 text-center text-primary-foreground">
-          <span className="text-xs font-bold uppercase tracking-[.18em]">
+        <div className="grid w-16 shrink-0 place-items-center bg-primary px-2 text-center text-primary-foreground sm:w-24 sm:px-3">
+          <span className="text-[10px] font-bold uppercase tracking-[.18em] sm:text-xs">
             Квест
           </span>
-          <strong className="font-display text-5xl leading-none">
+          <strong className="font-display text-3xl leading-none sm:text-5xl">
             {quest.number}
           </strong>
         </div>
-        <CardContent className="grid min-w-0 flex-1 content-center gap-2 p-5">
+        <CardContent className="grid min-w-0 flex-1 content-center gap-2 p-3 sm:p-5">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{quest.definition.cost} очков</Badge>
             {/* <Badge

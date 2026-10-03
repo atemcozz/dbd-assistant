@@ -46,9 +46,15 @@ export function Home() {
             value={mode}
             onValueChange={(value) => setMode(value as 'create' | 'join')}
           >
-            <TabsList className="grid h-11 w-full grid-cols-2">
-              <TabsTrigger value="create">[ Создать комнату ]</TabsTrigger>
-              <TabsTrigger value="join">[ Присоединиться к игре ]</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-2">
+              <TabsTrigger value="create">
+                <span className="sm:hidden">[ Создать ]</span>
+                <span className="hidden sm:inline">[ Создать комнату ]</span>
+              </TabsTrigger>
+              <TabsTrigger value="join">
+                <span className="sm:hidden">[ Войти ]</span>
+                <span className="hidden sm:inline">[ Присоединиться к игре ]</span>
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           <CardHeader>

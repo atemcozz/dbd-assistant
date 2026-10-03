@@ -296,8 +296,8 @@ function EffectRowLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-md border border-border p-3">
-      <div className="min-w-0 flex-1">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3">
+      <div className="min-w-0 flex-1 basis-40">
         <p className="text-sm font-medium">{effect.name}</p>
         <p className="text-xs text-muted-foreground">
           {effect.description}
@@ -355,8 +355,8 @@ function AllSurvivorsEffectRow({
   onUse: (effectId: string, targetPlayerId?: string) => void
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-md border border-border p-3">
-      <div className="min-w-0 flex-1">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3">
+      <div className="min-w-0 flex-1 basis-40">
         <p className="text-sm font-medium">{effect.name}</p>
         <p className="text-xs text-muted-foreground">
           {effect.description}
@@ -400,8 +400,8 @@ function TargetEffectRow({
   const [selectedTarget, setSelectedTarget] = useState('')
 
   return (
-    <div className="flex items-center gap-3 rounded-md border border-border p-3">
-      <div className="min-w-0 flex-1">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3">
+      <div className="min-w-0 flex-1 basis-40">
         <p className="text-sm font-medium">{effect.name}</p>
         <p className="text-xs text-muted-foreground">
           {effect.description}
@@ -417,7 +417,7 @@ function TargetEffectRow({
         )}
       </div>
       <Select value={selectedTarget} onValueChange={setSelectedTarget}>
-        <SelectTrigger className="w-36">
+        <SelectTrigger className="w-full sm:w-36">
           <SelectValue placeholder="Цель" />
         </SelectTrigger>
         <SelectContent>
