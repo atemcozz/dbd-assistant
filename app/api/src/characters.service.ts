@@ -8,7 +8,6 @@ import {
   GameStatus,
   PlayerRole,
   PlayerStatus,
-  PrismaClient,
 } from '@prisma/client'
 import { PrismaService } from './prisma.service'
 

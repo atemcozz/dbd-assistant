@@ -14,6 +14,7 @@ import { ChatService } from './chat.service'
 import { CombatService } from './combat.service'
 import { CombatController } from './combat.controller'
 
+// Simple health-check endpoint — useful for manual verification and LAN checks.
 @Controller()
 class AppController {
   @Get('health')
@@ -23,24 +24,25 @@ class AppController {
 }
 
 @Module({
- controllers: [
-  GamesController,
-  CharactersController,
-  QuestsController,
-  EffectsController,
-  CombatController,
-  ChatController,
-],
+  controllers: [
+    AppController,
+    GamesController,
+    CharactersController,
+    QuestsController,
+    EffectsController,
+    CombatController,
+    ChatController,
+  ],
 
-providers: [
-  GamesService,
-  CharactersService,
-  QuestsService,
-  EffectsService,
-  CombatService,
-  ChatService,
-  GameGateway,
-  PrismaService,
-],
+  providers: [
+    GamesService,
+    CharactersService,
+    QuestsService,
+    EffectsService,
+    CombatService,
+    ChatService,
+    GameGateway,
+    PrismaService,
+  ],
 })
 export class AppModule {}

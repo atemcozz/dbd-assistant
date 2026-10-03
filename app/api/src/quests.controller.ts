@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common'
 import { GameGateway } from './game.gateway'
 import { GamesService } from './games.service'
@@ -22,13 +23,11 @@ export class QuestsController {
   @Get('quest-definitions')
   listDefinitions(
     @Headers('x-session-token') sessionToken: string,
-    @Body('code') bodyCode?: string,
-    @Param('code') paramCode?: string,
+    // GET requests send the game code as a query parameter, not body/params.
+    @Query('code') code?: string,
   ) {
-    const code = paramCode ?? bodyCode ?? ''
-
     return this.questsService.listDefinitions(
-      code,
+      code ?? '',
       sessionToken,
     )
   }

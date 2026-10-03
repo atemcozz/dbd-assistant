@@ -19,6 +19,31 @@ import type {
   PlayerEffectView,
 } from './game.types'
 
+// Result of create/join: the session token + player id + full lobby state.
+// The frontend needs all three to establish the session and render the lobby.
+export type GameSessionResult = {
+  sessionToken: string
+  playerId: string
+  state: LobbyState
+}
+
+// Prisma include shape for quests in getState — keeps filterQuests typed.
+type QuestWithDefinition = {
+  id: string
+  number: number
+  status: QuestStatus
+  completedById: string | null
+  completedAt: Date | null
+  questDefinition: {
+    id: string
+    name: string
+    description: string
+    type: string
+    radius: number | null
+    killerCharacterTypeId: string | null
+  }
+}
+
 @Injectable()
 export class GamesService {
   constructor(
@@ -26,45 +51,59 @@ export class GamesService {
     private readonly effects: EffectsService,
   ) {}
 
- async createGame(name: string, playerName: string) {
-  const sessionToken = this.createSessionToken()
+  async createGame(
+    name: string,
+    playerName: string,
+  ): Promise<GameSessionResult> {
+    const sessionToken = this.createSessionToken()
 
-  let code = this.createCode()
+    let code = this.createCode()
 
-  while (await this.prisma.game.findUnique({ where: { code } })) {
-    code = this.createCode()
+    while (await this.prisma.game.findUnique({ where: { code } })) {
+      code = this.createCode()
+    }
+
+    const game = await this.prisma.$transaction(async (tx) => {
+      const createdGame = await tx.game.create({
+        data: {
+          code,
+          name,
+        },
+      })
+
+      const player = await tx.player.create({
+        data: {
+          gameId: createdGame.id,
+          name: playerName,
+          sessionToken,
+          role: PlayerRole.SURVIVOR,
+          health: null,
+        },
+      })
+
+      return tx.game.update({
+        where: { id: createdGame.id },
+        data: {
+          ownerPlayerId: player.id,
+        },
+      })
+    })
+
+    const state = await this.getState(game.code, sessionToken)
+
+    return {
+      sessionToken,
+      playerId: state.players.find(
+        (player) => player.id === game.ownerPlayerId,
+      )!.id,
+      state,
+    }
   }
 
-  const game = await this.prisma.$transaction(async (tx) => {
-    const createdGame = await tx.game.create({
-      data: {
-        code,
-        name,
-      },
-    })
-
-    const player = await tx.player.create({
-      data: {
-        gameId: createdGame.id,
-        name: playerName,
-        sessionToken,
-        role: PlayerRole.SURVIVOR,
-        health: null,
-      },
-    })
-
-    return tx.game.update({
-      where: { id: createdGame.id },
-      data: {
-        ownerPlayerId: player.id,
-      },
-    })
-  })
-
-  return this.getState(game.code, sessionToken)
-}
-
-  async joinGame(codeInput: string, playerName: string) {
+  async joinGame(
+    codeInput: string,
+    playerName: string,
+  ): Promise<GameSessionResult> {
     const code = codeInput.toUpperCase()
 
     const game = await this.prisma.game.findUnique({
@@ -91,7 +130,13 @@ export class GamesService {
       },
     })
 
-    return this.getState(code, player.sessionToken)
+    const state = await this.getState(code, sessionToken)
+
+    return {
+      sessionToken,
+      playerId: player.id,
+      state,
+    }
   }
 
   async startGame(codeInput: string, sessionToken: string) {
@@ -182,7 +227,7 @@ export class GamesService {
         },
         chatMessages: {
           include: { player: true },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
           take: 100,
         },
       },
@@ -255,10 +300,15 @@ export class GamesService {
       )
     }
 
+    // Only alive survivors can read survivor chat — killers and dead players get nothing.
     const chatMessages = []
 
-    if (viewer?.role === PlayerRole.SURVIVOR) {
-      for (const message of game.chatMessages) {
+    if (
+      viewer?.role === PlayerRole.SURVIVOR &&
+      viewer?.status === PlayerStatus.ALIVE
+    ) {
+      // chatMessages is newest-first (desc); reverse so UI shows oldest→newest.
+      for (const message of [...game.chatMessages].reverse()) {
         chatMessages.push({
           id: message.id,
           text: message.text,
@@ -421,7 +471,7 @@ async getStateById(
   }
 
   private filterQuests(
-    quests: typeof Array.prototype,
+    quests: QuestWithDefinition[],
     viewer: {
       role: PlayerRole
       characterTypeId: string | null
@@ -429,7 +479,9 @@ async getStateById(
   ): GameQuestView[] {
     const result: GameQuestView[] = []
 
-    for (const quest of quests as any[]) {
+    for (const quest of quests) {
+      // Killer-specific quests are only shown to the matching killer type.
+      // Universal quests (killerCharacterTypeId === null) are visible to all.
       if (viewer?.role === PlayerRole.KILLER) {
         const killerType = quest.questDefinition.killerCharacterTypeId
 

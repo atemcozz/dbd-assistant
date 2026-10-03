@@ -22,9 +22,14 @@ export class GamesController {
     @Body('name') name: string,
     @Body('playerName') playerName: string,
   ) {
-    const result = await this.gamesService.createGame(name, playerName)
+    const result = await this.gamesService.createGame(
+      name,
+      playerName,
+    )
 
-    await this.gameGateway.broadcastGameState(result.id)
+    // Broadcast after create so any pre-connected sockets (unlikely but possible)
+    // get the new state. New players connect via Socket.IO after receiving the response.
+    await this.gameGateway.broadcastGameState(result.state.id)
 
     return result
   }
@@ -34,11 +39,14 @@ export class GamesController {
     @Body('code') code: string,
     @Body('playerName') playerName: string,
   ) {
-    const state = await this.gamesService.joinGame(code, playerName)
+    const result = await this.gamesService.joinGame(
+      code,
+      playerName,
+    )
 
-    await this.gameGateway.broadcastGameState(state.id)
+    await this.gameGateway.broadcastGameState(result.state.id)
 
-    return state
+    return result
   }
 
   @Get('games/:code')

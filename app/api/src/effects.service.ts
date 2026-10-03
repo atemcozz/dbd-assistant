@@ -138,7 +138,7 @@ export class EffectsService {
           }
 
           const maxHealth = await this.getMaxHealth(
-            tx as typeof this.prisma ,
+            tx,
             target.characterTypeId,
           )
 
@@ -189,7 +189,9 @@ export class EffectsService {
         }
 
         if (owned.effect.action === 'TEXT') {
-            // no action yet
+          // TEXT effects are physical-game instructions — the player reads the
+          // effect description (returned as `instruction` in getPlayerEffects).
+          // No server-side state change is needed beyond consuming the charge.
         }
 
         if (
@@ -315,7 +317,14 @@ export class EffectsService {
   }
 
   private async getMaxHealth(
-    prisma: typeof this.prisma,
+    prisma: {
+      characterType: {
+        findUnique: (args: {
+          where: { id: string }
+          select: { maxHealth: true }
+        }) => Promise<{ maxHealth: number | null } | null>
+      }
+    },
     characterTypeId: string | null,
   ) {
     if (!characterTypeId) {

@@ -1,0 +1,134 @@
+import { useState, type FormEvent } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
+import { useGameStore } from '@/gameStore'
+
+// Home screen — create a new game room or join an existing one by code.
+export function Home() {
+  const createGame = useGameStore((store) => store.createGame)
+  const joinGame = useGameStore((store) => store.joinGame)
+  const error = useGameStore((store) => store.error)
+  const isLoading = useGameStore((store) => store.isLoading)
+  const [mode, setMode] = useState<'create' | 'join'>('create')
+  const [gameName, setGameName] = useState('Friday Night Trial')
+  const [playerName, setPlayerName] = useState('')
+  const [code, setCode] = useState('')
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    if (mode === 'create') await createGame(gameName, playerName)
+    else await joinGame(code, playerName)
+  }
+
+  return (
+    <main className="min-h-screen px-4 py-6 sm:px-8 sm:py-10 lg:px-16">
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl items-center gap-10 lg:grid-cols-[1fr_26rem] lg:gap-20">
+        <section className="max-w-2xl">
+          <Badge
+            variant="outline"
+            className="border-teal-300/30 text-teal-200"
+          >
+            Local multiplayer
+          </Badge>
+          <h1 className="mt-5 max-w-xl font-display text-5xl font-semibold leading-[.95] tracking-tight text-white sm:text-7xl">
+            Gather your trial.
+          </h1>
+          <p className="mt-6 max-w-lg text-base leading-7 text-slate-400 sm:text-lg">
+            Create a room for your group or slip into an existing lobby with a
+            short game code.
+          </p>
+        </section>
+        <Card className="w-full">
+          <Tabs
+            className="border-b p-2"
+            value={mode}
+            onValueChange={(value) => setMode(value as 'create' | 'join')}
+          >
+            <TabsList className="grid h-11 w-full grid-cols-2">
+              <TabsTrigger value="create">Create game</TabsTrigger>
+              <TabsTrigger value="join">Join game</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <CardHeader>
+            <CardTitle>
+              {mode === 'create' ? 'Open a room' : 'Enter a room'}
+            </CardTitle>
+            <CardDescription>
+              {mode === 'create'
+                ? 'Set a name and invite your group.'
+                : 'Use the code shared by the room owner.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="grid gap-5"
+              onSubmit={(event) => void submit(event)}
+            >
+              <div className="grid gap-2">
+                {mode === 'create' ? (
+                  <>
+                    <Label htmlFor="game-name">Room name</Label>
+                    <Input
+                      id="game-name"
+                      value={gameName}
+                      onChange={(event) => setGameName(event.target.value)}
+                      maxLength={80}
+                      required
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="game-code">Game code</Label>
+                    <Input
+                      id="game-code"
+                      value={code}
+                      onChange={(event) =>
+                        setCode(event.target.value.toUpperCase())
+                      }
+                      maxLength={6}
+                      placeholder="A1B2C3"
+                      required
+                    />
+                  </>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="player-name">Your name</Label>
+                <Input
+                  id="player-name"
+                  value={playerName}
+                  onChange={(event) => setPlayerName(event.target.value)}
+                  maxLength={80}
+                  placeholder="Enter a display name"
+                  required
+                />
+              </div>
+              {error && <p className="text-sm text-rose-300">{error}</p>}
+              <Button disabled={isLoading} type="submit">
+                {isLoading
+                  ? 'Connecting...'
+                  : mode === 'create'
+                    ? 'Create room'
+                    : 'Join room'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
+  )
+}

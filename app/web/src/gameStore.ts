@@ -82,6 +82,7 @@ type GameStore = {
   assignCharacter: (playerId: string, characterTypeId: string) => Promise<void>
   selectQuests: (questDefinitionIds: string[]) => Promise<void>
   startGame: () => Promise<void>
+  finishGame: () => Promise<void>
   attackPlayer: (playerId: string) => Promise<void>
   completeQuest: (questId: string) => Promise<void>
   useEffect: (effectId: string, targetPlayerId?: string) => Promise<void>
@@ -248,6 +249,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ state, error: null })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Could not start game' })
+    }
+  },
+
+  finishGame: async () => {
+    const { session } = get()
+    if (!session) return
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/finish`, { method: 'POST' }, session.sessionToken)
+      set({ state, error: null })
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Could not finish game' })
     }
   },
 
