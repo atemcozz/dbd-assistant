@@ -36,42 +36,27 @@ export function Home() {
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 sm:py-10 lg:px-16">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl items-center gap-10 lg:grid-cols-[1fr_26rem] lg:gap-20">
-        <section className="max-w-2xl">
-          <Badge
-            variant="outline"
-            className="border-teal-300/30 text-teal-200"
-          >
-            Local multiplayer
-          </Badge>
-          <h1 className="mt-5 max-w-xl font-display text-5xl font-semibold leading-[.95] tracking-tight text-white sm:text-7xl">
-            Gather your trial.
+      <div className="mx-auto flex flex-col max-w-6xl items-center gap-10 lg:grid-cols-[1fr_26rem] lg:gap-20">
+        <section className="max-w-2xl mt-10">
+          <h1 className="flex items-center gap-3 mt-5 max-w-xl font-display text-5xl font-semibold leading-[.95] tracking-tight text-white sm:text-7xl">
+            ДБД РИЛ ЛАЙФ ЕДИШОН V 0.000001
           </h1>
-          <p className="mt-6 max-w-lg text-base leading-7 text-slate-400 sm:text-lg">
-            Create a room for your group or slip into an existing lobby with a
-            short game code.
-          </p>
         </section>
-        <Card className="w-full">
+        <Card className="w-full mt-10">
           <Tabs
             className="border-b p-2"
             value={mode}
             onValueChange={(value) => setMode(value as 'create' | 'join')}
           >
             <TabsList className="grid h-11 w-full grid-cols-2">
-              <TabsTrigger value="create">Create game</TabsTrigger>
-              <TabsTrigger value="join">Join game</TabsTrigger>
+              <TabsTrigger value="create">Создать комнату</TabsTrigger>
+              <TabsTrigger value="join">Присоединиться к игре</TabsTrigger>
             </TabsList>
           </Tabs>
           <CardHeader>
             <CardTitle>
-              {mode === 'create' ? 'Open a room' : 'Enter a room'}
+              {mode === 'create' ? 'Создать комнату' : 'Присоединиться к игре'}
             </CardTitle>
-            <CardDescription>
-              {mode === 'create'
-                ? 'Set a name and invite your group.'
-                : 'Use the code shared by the room owner.'}
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form
@@ -81,18 +66,19 @@ export function Home() {
               <div className="grid gap-2">
                 {mode === 'create' ? (
                   <>
-                    <Label htmlFor="game-name">Room name</Label>
+                    <Label htmlFor="game-name">Имя комнаты</Label>
                     <Input
                       id="game-name"
                       value={gameName}
                       onChange={(event) => setGameName(event.target.value)}
                       maxLength={80}
+                      placeholder="Введите имя комнаты"
                       required
                     />
                   </>
                 ) : (
                   <>
-                    <Label htmlFor="game-code">Game code</Label>
+                    <Label htmlFor="game-code">Код игры</Label>
                     <Input
                       id="game-code"
                       value={code}
@@ -107,13 +93,13 @@ export function Home() {
                 )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="player-name">Your name</Label>
+                <Label htmlFor="player-name">Имя</Label>
                 <Input
                   id="player-name"
                   value={playerName}
                   onChange={(event) => setPlayerName(event.target.value)}
                   maxLength={80}
-                  placeholder="Enter a display name"
+                  placeholder="Введите ваше имя"
                   required
                 />
               </div>
@@ -122,8 +108,8 @@ export function Home() {
                 {isLoading
                   ? 'Connecting...'
                   : mode === 'create'
-                    ? 'Create room'
-                    : 'Join room'}
+                    ? 'Создать комнату'
+                    : 'Присоединиться'}
               </Button>
             </form>
           </CardContent>

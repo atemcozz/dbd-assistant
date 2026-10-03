@@ -44,11 +44,10 @@ export function EffectsSection({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-amber-400">
               <Clock3 className="size-5" />
-              Active effects
+              Активные эффекты
             </CardTitle>
             <CardDescription>
-              These effects are currently active on you. Pay attention to the
-              time remaining.
+              Активные эффекты. Обратите внимание на оставшееся время.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
@@ -64,16 +63,16 @@ export function EffectsSection({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="size-5" />
-            Your abilities
+            Твои абилки
           </CardTitle>
           <CardDescription>
-            Short, deliberate abilities for the physical trial.
+            У абилок ограниченые заряды и время перезарядки. Некоторые требуют выбора цели.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
           {ownedEffects.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No effects assigned.
+              Абилки не назначены
             </p>
           ) : (
             ownedEffects.map((effect) => (
@@ -153,7 +152,7 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
         </div>
         <div className="shrink-0 text-right">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Remaining
+            Осталось
           </p>
           <p
             className={cn(
@@ -161,7 +160,7 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
               remainingSeconds <= 5 ? 'text-red-400' : 'text-amber-400',
             )}
           >
-            {remainingSeconds}s
+            {remainingSeconds}с.
           </p>
         </div>
       </div>
@@ -238,7 +237,7 @@ function EffectCard({
           disabled={disabled}
           onClick={() => onUse(effect.effectId)}
         >
-          Use
+          Использовать
         </Button>
       </EffectRowLayout>
     )
@@ -279,7 +278,7 @@ function buildValidTargets(
     if (!matchesSelf && !matchesSurvivor && !matchesKiller) continue
 
     // Label "Yourself" for the current player when SELF is allowed.
-    const label = matchesSelf ? 'Yourself' : player.name
+    const label = matchesSelf ? 'На себя' : player.name
     result.push({ id: player.id, label })
   }
 
@@ -304,12 +303,12 @@ function EffectRowLayout({
           {effect.description}
         </p>
         <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-          Charges: {effect.charges ?? '∞'}
+          Осталось: {effect.charges ?? '∞'}
         </p>
         {cooldownRemaining > 0 && (
           <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
             <Clock3 className="mr-1 size-3" />
-            Cooldown · {cooldownRemaining}s
+            К/д · {cooldownRemaining}с.
           </Badge>
         )}
         {effect.expiresAt && (
@@ -338,7 +337,7 @@ function ActiveBadge({ expiresAt }: { expiresAt: string }) {
   return (
     <Badge variant="outline" className="mt-1 text-xs">
       <Clock3 className="mr-1 size-3" />
-      Active · {remainingSeconds}s left
+      Активно · {remainingSeconds}с осталось
     </Badge>
   )
 }
@@ -363,12 +362,12 @@ function AllSurvivorsEffectRow({
           {effect.description}
         </p>
         <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-          Charges: {effect.charges ?? '∞'}
+          Осталось: {effect.charges ?? '∞'}
         </p>
         {cooldownRemaining > 0 && (
           <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
             <Clock3 className="mr-1 size-3" />
-            Cooldown · {cooldownRemaining}s
+            К/д · {cooldownRemaining}с.
           </Badge>
         )}
       </div>
@@ -377,7 +376,7 @@ function AllSurvivorsEffectRow({
         disabled={disabled}
         onClick={() => onUse(effect.effectId)}
       >
-        All survivors
+        Использовать
       </Button>
     </div>
   )
@@ -408,12 +407,12 @@ function TargetEffectRow({
           {effect.description}
         </p>
         <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-          Charges: {effect.charges ?? '∞'}
+          Осталось: {effect.charges ?? '∞'}
         </p>
         {cooldownRemaining > 0 && (
           <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
             <Clock3 className="mr-1 size-3" />
-            Cooldown · {cooldownRemaining}s
+            К/д · {cooldownRemaining}с.
           </Badge>
         )}
       </div>
@@ -434,7 +433,7 @@ function TargetEffectRow({
         disabled={!selectedTarget || disabled}
         onClick={() => onUse(effect.effectId, selectedTarget)}
       >
-        Use
+        Использовать
       </Button>
     </div>
   )

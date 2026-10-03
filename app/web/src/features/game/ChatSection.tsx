@@ -35,10 +35,10 @@ export function ChatSection({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="size-5" />
-          Survivor chat
+          Чат выживших
         </CardTitle>
         <CardDescription>
-          Only alive survivors can send or read messages.
+          Сообщения видят <em>только живые сюрвы</em>
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -47,12 +47,12 @@ export function ChatSection({
           className="max-h-80 space-y-3 overflow-y-auto"
         >
           {messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No messages yet.</p>
+            <p className="text-sm text-muted-foreground">Пока нет сообщений</p>
           ) : (
             messages.map((message) => (
               <div key={message.id} className="rounded-md bg-muted/50 p-3">
                 <p className="text-xs font-semibold">
-                  {message.playerStatus === 'DEAD' ? '[DEAD] ' : ''}
+                  {message.playerStatus === 'DEAD' ? '[УМЕР] ' : ''}
                   {message.playerName}
                 </p>
                 <p className="mt-1 text-sm">{message.text}</p>
@@ -72,10 +72,10 @@ export function ChatSection({
           <Input
             value={text}
             onChange={(event) => setText(event.target.value)}
-            placeholder="Message survivors"
+            placeholder="Написать сообщение..."
             maxLength={500}
           />
-          <Button type="submit">Send</Button>
+          <Button type="submit">Отправить</Button>
         </form>
       </CardContent>
     </Card>

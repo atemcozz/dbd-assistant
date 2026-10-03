@@ -31,7 +31,7 @@ export function GameExits({
     return (
       <Card>
         <CardContent className="p-8 text-center text-sm text-muted-foreground">
-          No exits are available in this game.
+          Выходы не назначены
         </CardContent>
       </Card>
     )
@@ -44,15 +44,15 @@ export function GameExits({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle>Exits</CardTitle>
+            <CardTitle>Выходы</CardTitle>
             <CardDescription>
               {exitsUnlocked
-                ? 'The exits are open. Survivors can escape.'
-                : 'Exits are locked until enough quest points are collected.'}
+                ? 'Выходы открыты — выжившие могут сбежать.'
+                : 'Выходы пока закрыты до набора достаточного количества очков квестов.'}
             </CardDescription>
           </div>
           <Badge variant={exitsUnlocked ? 'default' : 'secondary'}>
-            {exitsUnlocked ? 'Open' : 'Locked'}
+            {exitsUnlocked ? 'Открыто' : 'Закрыто'}
           </Badge>
         </div>
       </CardHeader>
@@ -60,7 +60,7 @@ export function GameExits({
         {!exitsUnlocked && (
           <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
             <Lock className="size-4 shrink-0" />
-            Complete more quest points to unlock the exits.
+            Завершите больше квестов, чтобы открыть выходы.
           </div>
         )}
         {exits.map((exit) => (
@@ -108,7 +108,7 @@ function ExitCard({
               size="sm"
             >
               <Sparkles className="size-4" />
-              Escape through this exit
+              Сбежать
             </Button>
           )}
         </div>

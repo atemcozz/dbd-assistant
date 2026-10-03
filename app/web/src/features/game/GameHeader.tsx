@@ -26,10 +26,10 @@ export function GameHeader({
             {state.name}
           </p>
           <p className="text-xs text-muted-foreground">
-            {player.role === 'KILLER' ? 'Killer view' : 'Survivor view'} ·{' '}
+            {player.role === 'KILLER' ? 'Ман' : 'Выживший'} ·{' '}
             {connectionStatus === 'connected'
-              ? 'Live'
-              : 'Connection unavailable'}
+              ? 'Онлайн'
+              : 'Соединение потеряно, переподключение...'}
           </p>
         </div>
         <div className="flex items-center gap-3">

@@ -6,7 +6,7 @@ export function LoadingScreen() {
         <p className="font-display text-xl font-semibold text-white">
           DBD Assistant
         </p>
-        <p className="mt-2 text-sm text-slate-400">Restoring session...</p>
+        <p className="mt-2 text-sm text-slate-400">Восстановление сессии...</p>
       </div>
     </main>
   )

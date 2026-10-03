@@ -93,8 +93,8 @@ export function GameScreen() {
     ) {
       setModal({
         kind: 'timed',
-        title: 'You were damaged',
-        body: `Your health is now ${currentHealth}. Stay alert!`,
+        title: 'Тебя атаковали!',
+        body: `Текущее здоровье: ${currentHealth}`,
         seconds: 5,
       })
     }
@@ -113,7 +113,7 @@ export function GameScreen() {
       shownEffectModals.current.add(effect.id)
 
       const sourceText = effect.sourcePlayerName
-        ? ` from ${effect.sourcePlayerName}`
+        ? ` от ${effect.sourcePlayerName}`
         : ''
       // Show targetDescription — what THIS player sees — falling back to description.
       const displayText = effect.targetDescription ?? effect.description
@@ -123,7 +123,7 @@ export function GameScreen() {
 
       setModal({
         kind: 'timed',
-        title: `Effect applied: ${effect.name}`,
+        title: `Нанесён эффект: ${effect.name}`,
         body,
         seconds: 5,
       })
@@ -151,9 +151,9 @@ export function GameScreen() {
   function confirmDamage(playerId: string, playerName: string) {
     setModal({
       kind: 'confirm',
-      title: 'Deal 1 damage?',
-      body: `Attack ${playerName}? This removes 1 HP.`,
-      confirmLabel: 'Deal damage',
+      title: 'Атаковать?',
+      body: `Атаковать ${playerName}? Это отнимет у цели 1 HP.`,
+      confirmLabel: 'Атаковать',
       onConfirm: () => {
         setModal(null)
         void attackPlayer(playerId)
@@ -164,9 +164,9 @@ export function GameScreen() {
   function confirmEffectUse(effectId: string, targetPlayerId?: string) {
     setModal({
       kind: 'confirm',
-      title: 'Use effect?',
-      body: 'This effect use changes game state and may consume a charge.',
-      confirmLabel: 'Use effect',
+      title: 'Применить абилку?',
+      body: 'Это действие изменяет состояние игры',
+      confirmLabel: 'Использовать',
       onConfirm: () => {
         setModal(null)
         void triggerEffect(effectId, targetPlayerId)
@@ -177,9 +177,9 @@ export function GameScreen() {
   function confirmQuestComplete(questId: string) {
     setModal({
       kind: 'confirm',
-      title: 'Complete quest?',
-      body: 'This quest completion cannot be undone.',
-      confirmLabel: 'Complete quest',
+      title: 'Завершить квест?',
+      body: 'Это действие перманентно и не может быть отменено.',
+      confirmLabel: 'Завершить квест',
       onConfirm: () => {
         setModal(null)
         void completeQuest(questId)
@@ -190,9 +190,9 @@ export function GameScreen() {
   function confirmEscape(exitDefinitionId: string, exitName: string) {
     setModal({
       kind: 'confirm',
-      title: `Escape through ${exitName}?`,
-      body: 'You will leave the trial. The killer can no longer reach you, and the game will end if every survivor has escaped.',
-      confirmLabel: 'Escape',
+      title: `Сбежать через ${exitName}?`,
+      body: 'Убедитесь, что условия выхода выполнены, прежде чем покинуть игру.',
+      confirmLabel: 'Сбежать',
       onConfirm: () => {
         setModal(null)
         void escapeThroughExit(exitDefinitionId)
@@ -201,7 +201,7 @@ export function GameScreen() {
   }
 
   return (
-    <main className="min-h-screen px-4 pb-8 pt-4 sm:px-8 lg:px-16">
+    <main className="min-h-screen px-4 pb-8 sm:px-8 lg:px-16">
       <div className="mx-auto max-w-6xl">
         <GameHeader
           state={state}
@@ -240,7 +240,7 @@ export function GameScreen() {
           <Card className="mt-5 border-primary bg-primary/10">
             <CardContent className="flex items-center gap-3 p-4 text-sm font-semibold text-primary">
               <Sparkles className="size-5" />
-              Enough quest points gathered. The exits are open — open the Exits tab and escape.
+             Сюрвы завершили квесты! Выходы открыты — выжившие могут сбежать.
             </CardContent>
           </Card>
         )}
@@ -250,19 +250,20 @@ export function GameScreen() {
           onValueChange={(value) => setActiveTab(value as typeof activeTab)}
         >
           <TabsList className="grid h-auto w-full grid-cols-3 gap-1 sm:grid-cols-6">
-            <TabsTrigger value="status">Game</TabsTrigger>
-            <TabsTrigger value="quests">Quests</TabsTrigger>
-            <TabsTrigger value="exits">Exits</TabsTrigger>
-            <TabsTrigger value="players">Players</TabsTrigger>
-            {!isKiller && <TabsTrigger value="chat">Chat</TabsTrigger>}
-            <TabsTrigger value="effects" className="relative">
-              Effects
+            <TabsTrigger value="status">Игра</TabsTrigger>
+             <TabsTrigger value="effects" className="relative">
+              Эффекты
               {activeEffectCount > 0 && (
                 <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-xs font-bold text-slate-950 animate-pulse">
                   {activeEffectCount}
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="quests">Квесты</TabsTrigger>
+            <TabsTrigger value="players">Игроки</TabsTrigger>
+            {!isKiller && <TabsTrigger value="chat">Чат</TabsTrigger>}
+           
+            <TabsTrigger value="exits">Выходы</TabsTrigger>
           </TabsList>
           <TabsContent value="status" className="mt-5">
             <GameStatusPanel
@@ -347,13 +348,13 @@ function DeathScreen({ onLeave }: { onLeave: () => void }) {
       <div className="max-w-md">
         <Skull className="mx-auto size-16 text-destructive" />
         <h1 className="mt-6 font-display text-5xl font-semibold text-foreground">
-          You are dead
+          Ты умер
         </h1>
         <p className="mt-4 text-muted-foreground">
-          Your role in the physical trial has ended.
+          Покойся с миром
         </p>
         <Button className="mt-8" onClick={onLeave} variant="outline">
-          Leave game
+          Ливнуть
         </Button>
       </div>
     </main>
@@ -367,14 +368,13 @@ function EscapedScreen({ onLeave }: { onLeave: () => void }) {
       <div className="max-w-md">
         <DoorOpen className="mx-auto size-16 text-emerald-400" />
         <h1 className="mt-6 font-display text-5xl font-semibold text-foreground">
-          You escaped!
+          Ты сбежал!
         </h1>
         <p className="mt-4 text-muted-foreground">
-          You made it out. The killer can no longer reach you — your side wins
-          if every survivor escapes.
+          Молодец! Возьми с полки пирожок
         </p>
         <Button className="mt-8" onClick={onLeave} variant="outline">
-          Leave game
+          Ливнуть
         </Button>
       </div>
     </main>

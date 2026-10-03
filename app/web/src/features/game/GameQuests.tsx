@@ -46,13 +46,13 @@ export function GameQuests({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle>Quests</CardTitle>
+            <CardTitle>Квесты</CardTitle>
             <CardDescription>
-              {pointsProgress} points · {completedCount}/{totalCount} completed
+              {pointsProgress} очков · {completedCount}/{totalCount} завершено
             </CardDescription>
           </div>
           <Badge variant="secondary">
-            {pointsProgress} points
+            {pointsProgress} очков
           </Badge>
         </div>
       </CardHeader>
@@ -62,11 +62,10 @@ export function GameQuests({
           <div className="rounded-md border border-primary/60 bg-primary/10 p-6 text-center">
             <Sparkles className="mx-auto size-8 text-primary" />
             <p className="mt-3 font-display text-lg font-semibold text-primary">
-              Quests complete!
+              Квесты завершены!
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enough points have been gathered. The exits are open — open the
-              Exits tab and escape.
+              Достаточно очков собрано. Выходы открыты — выжившие могут сбежать.
             </p>
           </div>
         ) : (
@@ -120,14 +119,14 @@ function GameQuestCard({
           {quest.definition.name}
         </p>
         <Badge variant="outline" className="shrink-0 text-xs">
-          {quest.definition.cost} pts
+          {quest.definition.cost} очков
         </Badge>
         <Button
           aria-label="Expand quest"
           onClick={() => setExpanded((value) => !value)}
           size="icon"
           variant="ghost"
-          title={expanded ? 'Collapse quest' : 'Expand quest'}
+          title={expanded ? 'Свернуть квест' : 'Раскрыть квест'}
         >
           {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
         </Button>
@@ -139,16 +138,16 @@ function GameQuestCard({
           </p>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">
-              {quest.definition.cost} points
+              {quest.definition.cost} очков
             </Badge>
           </div>
           {isSurvivor && !completed && (
             <Button onClick={() => onComplete(quest.id)} size="sm">
               <Check className="size-4" />
-              Mark completed
+              Завершить квест
             </Button>
           )}
-          {completed && <Badge>Completed</Badge>}
+          {completed && <Badge>Завершено</Badge>}
         </div>
       )}
     </div>

@@ -16,11 +16,13 @@ export function ConnectionStatus({
       }
     >
       {connected ? <Radio className="size-3" /> : <WifiOff className="size-3" />}
+      <span className="ml-1">
       {connected
-        ? 'Live connection'
+        ? 'Подключено'
         : connecting
-          ? 'Connecting...'
-          : 'Connection unavailable'}
+          ? 'Попытка подключения...'
+          : 'Подключение потеряно'}
+          </span>
     </Badge>
   )
 }

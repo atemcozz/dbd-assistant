@@ -35,23 +35,22 @@ export function ExitPanel({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[.16em] text-primary">
-              Selected exits
+              Выбранные выходы
             </p>
             <h2 className="mt-1 font-display text-2xl font-semibold">
-              Escape routes
+              Точки отхода
             </h2>
           </div>
-          <Badge variant="secondary">{exits.length} selected</Badge>
+          <Badge variant="secondary">{exits.length} выбрано</Badge>
         </div>
         {exits.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              No exits selected yet. At least one exit is required to start the
-              game.
+              Выходы не выбраны — владелец должен выбрать хотя бы один, чтобы начать игру.
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-4 sm:grid-cols-2">
             {exits.map((exit) => (
               <ExitCard key={exit.id} exit={exit} />
             ))}
@@ -63,16 +62,16 @@ export function ExitPanel({
       {isOwner && (
         <Card>
           <CardHeader>
-            <CardTitle>Exit selection</CardTitle>
+            <CardTitle>Выбор выходов</CardTitle>
             <CardDescription>
-              Choose escape routes before the game starts. At least one exit is
-              required. Adding or removing an exit applies immediately.
+              Выберите точки выхода, которые будут использоваться в игре.
+              Игроки смогут сбежать через эти выходы после набора достаточного количества очков квестов.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {definitions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No exit definitions available.
+                Нет выходов
               </p>
             ) : (
               definitions.map((definition) => (

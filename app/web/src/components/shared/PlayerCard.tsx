@@ -63,39 +63,39 @@ export function PlayerCard({
         <div className="min-w-0">
           <CardTitle className="truncate">{player.name}</CardTitle>
           <CardDescription>
-            {character?.name ?? 'Character unassigned'}
+            {character?.name ?? 'Пока никто'}
           </CardDescription>
         </div>
-        {player.status === 'ALIVE' && (
-          <Badge className="ml-auto shrink-0">Ready</Badge>
+        {player.characterType && player.role && (
+          <Badge className="ml-auto shrink-0">К бою готов</Badge>
         )}
       </CardHeader>
       <CardContent className="grid gap-4">
         {isOwner && (
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor={`${player.id}-role`}>Role</Label>
+              <Label htmlFor={`${player.id}-role`}>Роль</Label>
               <Select
                 value={player.role}
                 onValueChange={(value) => onRoleChange(value as Role)}
               >
                 <SelectTrigger id={`${player.id}-role`}>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder="Выберите роль" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SURVIVOR">Survivor</SelectItem>
-                  <SelectItem value="KILLER">Killer</SelectItem>
+                  <SelectItem value="SURVIVOR">Сюрв</SelectItem>
+                  <SelectItem value="KILLER">Ман</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor={`${player.id}-character`}>Character</Label>
+              <Label htmlFor={`${player.id}-character`}>Персонаж</Label>
               <Select
                 value={player.characterTypeId ?? undefined}
                 onValueChange={onCharacterChange}
               >
                 <SelectTrigger id={`${player.id}-character`}>
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue placeholder="Выберите персонажа" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableCharacters.map((available) => (
@@ -118,7 +118,7 @@ export function PlayerCard({
             {effects.length > 0 && (
               <div>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Abilities
+                  Абилки
                 </p>
                 <ul className="mt-2 grid gap-2">
                   {effects.map((effect) => (
@@ -131,12 +131,12 @@ export function PlayerCard({
                         <div className="flex shrink-0 gap-1">
                           {effect.duration !== null && (
                             <Badge variant="outline" className="text-xs">
-                              {effect.duration}s
+                              {effect.duration}с.
                             </Badge>
                           )}
                           {effect.cooldown > 0 && (
                             <Badge variant="outline" className="text-xs">
-                              CD {effect.cooldown}s
+                              К/д {effect.cooldown}с.
                             </Badge>
                           )}
                         </div>
@@ -152,7 +152,7 @@ export function PlayerCard({
           </div>
         ) : (
           <p className="text-sm leading-6 text-muted-foreground">
-            Waiting for the owner to assign a character.
+            Ждем выбора персонажа...
           </p>
         )}
       </CardContent>

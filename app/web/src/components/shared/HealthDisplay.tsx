@@ -32,7 +32,7 @@ export function HealthDisplay({
         ))}
         {compact && (
           <span className="sr-only">
-            {health} of {maxHealth}
+            {health}/{maxHealth}
           </span>
         )}
       </span>

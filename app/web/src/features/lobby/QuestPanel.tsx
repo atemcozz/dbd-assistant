@@ -89,7 +89,7 @@ export function QuestPanel({
       >
         <div>
           <p className="text-xs font-semibold uppercase tracking-[.16em] text-muted-foreground">
-            Quest points
+            Очки квестов
           </p>
           <p
             className={cn(
@@ -111,8 +111,8 @@ export function QuestPanel({
           )}
         >
           {hasEnoughPoints
-            ? 'Enough to open exits'
-            : `Need ${requiredQuestPoints - totalPoints} more points`}
+            ? 'Достаточно очков'
+            : `Нужно еще хотя бы ${requiredQuestPoints - totalPoints} очков`}
         </Badge>
       </div>
 
@@ -121,24 +121,24 @@ export function QuestPanel({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[.16em] text-primary">
-              Pinned quests
+              Квесты
             </p>
             <h2 className="mt-1 font-display text-2xl font-semibold">
-              Physical markers
+              Выбранные квесты
             </h2>
           </div>
-          <Badge variant="secondary">{quests.length} selected</Badge>
+          <Badge variant="secondary">{quests.length} выбрано</Badge>
         </div>
         {quests.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              No quests selected yet.
+              Квесты еще не выбраны
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-6">
             <SelectedQuestGroup
-              title="Killer-specific quests"
+              title="Квесты манов"
               quests={killerQuests}
               total={quests.length}
               killerLabels={killerLabels}
@@ -146,7 +146,7 @@ export function QuestPanel({
               onMove={onMove}
             />
             <SelectedQuestGroup
-              title="Universal quests"
+              title="Универсальные квесты"
               quests={universalQuests}
               total={quests.length}
               killerLabels={killerLabels}
@@ -161,22 +161,21 @@ export function QuestPanel({
       {isOwner && (
         <Card>
           <CardHeader>
-            <CardTitle>Quest selection</CardTitle>
+            <CardTitle>Выбор квестов</CardTitle>
             <CardDescription>
-              Choose objectives before the game starts. Adding or removing a
-              quest pins it immediately.
+              Выберите квесты, которые будут использоваться в игре. Игроки смогут завершить эти квесты, чтобы открыть выходы.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-7">
             <QuestDefinitionGroup
-              title="Killer-specific quests"
+              title="Квесты манов"
               definitions={killerDefinitions}
               killerLabels={killerLabels}
               selectedQuestIds={selectedQuestIds}
               onToggle={onToggle}
             />
             <QuestDefinitionGroup
-              title="Universal quests"
+              title="Универсальные квесты"
               definitions={universalDefinitions}
               killerLabels={killerLabels}
               selectedQuestIds={selectedQuestIds}
@@ -212,7 +211,7 @@ function SelectedQuestGroup({
         <h3 className="font-display text-lg font-semibold">{title}</h3>
         <Separator className="flex-1" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="flex flex-col gap-4 sm:grid-cols-2">
         {quests.map((quest) => (
           <QuestCard
             key={quest.id}
@@ -250,7 +249,7 @@ function QuestDefinitionGroup({
       </div>
       {definitions.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No quests in this category.
+          В этой категории нет квестов
         </p>
       ) : (
         <div className="grid gap-3">
@@ -302,10 +301,10 @@ function QuestDefinitionCard({
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{definition.name}</p>
           <div className="flex flex-wrap gap-1">
-            <Badge variant="outline">{definition.type}</Badge>
-            <Badge variant="outline">{definition.cost} pts</Badge>
+            {/* <Badge variant="outline">{definition.type}</Badge> */}
+            <Badge variant="default">{definition.cost} очков</Badge>
             {killerLabel && (
-              <Badge variant="secondary">Killer: {killerLabel}</Badge>
+              <Badge variant="outline">Ман: {killerLabel}</Badge>
             )}
           </div>
         </div>
@@ -317,7 +316,7 @@ function QuestDefinitionCard({
           onClick={() => onToggle(definition.id)}
           size="icon"
           variant={selected ? 'secondary' : 'outline'}
-          title={selected ? 'Remove quest' : 'Add quest'}
+          title={selected ? 'Удалить квест' : 'Добавить квест'}
         >
           {selected ? (
             <span className="text-xs font-bold">✓</span>
@@ -333,7 +332,7 @@ function QuestDefinitionCard({
           onClick={() => setExpanded((value) => !value)}
           size="icon"
           variant="ghost"
-          title={expanded ? 'Collapse details' : 'Expand details'}
+          title={expanded ? 'Свернуть' : 'Развернуть'}
         >
           {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
         </Button>
@@ -344,13 +343,13 @@ function QuestDefinitionCard({
             {definition.description}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge variant="outline">{definition.cost} points</Badge>
+            <Badge variant="outline">{definition.cost} очков</Badge>
             {killerLabel && (
-              <Badge variant="secondary">Killer: {killerLabel}</Badge>
+              <Badge variant="outline">Ман: {killerLabel}</Badge>
             )}
-            {definition.radius !== null && (
-              <Badge variant="outline">Radius: {definition.radius}m</Badge>
-            )}
+            {/* {definition.radius !== null && (
+              <Badge variant="outline">Радиус: {definition.radius}m</Badge>
+            )} */}
             <Badge variant="outline">ID: {definition.id}</Badge>
           </div>
         </CardContent>
@@ -384,7 +383,7 @@ function QuestCard({
         {/* Big number panel — corresponds to a physical prop in the venue. */}
         <div className="grid w-24 shrink-0 place-items-center bg-primary px-3 text-center text-primary-foreground">
           <span className="text-xs font-bold uppercase tracking-[.18em]">
-            Marker
+            Квест
           </span>
           <strong className="font-display text-5xl leading-none">
             {quest.number}
@@ -392,17 +391,16 @@ function QuestCard({
         </div>
         <CardContent className="grid min-w-0 flex-1 content-center gap-2 p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">Quest {quest.number}</Badge>
             <Badge variant="outline">{quest.definition.cost} pts</Badge>
-            <Badge
+            {/* <Badge
               variant={
                 quest.status === 'COMPLETED' ? 'secondary' : 'default'
               }
             >
               {quest.status}
-            </Badge>
+            </Badge> */}
             {killerLabel && (
-              <Badge variant="secondary">Killer: {killerLabel}</Badge>
+              <Badge variant="secondary">Ман: {killerLabel}</Badge>
             )}
             {isOwner && (
               <span className="ml-auto flex gap-1">

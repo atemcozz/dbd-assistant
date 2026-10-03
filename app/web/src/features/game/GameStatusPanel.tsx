@@ -1,4 +1,4 @@
-import { Skull, Users } from 'lucide-react'
+import { Clock, Skull, Users } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -29,27 +29,33 @@ export function GameStatusPanel({
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Game status</CardTitle>
-          <CardDescription>
+          <CardTitle>Статус игры</CardTitle>
+          {/* <CardDescription>
             {isKiller
               ? 'Control the pressure and watch survivor status.'
               : 'Keep moving through the physical venue.'}
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
-        <CardContent className="grid gap-4">
+        <CardContent className="flex flex-col gap-4">
           <div className="rounded-md border border-border p-4">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              Your role
+              Твоя роль
             </p>
             <p className="mt-1 font-display text-2xl font-semibold">
               {player.characterType?.name ?? player.role}
             </p>
+
+             
+
             <div className="mt-3">
               <HealthDisplay
                 health={player.health}
                 maxHealth={player.characterType?.maxHealth ?? null}
               />
             </div>
+              <p className="mt-1 font-display">
+              {player.characterType?.description ?? ''}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -60,11 +66,11 @@ export function GameStatusPanel({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Skull className="size-5 text-destructive" />
-              Killers in this game
+              Маны в текущей игре
             </CardTitle>
-            <CardDescription>
+            {/* <CardDescription>
               Know who you're up against. These are the killer's starting abilities.
-            </CardDescription>
+            </CardDescription> */}
           </CardHeader>
           <CardContent className="grid gap-4">
             {killers.map((killer) => (
@@ -84,11 +90,11 @@ export function GameStatusPanel({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="size-5 text-primary" />
-              Survivors in this game
+              Выжившие в текущей игре
             </CardTitle>
-            <CardDescription>
+            {/* <CardDescription>
               Track who's still in play. These are each survivor's starting abilities.
-            </CardDescription>
+            </CardDescription> */}
           </CardHeader>
           <CardContent className="grid gap-4">
             {survivors.map((survivor) => (
@@ -136,7 +142,9 @@ function CharacterIntelCard({
             </Badge>
             {target.status !== 'ALIVE' && (
               <Badge variant="outline" className="text-xs text-muted-foreground">
-                {target.status}
+                {target.status === 'ESCAPED' ?
+                 'Сбежал' : target.status === 'DEAD' ?
+                 'Мертв' : 'Жив'}
               </Badge>
             )}
           </div>
@@ -161,7 +169,7 @@ function CharacterIntelCard({
       {effects.length > 0 && (
         <div className="mt-3">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Abilities
+            Абилки персонажа
           </p>
           <ul className="mt-2 grid gap-2">
             {effects.map((effect) => (
@@ -174,12 +182,12 @@ function CharacterIntelCard({
                   <div className="flex shrink-0 gap-1">
                     {effect.duration !== null && (
                       <Badge variant="outline" className="text-xs">
-                        {effect.duration}s
+                        {effect.duration}с
                       </Badge>
                     )}
                     {effect.cooldown > 0 && (
                       <Badge variant="outline" className="text-xs">
-                        CD {effect.cooldown}s
+                        К/д {effect.cooldown}с
                       </Badge>
                     )}
                   </div>

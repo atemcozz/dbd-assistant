@@ -216,7 +216,7 @@ export function Lobby() {
               variant="outline"
               className="border-teal-300/30 text-teal-200"
             >
-              Lobby / waiting room
+              Лобби
             </Badge>
             <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-white sm:text-6xl">
               {state.name}
@@ -225,14 +225,14 @@ export function Lobby() {
           <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-800 bg-slate-900/70 p-3 sm:min-w-56">
             <div>
               <p className="text-xs uppercase tracking-[.16em] text-slate-500">
-                Game code
+                Код комнаты
               </p>
               <strong className="font-display text-2xl tracking-[.16em] text-teal-200">
                 {state.code}
               </strong>
             </div>
             <Button
-              aria-label="Copy game code"
+              aria-label="Скопировать код комнаты"
               onClick={() => void copyCode()}
               size="icon"
               variant="ghost"
@@ -246,8 +246,7 @@ export function Lobby() {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3 py-5 text-sm text-slate-400">
           <span className="inline-flex items-center gap-2">
             <Users className="size-4" />
-            {state.players.length} player
-            {state.players.length === 1 ? '' : 's'}
+            {state.players.length}
           </span>
           <ConnectionStatus status={connectionStatus} />
           <Button
@@ -257,7 +256,7 @@ export function Lobby() {
             variant="ghost"
           >
             <LogOut className="size-4" />
-            Leave room
+            Ливнуть
           </Button>
         </div>
         {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
@@ -267,10 +266,10 @@ export function Lobby() {
           onValueChange={setActiveTab}
         >
           <TabsList className="grid h-11 w-full max-w-2xl grid-cols-2 sm:grid-cols-5">
-            <TabsTrigger value="players">Players</TabsTrigger>
+            <TabsTrigger value="players">Игроки</TabsTrigger>
             {canSeeQuestsTab && (
               <TabsTrigger value="quests">
-                Quests{' '}
+                Квесты{' '}
                 <Badge variant="secondary" className="ml-2">
                   {state.quests.length}
                 </Badge>
@@ -278,7 +277,7 @@ export function Lobby() {
             )}
             {canSeeQuestsTab && (
               <TabsTrigger value="exits">
-                Exits{' '}
+                Выходы{' '}
                 <Badge variant="secondary" className="ml-2">
                   {state.exits.length}
                 </Badge>
@@ -287,7 +286,7 @@ export function Lobby() {
             {isOwner && (
               <TabsTrigger value="settings">
                 <Settings className="mr-1 size-3.5" />
-                Settings
+                Настройки
               </TabsTrigger>
             )}
           </TabsList>
@@ -337,14 +336,14 @@ export function Lobby() {
             <TabsContent value="settings" className="mt-5">
               <div className="mx-auto max-w-md rounded-md border border-border p-6">
                 <h2 className="font-display text-xl font-semibold">
-                  Game settings
+                  Настройки
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Changes save automatically and apply when the game starts.
+                  Изменения сохраняются автоматически и применяются при начале игры.
                 </p>
                 <div className="mt-6 grid gap-5">
                   <div className="grid gap-2">
-                    <Label htmlFor="duration-minutes">Game minutes</Label>
+                    <Label htmlFor="duration-minutes">Длительность (мин) </Label>
                     <Input
                       id="duration-minutes"
                       type="number"
@@ -358,7 +357,7 @@ export function Lobby() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="required-quest-points">
-                      Required quest points to open exits
+                      Очков для открытия выходов
                     </Label>
                     <Input
                       id="required-quest-points"
@@ -371,8 +370,8 @@ export function Lobby() {
                       }
                     />
                     <p className="text-xs text-muted-foreground">
-                      Each quest has a point cost. When total completed points
-                      reach this value, exits open.
+                      Каждый квест имеет стоимость в очках.
+                      Когда общее количество выполненных очков достигает этого значения, выходы открываются.
                     </p>
                   </div>
                 </div>
@@ -385,19 +384,19 @@ export function Lobby() {
             {isOwner ? (
               <>
                 <span>
-                  {durationMinutes} min · {requiredQuestPoints} points required ·{' '}
-                  {state.exits.length} exit{state.exits.length === 1 ? '' : 's'}
+                  {durationMinutes} мин. · {requiredQuestPoints} очков для выходов ·{' '}
+                  {state.exits.length} выходов
                 </span>
                 <div className="flex flex-col items-end gap-1">
                   {!hasExits && (
                     <span className="text-xs font-semibold text-rose-400">
-                      Select at least one exit
+                      Выберите хотя бы один выход
                     </span>
                   )}
                   {!hasEnoughPoints && hasExits && (
                     <span className="text-xs font-semibold text-amber-400">
-                      Select more quests — only {totalQuestPoints}/
-                      {requiredQuestPoints} points
+                      Выберите больше квестов: {totalQuestPoints}/
+                      {requiredQuestPoints} очков квестов
                     </span>
                   )}
                   <Button
@@ -405,13 +404,13 @@ export function Lobby() {
                     disabled={!canStart}
                   >
                     <Swords className="size-4" />
-                    Start game
+                    Начать игру
                   </Button>
                 </div>
               </>
             ) : (
               <span>
-                Waiting for the room owner to configure and start.
+                Ждем создателя комнаты
               </span>
             )}
           </div>

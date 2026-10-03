@@ -46,7 +46,7 @@ export function Modal({
         </CardHeader>
         <CardContent className="flex justify-end gap-2">
           <Button onClick={onClose} variant="outline">
-            Cancel
+            Отмена
           </Button>
           {onConfirm && (
             <Button onClick={onConfirm} variant="destructive">
@@ -105,13 +105,11 @@ export function TimedModal({
           </div>
           <CardDescription>{body}</CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center justify-between gap-2">
+        <CardContent className="flex items-center justify-end gap-2">
           {/* Countdown indicator — shows how long until the modal can be closed. */}
-          <span className="text-sm tabular-nums text-muted-foreground">
-            {canClose ? 'You can close this now.' : `Close in ${remaining}s...`}
-          </span>
+  
           <Button onClick={onClose} disabled={!canClose}>
-            {canClose ? 'Close' : `${remaining}s`}
+            {canClose ? 'Закрыть' : `Закрыть через ${remaining}с.`}
           </Button>
         </CardContent>
       </Card>

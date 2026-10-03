@@ -24,9 +24,9 @@ export function GamePlayers({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Players</CardTitle>
+        <CardTitle>Игроки</CardTitle>
         <CardDescription>
-          {isKiller ? 'Choose a survivor to attack.' : 'Your team status.'}
+          {isKiller ? 'Выберите выжившего для атаки.' : 'Статус команды.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3">
@@ -47,8 +47,11 @@ export function GamePlayers({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{player.name}</p>
               <p className="text-xs text-muted-foreground">
-                {player.characterType?.name ?? 'Unassigned'} ·{' '}
-                {player.status === 'ESCAPED' ? 'Escaped' : player.status}
+                {player.characterType?.name ?? 'Не назначен'} ·{' '}
+                {player.status === 'ESCAPED' ? 'Сбежал' 
+                : player.status === 'DEAD'
+                ? 'Мертв' : 'Жив'}
+
               </p>
             </div>
             <HealthDisplay
@@ -62,7 +65,7 @@ export function GamePlayers({
                 variant="destructive"
               >
                 <Swords className="size-4" />
-                Damage
+                Атаковать
               </Button>
             )}
           </div>
