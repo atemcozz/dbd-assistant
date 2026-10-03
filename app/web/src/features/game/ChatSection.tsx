@@ -1,5 +1,5 @@
 import { MessageSquare } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -21,6 +21,14 @@ export function ChatSection({
   onSend: (text: string) => void
 }) {
   const [text, setText] = useState('')
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to the bottom whenever new messages arrive.
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) return
+    container.scrollTop = container.scrollHeight
+  }, [messages])
 
   return (
     <Card>
@@ -34,7 +42,10 @@ export function ChatSection({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="max-h-80 space-y-3 overflow-y-auto">
+        <div
+          ref={scrollRef}
+          className="max-h-80 space-y-3 overflow-y-auto"
+        >
           {messages.length === 0 ? (
             <p className="text-sm text-muted-foreground">No messages yet.</p>
           ) : (

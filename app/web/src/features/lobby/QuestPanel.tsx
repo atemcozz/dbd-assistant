@@ -26,10 +26,12 @@ import type { GameQuest, QuestDefinition } from '@/gameStore'
 
 // Lobby quest panel — shows pinned quests (marker cards) and, for the owner,
 // the full definition list to add/remove/reorder.
+// Killer-specific quests are only shown for killer types actually assigned to players.
 export function QuestPanel({
   quests,
   definitions,
   killerLabels,
+  assignedKillerTypes,
   isOwner,
   selectedQuestIds,
   onToggle,
@@ -38,20 +40,27 @@ export function QuestPanel({
   quests: GameQuest[]
   definitions: QuestDefinition[]
   killerLabels: Record<string, string | null | undefined>
+  // Set of killer character type IDs that players are currently assigned to.
+  // Killer-specific quests for unassigned types are hidden.
+  assignedKillerTypes: Set<string>
   isOwner: boolean
   selectedQuestIds: string[]
   onToggle: (id: string) => void
   onMove: (id: string, direction: number) => void
 }) {
-  // Split definitions and quests into killer-specific vs universal groups.
+  // Only show killer-specific quests for killers that are actually in the game.
   const killerDefinitions = definitions.filter(
-    (definition) => definition.killerCharacterTypeId,
+    (definition) =>
+      definition.killerCharacterTypeId &&
+      assignedKillerTypes.has(definition.killerCharacterTypeId),
   )
   const universalDefinitions = definitions.filter(
     (definition) => !definition.killerCharacterTypeId,
   )
   const killerQuests = quests.filter(
-    (quest) => quest.definition.killerCharacterTypeId,
+    (quest) =>
+      quest.definition.killerCharacterTypeId &&
+      assignedKillerTypes.has(quest.definition.killerCharacterTypeId),
   )
   const universalQuests = quests.filter(
     (quest) => !quest.definition.killerCharacterTypeId,

@@ -30,6 +30,10 @@
             {
                 "effectId": "calm-instruction",
                 "charges": 1
+            },
+            {
+                "effectId": "hidden-note",
+                "charges": 1
             }
         ]
     },
@@ -47,6 +51,10 @@
             {
                 "effectId": "route-note",
                 "charges": 2
+            },
+            {
+                "effectId": "warning-call",
+                "charges": 1
             }
         ]
     }

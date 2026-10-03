@@ -39,7 +39,7 @@ export type GameQuestView = {
     killerCharacterTypeId: string | null
   }
 }
-// UI specific view 
+// UI specific view
 export type PlayerEffectView = {
   id: string
   playerId: string
@@ -50,6 +50,11 @@ export type PlayerEffectView = {
   duration: number | null
   expiresAt: Date | null
   instruction: string | null
+  // true when this is an ability the player owns (from PlayerEffect table).
+  // false when it's an active effect applied TO the player by someone else.
+  owned: boolean
+  // Name of the player who applied this effect (null for self-owned abilities).
+  sourcePlayerName: string | null
 }
 
 // Game state with computional fields for frontend convenience,\

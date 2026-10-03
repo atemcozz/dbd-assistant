@@ -13,6 +13,10 @@
             {
                 "effectId": "mark-all-survivors",
                 "charges": 1
+            },
+            {
+                "effectId": "adrenaline-rush",
+                "charges": 1
             }
         ]
     },
@@ -29,6 +33,10 @@
             },
             {
                 "effectId": "slow-all-survivors",
+                "charges": 1
+            },
+            {
+                "effectId": "warning-call",
                 "charges": 1
             }
         ]

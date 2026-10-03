@@ -12,17 +12,25 @@ import {
 import { cn } from '@/lib/utils'
 import type { GameQuest } from '@/gameStore'
 
-// In-game quest list — shows completed count and expandable quest cards.
+// In-game quest list — shows required vs total progress and expandable quest cards.
 export function GameQuests({
   quests,
   isSurvivor,
+  requiredQuestCount,
   onComplete,
 }: {
   quests: GameQuest[]
   isSurvivor: boolean
+  // How many quests must be completed to unlock the exits.
+  requiredQuestCount: number
   onComplete: (questId: string) => void
 }) {
   const completed = quests.filter((quest) => quest.status === 'COMPLETED').length
+  const total = quests.length
+
+  // Progress toward the exit requirement — e.g. "3/3 required" when 3 of 6 done.
+  const requiredProgress = `${Math.min(completed, requiredQuestCount)}/${requiredQuestCount}`
+
   return (
     <Card>
       <CardHeader>
@@ -30,11 +38,11 @@ export function GameQuests({
           <div>
             <CardTitle>Quests</CardTitle>
             <CardDescription>
-              {completed} of {quests.length} completed
+              {requiredProgress} required · {completed}/{total} total completed
             </CardDescription>
           </div>
           <Badge variant="secondary">
-            {completed}/{quests.length}
+            {requiredProgress} exits
           </Badge>
         </div>
       </CardHeader>

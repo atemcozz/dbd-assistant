@@ -10,7 +10,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { Modal } from '@/components/shared/Modal'
+import { Modal, TimedModal } from '@/components/shared/Modal'
 import { Button } from '@/components/ui/button'
 import { ChatSection } from '@/features/game/ChatSection'
 import { EffectsSection } from '@/features/game/EffectsSection'
@@ -20,6 +20,23 @@ import { GameQuests } from '@/features/game/GameQuests'
 import { GameStatusPanel } from '@/features/game/GameStatusPanel'
 import { getRemainingSeconds } from '@/lib/format'
 import { useGameStore } from '@/gameStore'
+
+// Modal state — either a regular confirm modal or a timed modal.
+type ModalState =
+  | {
+      kind: 'confirm'
+      title: string
+      body: string
+      confirmLabel?: string
+      onConfirm?: () => void
+    }
+  | {
+      kind: 'timed'
+      title: string
+      body: string
+      seconds?: number
+    }
+  | null
 
 // Main in-game screen — tabs for status, quests, players, chat, effects.
 // Killer and survivor see different tabs and actions based on role.
@@ -39,15 +56,13 @@ export function GameScreen() {
   )!
 
   const previousHealth = useRef(currentPlayer.health)
+  // Track which active effect IDs we've already shown a modal for,
+  // so we don't re-show the same effect every state broadcast.
+  const shownEffectModals = useRef<Set<string>>(new Set())
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
     getRemainingSeconds(state.startedAt, state.durationSeconds),
   )
-  const [modal, setModal] = useState<{
-    title: string
-    body: string
-    confirmLabel?: string
-    onConfirm?: () => void
-  } | null>(null)
+  const [modal, setModal] = useState<ModalState>(null)
   const [activeTab, setActiveTab] = useState<
     'status' | 'quests' | 'players' | 'chat' | 'effects'
   >('status')
@@ -64,7 +79,7 @@ export function GameScreen() {
     return () => window.clearInterval(timer)
   }, [state.startedAt, state.durationSeconds])
 
-  // Show a modal when the player takes damage.
+  // Detect health drops and show a timed damage modal.
   useEffect(() => {
     const currentHealth = currentPlayer.health
     const previousHealthValue = previousHealth.current
@@ -75,12 +90,41 @@ export function GameScreen() {
       currentPlayer.status !== 'DEAD'
     ) {
       setModal({
+        kind: 'timed',
         title: 'You were damaged',
-        body: `Your health is now ${currentHealth}.`,
+        body: `Your health is now ${currentHealth}. Stay alert!`,
+        seconds: 5,
       })
     }
     previousHealth.current = currentHealth
   }, [currentPlayer.health, currentPlayer.status])
+
+  // Detect new active effects applied to this player and show a timed modal.
+  useEffect(() => {
+    const activeEffects = state.effects.filter(
+      (effect) => effect.expiresAt !== null && !effect.owned,
+    )
+
+    for (const effect of activeEffects) {
+      // Only show modal once per active effect instance.
+      if (shownEffectModals.current.has(effect.id)) continue
+      shownEffectModals.current.add(effect.id)
+
+      const sourceText = effect.sourcePlayerName
+        ? ` from ${effect.sourcePlayerName}`
+        : ''
+      const body = effect.instruction
+        ? `${effect.description}${sourceText ? ` (${effect.sourcePlayerName})` : ''}`
+        : `${effect.description}${sourceText}`
+
+      setModal({
+        kind: 'timed',
+        title: `Effect applied: ${effect.name}`,
+        body,
+        seconds: 5,
+      })
+    }
+  }, [state.effects])
 
   // Dead players see a dedicated death screen.
   if (currentPlayer.status === 'DEAD') return <DeathScreen onLeave={clearSession} />
@@ -90,6 +134,7 @@ export function GameScreen() {
 
   function confirmDamage(playerId: string, playerName: string) {
     setModal({
+      kind: 'confirm',
       title: 'Deal 1 damage?',
       body: `Attack ${playerName}? This removes 1 HP.`,
       confirmLabel: 'Deal damage',
@@ -102,6 +147,7 @@ export function GameScreen() {
 
   function confirmEffectUse(effectId: string, targetPlayerId?: string) {
     setModal({
+      kind: 'confirm',
       title: 'Use effect?',
       body: 'This effect use changes game state and may consume a charge.',
       confirmLabel: 'Use effect',
@@ -114,6 +160,7 @@ export function GameScreen() {
 
   function confirmQuestComplete(questId: string) {
     setModal({
+      kind: 'confirm',
       title: 'Complete quest?',
       body: 'This quest completion cannot be undone.',
       confirmLabel: 'Complete quest',
@@ -162,6 +209,7 @@ export function GameScreen() {
             <GameQuests
               quests={state.quests}
               isSurvivor={!isKiller}
+              requiredQuestCount={state.requiredQuestCount}
               onComplete={confirmQuestComplete}
             />
           </TabsContent>
@@ -193,7 +241,23 @@ export function GameScreen() {
           </TabsContent>
         </Tabs>
       </div>
-      {modal && <Modal {...modal} onClose={() => setModal(null)} />}
+      {modal?.kind === 'confirm' && (
+        <Modal
+          title={modal.title}
+          body={modal.body}
+          confirmLabel={modal.confirmLabel}
+          onConfirm={modal.onConfirm}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.kind === 'timed' && (
+        <TimedModal
+          title={modal.title}
+          body={modal.body}
+          seconds={modal.seconds}
+          onClose={() => setModal(null)}
+        />
+      )}
     </main>
   )
 }

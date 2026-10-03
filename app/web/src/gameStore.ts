@@ -43,7 +43,21 @@ export type LobbyState = {
   quests: GameQuest[]
   currentPlayerId?: string
 }
-export type PlayerEffect = { id: string; playerId: string; effectId: string; name: string; description: string; charges: number | null; duration: number | null; expiresAt: string | null; instruction: string | null }
+export type PlayerEffect = {
+  id: string
+  playerId: string
+  effectId: string
+  name: string
+  description: string
+  charges: number | null
+  duration: number | null
+  expiresAt: string | null
+  instruction: string | null
+  // true when the player owns this ability; false when applied to them by someone else.
+  owned: boolean
+  // Name of the player who applied this effect (null for self-owned abilities).
+  sourcePlayerName: string | null
+}
 export type ChatMessage = { id: string; text: string; createdAt: string; playerId: string; playerName: string; playerStatus: PlayerStatus }
 
 export type QuestDefinition = {

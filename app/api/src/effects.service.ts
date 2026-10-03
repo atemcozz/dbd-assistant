@@ -16,22 +16,30 @@ export class EffectsService {
   async getPlayerEffects(
     playerId: string,
   ): Promise<PlayerEffectView[]> {
-    const effects = await this.prisma.playerEffect.findMany({
+    const now = new Date()
+
+    // Owned abilities (from PlayerEffect table).
+    const ownedEffects = await this.prisma.playerEffect.findMany({
       where: { playerId },
       include: { effect: true },
       orderBy: { effect: { name: 'asc' } },
     })
 
     const result: PlayerEffectView[] = []
+    const seenEffectIds = new Set<string>()
 
-    for (const item of effects) {
+    // Build owned effect views, attaching active expiry if one is running.
+    for (const item of ownedEffects) {
+      seenEffectIds.add(item.effectId)
+
       const active = await this.prisma.activeEffect.findFirst({
         where: {
           targetPlayerId: playerId,
           effectId: item.effectId,
-          expiresAt: { gt: new Date() },
+          expiresAt: { gt: now },
         },
         orderBy: { expiresAt: 'desc' },
+        include: { sourcePlayer: true },
       })
 
       let instruction: string | null = null
@@ -50,6 +58,50 @@ export class EffectsService {
         duration: item.effect.duration,
         expiresAt: active ? active.expiresAt : null,
         instruction,
+        owned: true,
+        sourcePlayerName: null,
+      })
+    }
+
+    // Active effects applied TO this player by others (from ActiveEffect table).
+    // These show up even if the player doesn't own the effect — e.g. a survivor
+    // sees "Stun" when the killer stuns them.
+    const incomingActive = await this.prisma.activeEffect.findMany({
+      where: {
+        targetPlayerId: playerId,
+        expiresAt: { gt: now },
+      },
+      include: {
+        effect: true,
+        sourcePlayer: true,
+      },
+      orderBy: { expiresAt: 'desc' },
+    })
+
+    for (const active of incomingActive) {
+      // Skip if already shown as an owned ability with active expiry.
+      if (seenEffectIds.has(active.effectId)) continue
+
+      let instruction: string | null = null
+
+      if (active.effect.action === 'TEXT') {
+        instruction = active.effect.description
+      }
+
+      result.push({
+        // Use ActiveEffect id so React keys stay unique.
+        id: `active-${active.id}`,
+        playerId,
+        effectId: active.effectId,
+        name: active.effect.name,
+        description: active.effect.description,
+        // Player doesn't own this ability — no charges to consume.
+        charges: null,
+        duration: active.effect.duration,
+        expiresAt: active.expiresAt,
+        instruction,
+        owned: false,
+        sourcePlayerName: active.sourcePlayer?.name ?? null,
       })
     }
 
@@ -189,9 +241,28 @@ export class EffectsService {
         }
 
         if (owned.effect.action === 'TEXT') {
-          // TEXT effects are physical-game instructions — the player reads the
-          // effect description (returned as `instruction` in getPlayerEffects).
-          // No server-side state change is needed beyond consuming the charge.
+          // TEXT effects are physical-game instructions. When targeting another
+          // player, create a short-lived ActiveEffect so the target sees the
+          // instruction in their effects list and receives the apply modal.
+          // Self-targeted TEXT effects don't need an ActiveEffect — the source
+          // already sees the instruction via their owned effect.
+          if (target.id !== source.id) {
+            // Default 10-second display window for instructions sent to others.
+            const displaySeconds = owned.effect.duration ?? 10
+            const expiresAt = new Date(
+              now.getTime() + displaySeconds * 1000,
+            )
+
+            await tx.activeEffect.create({
+              data: {
+                effectId: owned.effect.id,
+                sourcePlayerId: source.id,
+                targetPlayerId: target.id,
+                appliedAt: now,
+                expiresAt,
+              },
+            })
+          }
         }
 
         if (

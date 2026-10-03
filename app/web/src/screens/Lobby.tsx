@@ -1,5 +1,5 @@
-import { Copy, LogOut, Swords, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Copy, LogOut, Settings, Swords, Users } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -67,6 +67,17 @@ export function Lobby() {
       ]),
   )
 
+  // Set of killer character type IDs currently assigned to players.
+  // Used to hide killer-specific quests for unassigned killer types.
+  const assignedKillerTypes = new Set(
+    state.players
+      .filter((player) => player.role === 'KILLER' && player.characterTypeId)
+      .map((player) => player.characterTypeId as string),
+  )
+
+  // Debounce timer for auto-saving settings.
+  const settingsSaveTimer = useRef<number | null>(null)
+
   // Load character types once when the lobby mounts.
   useEffect(() => {
     if (characterTypes.length > 0) return
@@ -87,6 +98,21 @@ export function Lobby() {
   useEffect(() => {
     setSelectedQuestIds(state.quests.map((quest) => quest.definition.id))
   }, [state.quests])
+
+  // Keep local settings inputs in sync when server state changes.
+  useEffect(() => {
+    setDurationMinutes(Math.round(state.durationSeconds / 60))
+    setRequiredQuestCount(state.requiredQuestCount)
+  }, [state.durationSeconds, state.requiredQuestCount])
+
+  // Cleanup debounce timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (settingsSaveTimer.current !== null) {
+        window.clearTimeout(settingsSaveTimer.current)
+      }
+    }
+  }, [])
 
   async function copyCode() {
     await navigator.clipboard.writeText(state.code)
@@ -116,6 +142,26 @@ export function Lobby() {
     const next = [...currentOrder]
     ;[next[index], next[nextIndex]] = [next[nextIndex], next[index]]
     updateQuestOrder(next)
+  }
+
+  // Auto-save settings with a 600ms debounce after the last change.
+  function scheduleSettingsSave(nextMinutes: number, nextRequired: number) {
+    if (settingsSaveTimer.current !== null) {
+      window.clearTimeout(settingsSaveTimer.current)
+    }
+    settingsSaveTimer.current = window.setTimeout(() => {
+      void updateSettings(nextMinutes * 60, nextRequired)
+    }, 600)
+  }
+
+  function handleDurationChange(value: number) {
+    setDurationMinutes(value)
+    scheduleSettingsSave(value, requiredQuestCount)
+  }
+
+  function handleRequiredChange(value: number) {
+    setRequiredQuestCount(value)
+    scheduleSettingsSave(durationMinutes, value)
   }
 
   return (
@@ -177,7 +223,7 @@ export function Lobby() {
           value={activeTab}
           onValueChange={setActiveTab}
         >
-          <TabsList className="grid h-11 w-full max-w-md grid-cols-2">
+          <TabsList className="grid h-11 w-full max-w-lg grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="players">Players</TabsTrigger>
             {canSeeQuestsTab && (
               <TabsTrigger value="quests">
@@ -185,6 +231,12 @@ export function Lobby() {
                 <Badge variant="secondary" className="ml-2">
                   {state.quests.length}
                 </Badge>
+              </TabsTrigger>
+            )}
+            {isOwner && (
+              <TabsTrigger value="settings">
+                <Settings className="mr-1 size-3.5" />
+                Settings
               </TabsTrigger>
             )}
           </TabsList>
@@ -210,6 +262,7 @@ export function Lobby() {
                 quests={state.quests}
                 definitions={questDefinitions}
                 killerLabels={killerLabels}
+                assignedKillerTypes={assignedKillerTypes}
                 isOwner={isOwner}
                 selectedQuestIds={selectedQuestIds}
                 onToggle={toggleQuest}
@@ -217,45 +270,58 @@ export function Lobby() {
               />
             </TabsContent>
           )}
+          {isOwner && (
+            <TabsContent value="settings" className="mt-5">
+              <div className="mx-auto max-w-md rounded-md border border-border p-6">
+                <h2 className="font-display text-xl font-semibold">
+                  Game settings
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Changes save automatically and apply when the game starts.
+                </p>
+                <div className="mt-6 grid gap-5">
+                  <div className="grid gap-2">
+                    <Label htmlFor="duration-minutes">Game minutes</Label>
+                    <Input
+                      id="duration-minutes"
+                      type="number"
+                      min={1}
+                      max={1440}
+                      value={durationMinutes}
+                      onChange={(event) =>
+                        handleDurationChange(Number(event.target.value))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="required-quests">
+                      Required quests to open exits
+                    </Label>
+                    <Input
+                      id="required-quests"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={requiredQuestCount}
+                      onChange={(event) =>
+                        handleRequiredChange(Number(event.target.value))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
         <footer className="flex flex-col gap-4 py-6 text-sm text-slate-500">
-          <div className="flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-end">
+          <div className="flex items-center justify-between rounded-md border border-border p-4">
             {isOwner ? (
               <>
-                <div className="grid gap-2">
-                  <Label htmlFor="duration-minutes">Game minutes</Label>
-                  <Input
-                    id="duration-minutes"
-                    type="number"
-                    min={1}
-                    max={1440}
-                    value={durationMinutes}
-                    onChange={(event) =>
-                      setDurationMinutes(Number(event.target.value))
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="required-quests">Required quests</Label>
-                  <Input
-                    id="required-quests"
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={requiredQuestCount}
-                    onChange={(event) =>
-                      setRequiredQuestCount(Number(event.target.value))
-                    }
-                  />
-                </div>
-                <Button
-                  onClick={() =>
-                    void updateSettings(durationMinutes * 60, requiredQuestCount)
-                  }
-                >
-                  Save settings
-                </Button>
-                <Button className="sm:ml-auto" onClick={() => void startGame()}>
+                <span>
+                  {durationMinutes} min · {requiredQuestCount} quest
+                  {requiredQuestCount === 1 ? '' : 's'} required
+                </span>
+                <Button onClick={() => void startGame()}>
                   <Swords className="size-4" />
                   Start game
                 </Button>

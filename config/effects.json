@@ -15,7 +15,7 @@
     {
         "id": "quick-step",
         "name": "Quick Step",
-        "description": "Receive a short movement instruction.",
+        "description": "Move quickly to the next location. You may run for 60 seconds.",
         "action": "ADD_EFFECT",
         "quantity": 1,
         "duration": 60,
@@ -51,7 +51,7 @@
     {
         "id": "stun-survivor",
         "name": "Stun",
-        "description": "Temporarily restrict one survivor.",
+        "description": "Temporarily restrict one survivor. They cannot run while stunned.",
         "action": "ADD_EFFECT",
         "quantity": 1,
         "duration": 20,
@@ -63,7 +63,7 @@
     {
         "id": "room-order",
         "name": "Room Order",
-        "description": "Tell one survivor to visit a room.",
+        "description": "Tell one survivor to visit a room. They must go there immediately.",
         "action": "TEXT",
         "quantity": 1,
         "duration": null,
@@ -75,7 +75,7 @@
     {
         "id": "mark-all-survivors",
         "name": "Mark Everyone",
-        "description": "Apply a short restriction to all survivors.",
+        "description": "All survivors are marked. The killer can sense their general direction for 15 seconds.",
         "action": "ADD_EFFECT",
         "quantity": 1,
         "duration": 15,
@@ -87,13 +87,49 @@
     {
         "id": "slow-all-survivors",
         "name": "Lockdown",
-        "description": "Temporarily restrict all survivors.",
+        "description": "All survivors are restricted. Nobody can run for 30 seconds.",
         "action": "ADD_EFFECT",
         "quantity": 1,
         "duration": 30,
         "cooldown": 120,
         "allowedTargets": [
             "ALL_SURVIVORS"
+        ]
+    },
+    {
+        "id": "hidden-note",
+        "name": "Hidden Note",
+        "description": "You find a hidden note: The key is under the blue mat near the stairs.",
+        "action": "TEXT",
+        "quantity": 1,
+        "duration": null,
+        "cooldown": 60,
+        "allowedTargets": [
+            "SELF"
+        ]
+    },
+    {
+        "id": "warning-call",
+        "name": "Warning Call",
+        "description": "Send a warning to one survivor: the killer is nearby. Move quietly for 30 seconds.",
+        "action": "TEXT",
+        "quantity": 1,
+        "duration": 30,
+        "cooldown": 45,
+        "allowedTargets": [
+            "SURVIVOR"
+        ]
+    },
+    {
+        "id": "adrenaline-rush",
+        "name": "Adrenaline Rush",
+        "description": "Burst of energy. You may run at double speed for 30 seconds.",
+        "action": "ADD_EFFECT",
+        "quantity": 1,
+        "duration": 30,
+        "cooldown": 90,
+        "allowedTargets": [
+            "SELF"
         ]
     }
 ]
