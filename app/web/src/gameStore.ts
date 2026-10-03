@@ -49,7 +49,10 @@ export type LobbyState = {
   finishedAt: string | null
   durationSeconds: number
   remainingSeconds: number | null
-  requiredQuestCount: number
+  // Total quest points needed to unlock the exits.
+  requiredQuestPoints: number
+  // Sum of costs of all completed quests so far.
+  completedQuestPoints: number
   exitsUnlocked: boolean
   chatMessages: ChatMessage[]
   effects: PlayerEffect[]
@@ -90,6 +93,8 @@ export type QuestDefinition = {
   description: string
   type: string
   radius: number | null
+  // Point value of this quest. Completed quest costs sum toward requiredQuestPoints.
+  cost: number
   killerCharacterTypeId: string | null
 }
 
@@ -124,7 +129,7 @@ type GameStore = {
   attackPlayer: (playerId: string) => Promise<void>
   completeQuest: (questId: string) => Promise<void>
   useEffect: (effectId: string, targetPlayerId?: string) => Promise<void>
-  updateSettings: (durationSeconds: number, requiredQuestCount: number) => Promise<void>
+  updateSettings: (durationSeconds: number, requiredQuestPoints: number) => Promise<void>
   sendChat: (text: string) => Promise<void>
   connectRealtime: () => void
   disconnectRealtime: () => void
@@ -343,10 +348,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ state })
   },
 
-  updateSettings: async (durationSeconds, requiredQuestCount) => {
+  updateSettings: async (durationSeconds, requiredQuestPoints) => {
     const { session } = get()
     if (!session) return
-    const state = await request<LobbyState>(`/games/${session.gameCode}/settings`, { method: 'PATCH', body: JSON.stringify({ durationSeconds, requiredQuestCount }) }, session.sessionToken)
+    const state = await request<LobbyState>(`/games/${session.gameCode}/settings`, { method: 'PATCH', body: JSON.stringify({ durationSeconds, requiredQuestPoints }) }, session.sessionToken)
     set({ state })
   },
 

@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,24 +12,34 @@ import {
 import { cn } from '@/lib/utils'
 import type { GameQuest } from '@/gameStore'
 
-// In-game quest list — shows required vs total progress and expandable quest cards.
+// In-game quest list — shows point progress and expandable quest cards.
+// When exits are unlocked, available quests are hidden and a completion
+// message is shown instead.
 export function GameQuests({
   quests,
   isSurvivor,
-  requiredQuestCount,
+  requiredQuestPoints,
+  completedQuestPoints,
+  exitsUnlocked,
   onComplete,
 }: {
   quests: GameQuest[]
   isSurvivor: boolean
-  // How many quests must be completed to unlock the exits.
-  requiredQuestCount: number
+  // Total quest points needed to unlock the exits.
+  requiredQuestPoints: number
+  // Sum of costs of completed quests so far.
+  completedQuestPoints: number
+  // True when enough points have been gathered to open the exits.
+  exitsUnlocked: boolean
   onComplete: (questId: string) => void
 }) {
-  const completed = quests.filter((quest) => quest.status === 'COMPLETED').length
-  const total = quests.length
+  const completedCount = quests.filter(
+    (quest) => quest.status === 'COMPLETED',
+  ).length
+  const totalCount = quests.length
 
-  // Progress toward the exit requirement — e.g. "3/3 required" when 3 of 6 done.
-  const requiredProgress = `${Math.min(completed, requiredQuestCount)}/${requiredQuestCount}`
+  // Progress toward the exit requirement — e.g. "400/500 points".
+  const pointsProgress = `${Math.min(completedQuestPoints, requiredQuestPoints)}/${requiredQuestPoints}`
 
   return (
     <Card>
@@ -38,29 +48,43 @@ export function GameQuests({
           <div>
             <CardTitle>Quests</CardTitle>
             <CardDescription>
-              {requiredProgress} required · {completed}/{total} total completed
+              {pointsProgress} points · {completedCount}/{totalCount} completed
             </CardDescription>
           </div>
           <Badge variant="secondary">
-            {requiredProgress} exits
+            {pointsProgress} points
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="grid gap-3">
-        {quests.map((quest) => (
-          <GameQuestCard
-            key={quest.id}
-            quest={quest}
-            isSurvivor={isSurvivor}
-            onComplete={onComplete}
-          />
-        ))}
+        {/* When exits are unlocked, show a completion message instead of remaining quests. */}
+        {exitsUnlocked ? (
+          <div className="rounded-md border border-primary/60 bg-primary/10 p-6 text-center">
+            <Sparkles className="mx-auto size-8 text-primary" />
+            <p className="mt-3 font-display text-lg font-semibold text-primary">
+              Quests complete!
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Enough points have been gathered. The exits are open — survivors
+              should proceed to the exit.
+            </p>
+          </div>
+        ) : (
+          quests.map((quest) => (
+            <GameQuestCard
+              key={quest.id}
+              quest={quest}
+              isSurvivor={isSurvivor}
+              onComplete={onComplete}
+            />
+          ))
+        )}
       </CardContent>
     </Card>
   )
 }
 
-// Single expandable quest card with marker number.
+// Single expandable quest card with marker number and point cost.
 function GameQuestCard({
   quest,
   isSurvivor,
@@ -95,6 +119,9 @@ function GameQuestCard({
         <p className="min-w-0 flex-1 truncate text-sm font-medium">
           {quest.definition.name}
         </p>
+        <Badge variant="outline" className="shrink-0 text-xs">
+          {quest.definition.cost} pts
+        </Badge>
         <Button
           aria-label="Expand quest"
           onClick={() => setExpanded((value) => !value)}
@@ -110,6 +137,11 @@ function GameQuestCard({
           <p className="text-sm leading-6 text-muted-foreground">
             {quest.definition.description}
           </p>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              {quest.definition.cost} points
+            </Badge>
+          </div>
           {isSurvivor && !completed && (
             <Button onClick={() => onComplete(quest.id)} size="sm">
               <Check className="size-4" />

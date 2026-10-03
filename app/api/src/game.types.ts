@@ -49,6 +49,7 @@ export type GameQuestView = {
     description: string
     type: string
     radius: number | null
+    cost: number
     killerCharacterTypeId: string | null
   }
 }
@@ -94,7 +95,10 @@ export type LobbyState = {
   finishedAt: Date | null
   durationSeconds: number
   remainingSeconds: number | null
-  requiredQuestCount: number
+  // Total quest points needed to unlock the exits.
+  requiredQuestPoints: number
+  // Sum of costs of all completed quests so far.
+  completedQuestPoints: number
   exitsUnlocked: boolean
   players: LobbyPlayer[]
   quests: GameQuestView[]

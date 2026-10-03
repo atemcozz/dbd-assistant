@@ -33,6 +33,7 @@ export function QuestPanel({
   killerLabels,
   assignedKillerTypes,
   isOwner,
+  requiredQuestPoints,
   selectedQuestIds,
   onToggle,
   onMove,
@@ -44,6 +45,8 @@ export function QuestPanel({
   // Killer-specific quests for unassigned types are hidden.
   assignedKillerTypes: Set<string>
   isOwner: boolean
+  // Total quest points needed to unlock the exits.
+  requiredQuestPoints: number
   selectedQuestIds: string[]
   onToggle: (id: string) => void
   onMove: (id: string, direction: number) => void
@@ -66,8 +69,53 @@ export function QuestPanel({
     (quest) => !quest.definition.killerCharacterTypeId,
   )
 
+  // Sum of costs of all selected quests — the total points available in this game.
+  const totalPoints = quests.reduce(
+    (sum, quest) => sum + quest.definition.cost,
+    0,
+  )
+  const hasEnoughPoints = totalPoints >= requiredQuestPoints
+
   return (
     <div className="grid gap-8">
+      {/* Points summary — visible contrast so the owner notices at a glance. */}
+      <div
+        className={cn(
+          'flex items-center justify-between rounded-md border-2 p-4',
+          hasEnoughPoints
+            ? 'border-emerald-400/60 bg-emerald-500/10'
+            : 'border-amber-400/60 bg-amber-500/10',
+        )}
+      >
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[.16em] text-muted-foreground">
+            Quest points
+          </p>
+          <p
+            className={cn(
+              'font-display text-2xl font-bold tabular-nums',
+              hasEnoughPoints ? 'text-emerald-400' : 'text-amber-400',
+            )}
+          >
+            {totalPoints}
+            <span className="text-muted-foreground"> / {requiredQuestPoints}</span>
+          </p>
+        </div>
+        <Badge
+          variant="outline"
+          className={cn(
+            'text-sm font-semibold',
+            hasEnoughPoints
+              ? 'border-emerald-400/60 text-emerald-400'
+              : 'border-amber-400/60 text-amber-400',
+          )}
+        >
+          {hasEnoughPoints
+            ? 'Enough to open exits'
+            : `Need ${requiredQuestPoints - totalPoints} more points`}
+        </Badge>
+      </div>
+
       {/* Pinned quests — physical marker cards players will look for. */}
       <section className="grid gap-4">
         <div className="flex items-center justify-between">
@@ -255,6 +303,7 @@ function QuestDefinitionCard({
           <p className="truncate font-medium">{definition.name}</p>
           <div className="flex flex-wrap gap-1">
             <Badge variant="outline">{definition.type}</Badge>
+            <Badge variant="outline">{definition.cost} pts</Badge>
             {killerLabel && (
               <Badge variant="secondary">Killer: {killerLabel}</Badge>
             )}
@@ -295,6 +344,7 @@ function QuestDefinitionCard({
             {definition.description}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
+            <Badge variant="outline">{definition.cost} points</Badge>
             {killerLabel && (
               <Badge variant="secondary">Killer: {killerLabel}</Badge>
             )}
@@ -343,6 +393,7 @@ function QuestCard({
         <CardContent className="grid min-w-0 flex-1 content-center gap-2 p-5">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">Quest {quest.number}</Badge>
+            <Badge variant="outline">{quest.definition.cost} pts</Badge>
             <Badge
               variant={
                 quest.status === 'COMPLETED' ? 'secondary' : 'default'

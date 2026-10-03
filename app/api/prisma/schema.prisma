@@ -40,7 +40,9 @@ model Game {
   startedAt     DateTime?
   finishedAt DateTime?
   durationSeconds Int       @default(3600)
-  requiredQuestCount Int    @default(3)
+  // Total quest points needed to unlock the exits.
+  // Sum of completed quest costs is compared against this value.
+  requiredQuestPoints Int    @default(500)
   players       Player[]
   quests        GameQuest[]
   chatMessages  ChatMessage[]
@@ -52,6 +54,8 @@ model QuestDefinition {
   description           String
   type                  String
   radius                Int?
+  // Point value of this quest. Completed quest costs sum toward requiredQuestPoints.
+  cost                  Int         @default(100)
   killerCharacterTypeId String?
   killerCharacterType   CharacterType? @relation(fields: [killerCharacterTypeId], references: [id])
   gameQuests            GameQuest[]

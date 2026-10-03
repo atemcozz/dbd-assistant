@@ -32,6 +32,7 @@ type QuestConfig = {
   description: string
   type: string
   radius: number | null
+  cost: number
   killerCharacterTypeId: string | null
 }
 
@@ -140,6 +141,7 @@ async function main() {
             description: quest.description,
             type: quest.type,
             radius: quest.radius,
+            cost: quest.cost,
             killerCharacterTypeId: quest.killerCharacterTypeId,
           },
           update: {
@@ -147,6 +149,7 @@ async function main() {
             description: quest.description,
             type: quest.type,
             radius: quest.radius,
+            cost: quest.cost,
             killerCharacterTypeId: quest.killerCharacterTypeId,
           },
         }),

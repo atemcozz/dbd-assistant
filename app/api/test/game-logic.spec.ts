@@ -195,6 +195,7 @@ describe('Game logic', () => {
         description: 'A quest visible to all killers.',
         type: 'EXPLORATION',
         radius: null,
+        cost: 100,
         killerCharacterTypeId: null,
       },
     })
@@ -208,7 +209,22 @@ describe('Game logic', () => {
         description: 'A quest specific to the stalker.',
         type: 'SURVIVOR_OBJECTIVE',
         radius: null,
+        cost: 200,
         killerCharacterTypeId: 'stalker',
+      },
+    })
+
+    await prisma.questDefinition.upsert({
+      where: { id: 'expensive-quest' },
+      update: {},
+      create: {
+        id: 'expensive-quest',
+        name: 'Expensive Quest',
+        description: 'A high-value quest.',
+        type: 'PUZZLE',
+        radius: null,
+        cost: 500,
+        killerCharacterTypeId: null,
       },
     })
   }
@@ -226,9 +242,20 @@ describe('Game logic', () => {
 
   // Helper: create a lobby-ready game with owner + survivor and characters assigned.
   // Does NOT start the game — quest selection must happen in LOBBY status.
+  // Sets requiredQuestPoints to 1 so exits stay locked (0 completed points < 1)
+  // while still allowing startGame with any selected quest. Point-system tests
+  // override this value explicitly.
   async function setupLobbyGame() {
     const owner = await createGameWithOwner()
     const survivor = await joinSurvivor(owner.state.code, 'Survivor')
+
+    // Keep exits locked but don't gate startGame on expensive quest selection.
+    await gamesService.updateSettings(
+      owner.state.code,
+      owner.sessionToken,
+      3600,
+      1,
+    )
 
     await charactersService.assignRole(
       owner.state.code,
@@ -260,8 +287,16 @@ describe('Game logic', () => {
   }
 
   // Helper: start a game after assigning characters to all players.
+  // Sets requiredQuestPoints to 0 — combat/effects tests don't select quests
+  // and don't care about the exits gate.
   async function setupRunningGame() {
     const { owner, survivor } = await setupLobbyGame()
+    await gamesService.updateSettings(
+      owner.state.code,
+      owner.sessionToken,
+      3600,
+      0,
+    )
     await gamesService.startGame(owner.state.code, owner.sessionToken)
     return { owner, survivor }
   }
@@ -641,6 +676,142 @@ describe('Game logic', () => {
       await expect(
         questsService.complete(owner.state.code, quest.id, owner.sessionToken),
       ).rejects.toThrow('ONLY_ACTIVE_SURVIVORS')
+    })
+
+    it('quest points sum toward requiredQuestPoints and unlock exits', async () => {
+      const { owner } = await setupLobbyGame()
+
+      // Set required points to 300 — enough for universal-quest (100) + stalker-quest (200).
+      await gamesService.updateSettings(
+        owner.state.code,
+        owner.sessionToken,
+        3600,
+        300,
+      )
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest', 'stalker-quest'],
+      )
+      await gamesService.startGame(owner.state.code, owner.sessionToken)
+
+      // Before completing any quests — exits should not be unlocked.
+      let state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.exitsUnlocked).toBe(false)
+      expect(state.completedQuestPoints).toBe(0)
+      expect(state.requiredQuestPoints).toBe(300)
+
+      // Complete universal-quest (cost 100).
+      const universalQuest = state.quests.find(
+        (q) => q.definition.id === 'universal-quest',
+      )!
+      await questsService.complete(
+        owner.state.code,
+        universalQuest.id,
+        owner.sessionToken,
+      )
+
+      state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.completedQuestPoints).toBe(100)
+      expect(state.exitsUnlocked).toBe(false)
+
+      // Complete stalker-quest (cost 200) — total 300, exits should unlock.
+      const stalkerQuest = state.quests.find(
+        (q) => q.definition.id === 'stalker-quest',
+      )!
+      await questsService.complete(
+        owner.state.code,
+        stalkerQuest.id,
+        owner.sessionToken,
+      )
+
+      state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.completedQuestPoints).toBe(300)
+      expect(state.exitsUnlocked).toBe(true)
+
+      // Available quests are hidden when exits are unlocked — only completed remain.
+      const availableQuests = state.quests.filter(
+        (q) => q.status === 'AVAILABLE',
+      )
+      expect(availableQuests.length).toBe(0)
+    })
+
+    it('exits unlock when a single expensive quest meets the requirement', async () => {
+      const { owner } = await setupLobbyGame()
+
+      // Set required points to 500 — matches expensive-quest cost exactly.
+      await gamesService.updateSettings(
+        owner.state.code,
+        owner.sessionToken,
+        3600,
+        500,
+      )
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['expensive-quest'],
+      )
+      await gamesService.startGame(owner.state.code, owner.sessionToken)
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const quest = state.quests[0]
+      expect(quest.definition.cost).toBe(500)
+
+      await questsService.complete(
+        owner.state.code,
+        quest.id,
+        owner.sessionToken,
+      )
+
+      const afterState = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(afterState.completedQuestPoints).toBe(500)
+      expect(afterState.exitsUnlocked).toBe(true)
+    })
+
+    it('game cannot start when selected quests do not meet required points', async () => {
+      const { owner } = await setupLobbyGame()
+
+      // Set required points to 500 — universal-quest alone only gives 100.
+      await gamesService.updateSettings(
+        owner.state.code,
+        owner.sessionToken,
+        3600,
+        500,
+      )
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest'],
+      )
+
+      await expect(
+        gamesService.startGame(owner.state.code, owner.sessionToken),
+      ).rejects.toThrow('NOT_ENOUGH_QUEST_POINTS')
+
+      // Game should still be in lobby.
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.status).toBe('LOBBY')
     })
   })
 

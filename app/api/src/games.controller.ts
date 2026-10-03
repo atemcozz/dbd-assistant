@@ -86,13 +86,13 @@ export class GamesController {
     @Param('code') code: string,
     @Headers('x-session-token') sessionToken: string,
     @Body('durationSeconds') durationSeconds: number,
-    @Body('requiredQuestCount') requiredQuestCount: number,
+    @Body('requiredQuestPoints') requiredQuestPoints: number,
   ) {
     const state = await this.gamesService.updateSettings(
       code,
       sessionToken,
       durationSeconds,
-      requiredQuestCount,
+      requiredQuestPoints,
     )
 
     await this.gameGateway.broadcastGameState(state.id)

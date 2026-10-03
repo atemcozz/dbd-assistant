@@ -40,6 +40,7 @@ type QuestWithDefinition = {
     description: string
     type: string
     radius: number | null
+    cost: number
     killerCharacterTypeId: string | null
   }
 }
@@ -155,6 +156,22 @@ export class GamesService {
       }
     }
 
+    // Sum the costs of all selected quests — must meet the required points
+    // before the game can start, otherwise exits could never open.
+    const selectedQuests = await this.prisma.gameQuest.findMany({
+      where: { gameId: game.id },
+      include: { questDefinition: { select: { cost: true } } },
+    })
+
+    const totalQuestPoints = selectedQuests.reduce(
+      (sum, quest) => sum + quest.questDefinition.cost,
+      0,
+    )
+
+    if (totalQuestPoints < game.requiredQuestPoints) {
+      throw new ConflictException('NOT_ENOUGH_QUEST_POINTS')
+    }
+
     await this.prisma.game.update({
       where: { id: game.id },
       data: {
@@ -189,7 +206,7 @@ export class GamesService {
     codeInput: string,
     sessionToken: string,
     durationSeconds: number,
-    requiredQuestCount: number,
+    requiredQuestPoints: number,
   ) {
     const game = await this.authorizeOwner(codeInput, sessionToken)
 
@@ -201,7 +218,7 @@ export class GamesService {
       where: { id: game.id },
       data: {
         durationSeconds,
-        requiredQuestCount,
+        requiredQuestPoints,
       },
     })
 
@@ -295,16 +312,17 @@ export class GamesService {
       viewer?.role === PlayerRole.KILLER ||
       viewer?.id === game.ownerPlayerId
 
-    if (canSeeQuests) {
-      quests = this.filterQuests(game.quests, viewer)
-    }
-
-    const completedQuestCount = game.quests.filter(
-      (quest) => quest.status === QuestStatus.COMPLETED,
-    ).length
+    // Sum the costs of all completed quests — shared across the whole team.
+    const completedQuestPoints = game.quests
+      .filter((quest) => quest.status === QuestStatus.COMPLETED)
+      .reduce((sum, quest) => sum + quest.questDefinition.cost, 0)
 
     const exitsUnlocked =
-      completedQuestCount >= game.requiredQuestCount
+      completedQuestPoints >= game.requiredQuestPoints
+
+    if (canSeeQuests) {
+      quests = this.filterQuests(game.quests, viewer, exitsUnlocked)
+    }
 
     let remainingSeconds: number | null = null
 
@@ -356,7 +374,8 @@ export class GamesService {
       finishedAt: game.finishedAt,
       durationSeconds: game.durationSeconds,
       remainingSeconds,
-      requiredQuestCount: game.requiredQuestCount,
+      requiredQuestPoints: game.requiredQuestPoints,
+      completedQuestPoints,
       exitsUnlocked,
       players,
       quests,
@@ -495,10 +514,17 @@ async getStateById(
       role: PlayerRole
       characterTypeId: string | null
     } | undefined,
+    exitsUnlocked: boolean,
   ): GameQuestView[] {
     const result: GameQuestView[] = []
 
     for (const quest of quests) {
+      // When exits are unlocked, hide remaining available quests —
+      // survivors no longer need to complete them.
+      if (exitsUnlocked && quest.status === QuestStatus.AVAILABLE) {
+        continue
+      }
+
       // Killer-specific quests are only shown to the matching killer type.
       // Universal quests (killerCharacterTypeId === null) are visible to all.
       if (viewer?.role === PlayerRole.KILLER) {
@@ -524,6 +550,7 @@ async getStateById(
           description: quest.questDefinition.description,
           type: quest.questDefinition.type,
           radius: quest.questDefinition.radius,
+          cost: quest.questDefinition.cost,
           killerCharacterTypeId:
             quest.questDefinition.killerCharacterTypeId,
         },

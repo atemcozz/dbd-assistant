@@ -44,8 +44,8 @@ export function Lobby() {
   const [durationMinutes, setDurationMinutes] = useState(
     Math.round(state.durationSeconds / 60),
   )
-  const [requiredQuestCount, setRequiredQuestCount] = useState(
-    state.requiredQuestCount,
+  const [requiredQuestPoints, setRequiredQuestPoints] = useState(
+    state.requiredQuestPoints,
   )
 
   const isOwner = state.ownerPlayerId === session.playerId
@@ -56,6 +56,13 @@ export function Lobby() {
     isOwner ||
     viewerPlayer?.role === 'KILLER' ||
     state.status !== 'LOBBY'
+
+  // Sum of costs of all selected quests — must meet required points to start.
+  const totalQuestPoints = state.quests.reduce(
+    (sum, quest) => sum + quest.definition.cost,
+    0,
+  )
+  const hasEnoughPoints = totalQuestPoints >= requiredQuestPoints
 
   // Build a lookup of killer character id → display name for quest badges.
   const killerLabels = Object.fromEntries(
@@ -102,8 +109,8 @@ export function Lobby() {
   // Keep local settings inputs in sync when server state changes.
   useEffect(() => {
     setDurationMinutes(Math.round(state.durationSeconds / 60))
-    setRequiredQuestCount(state.requiredQuestCount)
-  }, [state.durationSeconds, state.requiredQuestCount])
+    setRequiredQuestPoints(state.requiredQuestPoints)
+  }, [state.durationSeconds, state.requiredQuestPoints])
 
   // Cleanup debounce timer on unmount.
   useEffect(() => {
@@ -145,22 +152,22 @@ export function Lobby() {
   }
 
   // Auto-save settings with a 600ms debounce after the last change.
-  function scheduleSettingsSave(nextMinutes: number, nextRequired: number) {
+  function scheduleSettingsSave(nextMinutes: number, nextPoints: number) {
     if (settingsSaveTimer.current !== null) {
       window.clearTimeout(settingsSaveTimer.current)
     }
     settingsSaveTimer.current = window.setTimeout(() => {
-      void updateSettings(nextMinutes * 60, nextRequired)
+      void updateSettings(nextMinutes * 60, nextPoints)
     }, 600)
   }
 
   function handleDurationChange(value: number) {
     setDurationMinutes(value)
-    scheduleSettingsSave(value, requiredQuestCount)
+    scheduleSettingsSave(value, requiredQuestPoints)
   }
 
-  function handleRequiredChange(value: number) {
-    setRequiredQuestCount(value)
+  function handleRequiredPointsChange(value: number) {
+    setRequiredQuestPoints(value)
     scheduleSettingsSave(durationMinutes, value)
   }
 
@@ -264,6 +271,7 @@ export function Lobby() {
                 killerLabels={killerLabels}
                 assignedKillerTypes={assignedKillerTypes}
                 isOwner={isOwner}
+                requiredQuestPoints={state.requiredQuestPoints}
                 selectedQuestIds={selectedQuestIds}
                 onToggle={toggleQuest}
                 onMove={moveQuest}
@@ -294,19 +302,23 @@ export function Lobby() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="required-quests">
-                      Required quests to open exits
+                    <Label htmlFor="required-quest-points">
+                      Required quest points to open exits
                     </Label>
                     <Input
-                      id="required-quests"
+                      id="required-quest-points"
                       type="number"
                       min={0}
-                      max={100}
-                      value={requiredQuestCount}
+                      max={100000}
+                      value={requiredQuestPoints}
                       onChange={(event) =>
-                        handleRequiredChange(Number(event.target.value))
+                        handleRequiredPointsChange(Number(event.target.value))
                       }
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Each quest has a point cost. When total completed points
+                      reach this value, exits open.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -318,13 +330,23 @@ export function Lobby() {
             {isOwner ? (
               <>
                 <span>
-                  {durationMinutes} min · {requiredQuestCount} quest
-                  {requiredQuestCount === 1 ? '' : 's'} required
+                  {durationMinutes} min · {requiredQuestPoints} points required
                 </span>
-                <Button onClick={() => void startGame()}>
-                  <Swords className="size-4" />
-                  Start game
-                </Button>
+                <div className="flex flex-col items-end gap-1">
+                  {!hasEnoughPoints && (
+                    <span className="text-xs font-semibold text-amber-400">
+                      Select more quests — only {totalQuestPoints}/
+                      {requiredQuestPoints} points
+                    </span>
+                  )}
+                  <Button
+                    onClick={() => void startGame()}
+                    disabled={!hasEnoughPoints}
+                  >
+                    <Swords className="size-4" />
+                    Start game
+                  </Button>
+                </div>
               </>
             ) : (
               <span>

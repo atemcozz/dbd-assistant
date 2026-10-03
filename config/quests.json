@@ -5,6 +5,7 @@
     "description": "Find the red marker hidden somewhere in the building and record the symbol beside it.",
     "type": "EXPLORATION",
     "radius": null,
+    "cost": 100,
     "killerCharacterTypeId": null
   },
   {
@@ -13,6 +14,7 @@
     "description": "Visit the three marked rooms and determine the order from the physical clues.",
     "type": "PUZZLE",
     "radius": null,
+    "cost": 300,
     "killerCharacterTypeId": null
   },
   {
@@ -21,6 +23,7 @@
     "description": "Find the missing key near the marked area and bring its number back to the survivor team.",
     "type": "SURVIVOR_OBJECTIVE",
     "radius": null,
+    "cost": 200,
     "killerCharacterTypeId": null
   },
   {
@@ -29,6 +32,7 @@
     "description": "Locate the blue symbol and enter its shape order from left to right.",
     "type": "SURVIVOR_OBJECTIVE",
     "radius": null,
+    "cost": 200,
     "killerCharacterTypeId": null
   },
   {
@@ -37,6 +41,7 @@
     "description": "Find the medical note and deliver its instruction to another survivor in the building.",
     "type": "SURVIVOR_OBJECTIVE",
     "radius": null,
+    "cost": 150,
     "killerCharacterTypeId": null
   },
   {
@@ -45,6 +50,7 @@
     "description": "Find the clue left along the Stalker's trail and bring its marked number to the survivor team.",
     "type": "SURVIVOR_OBJECTIVE",
     "radius": null,
+    "cost": 400,
     "killerCharacterTypeId": "stalker"
   }
 ]

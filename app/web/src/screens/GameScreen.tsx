@@ -195,7 +195,7 @@ export function GameScreen() {
           <Card className="mt-5 border-primary bg-primary/10">
             <CardContent className="flex items-center gap-3 p-4 text-sm font-semibold text-primary">
               <Sparkles className="size-5" />
-              Required quests complete. Survivors should proceed toward the exits.
+              Enough quest points gathered. The exits are open — survivors should proceed.
             </CardContent>
           </Card>
         )}
@@ -229,7 +229,9 @@ export function GameScreen() {
             <GameQuests
               quests={state.quests}
               isSurvivor={!isKiller}
-              requiredQuestCount={state.requiredQuestCount}
+              requiredQuestPoints={state.requiredQuestPoints}
+              completedQuestPoints={state.completedQuestPoints}
+              exitsUnlocked={state.exitsUnlocked}
               onComplete={confirmQuestComplete}
             />
           </TabsContent>
