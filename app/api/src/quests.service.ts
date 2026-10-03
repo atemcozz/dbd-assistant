@@ -38,19 +38,28 @@ export class QuestsService {
       throw new ForbiddenException('QUESTS_HIDDEN_UNTIL_GAME_START')
     }
 
-    if (player.role === PlayerRole.KILLER) {
+    // Room owner must always see every quest definition — they configure
+    // the lobby and may need to browse quests for killer types that are
+    // not assigned yet (or that they themselves do not play).
+    // After the game starts, everyone gets the full list (no type filter).
+    if (
+      player.game.status !== GameStatus.LOBBY ||
+      player.id === player.game.ownerPlayerId ||
+      player.role !== PlayerRole.KILLER
+    ) {
       return this.prisma.questDefinition.findMany({
-        where: {
-          OR: [
-            { killerCharacterTypeId: null },
-            { killerCharacterTypeId: player.characterTypeId },
-          ],
-        },
         orderBy: { id: 'asc' },
       })
     }
 
+    // Lobby only: ordinary killers see universal + their own type.
     return this.prisma.questDefinition.findMany({
+      where: {
+        OR: [
+          { killerCharacterTypeId: null },
+          { killerCharacterTypeId: player.characterTypeId },
+        ],
+      },
       orderBy: { id: 'asc' },
     })
   }

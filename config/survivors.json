@@ -1,57 +1,86 @@
 [
-    {
-        "id": "medic",
-        "role": "SURVIVOR",
-        "name": "Medic",
-        "description": "Heals allies using a field dressing.",
-        "maxHealth": 3,
-        "effects": [
-            {
-                "effectId": "field-dressing",
-                "charges": 999
-            },
-            {
-                "effectId": "self-attack",
-                "charges": 999
-            }
-        ]
-    },
-    {
-        "id": "scout",
-        "role": "SURVIVOR",
-        "name": "Scout",
-        "description": "Reveals information and can stun the killer briefly.",
-        "maxHealth": 3,
-        "effects": [
-            {
-                "effectId": "self-attack",
-                "charges": 999
-            },
-            {
-                "effectId": "stun-killer",
-                "charges": 999
-            }
-        ]
-    },
-    {
-        "id": "technician",
-        "role": "SURVIVOR",
-        "name": "Technician",
-        "description": "Interacts with special quests and objects.",
-        "maxHealth": 3,
-        "effects": [
-            {
-                "effectId": "field-dressing",
-                "charges": 999
-            },
-            {
-                "effectId": "self-attack",
-                "charges": 999
-            },
-            {
-                "effectId": "cry-out",
-                "charges": 999
-            }
-        ]
-    }
+  {
+    "id": "medic",
+    "role": "SURVIVOR",
+    "name": "Медик",
+    "description": "Помогает команде восстанавливать здоровье.",
+    "maxHealth": 4,
+    "effects": [
+      {
+        "effectId": "field-dressing",
+        "charges": null
+      },
+      {
+        "effectId": "self-attack",
+        "charges": null
+      },
+      {
+        "effectId": "stun-killer",
+        "charges": null
+      }
+    ]
+  },
+  {
+    "id": "scout",
+    "role": "SURVIVOR",
+    "name": "Разведчик",
+    "description": "Хорошо ориентируется в здании и умеет мешать маньяку.",
+    "maxHealth": 3,
+    "effects": [
+      {
+        "effectId": "self-attack",
+        "charges": null
+      },
+      {
+        "effectId": "stun-killer",
+        "charges": null
+      },
+      {
+        "effectId": "force-shout",
+        "charges": null
+      }
+    ]
+  },
+  {
+    "id": "technician",
+    "role": "SURVIVOR",
+    "name": "Техник",
+    "description": "Лучше других разбирается в физических объектах и головоломках.",
+    "maxHealth": 3,
+    "effects": [
+      {
+        "effectId": "self-attack",
+        "charges": null
+      },
+      {
+        "effectId": "field-dressing",
+        "charges": null
+      },
+      {
+        "effectId": "no-turning",
+        "charges": null
+      }
+    ]
+  },
+  {
+    "id": "runner",
+    "role": "SURVIVOR",
+    "name": "Бегун",
+    "description": "Специализируется на быстрых перемещениях между этажами и комнатами.",
+    "maxHealth": 3,
+    "effects": [
+      {
+        "effectId": "self-attack",
+        "charges": null
+      },
+      {
+        "effectId": "killer-breath",
+        "charges": null
+      },
+      {
+        "effectId": "forced-room",
+        "charges": null
+      }
+    ]
+  }
 ]

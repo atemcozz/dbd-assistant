@@ -1,44 +1,118 @@
 [
-    {
-        "id": "stalker",
-        "role": "KILLER",
-        "name": "Stalker",
-        "description": "Forces survivors to relocate under pressure.",
-        "maxHealth": 999,
-        "effects": [
-            {
-                "effectId": "attack-survivor",
-                "charges": 999
-            },
-            {
-                "effectId": "stay-still",
-                "charges": 999
-            },
-            {
-                "effectId": "blast-radius",
-                "charges": 999
-            }
-        ]
-    },
-    {
-        "id": "warden",
-        "role": "KILLER",
-        "name": "Warden",
-        "description": "Controls areas and restricts survivor movement.",
-        "maxHealth": 999,
-        "effects": [
-            {
-                "effectId": "attack-all",
-                "charges": 999
-            },
-            {
-                "effectId": "go-to-room",
-                "charges": 999
-            },
-            {
-                "effectId": "disarm",
-                "charges": 999
-            }
-        ]
-    }
+  {
+    "id": "king-of-spades",
+    "role": "KILLER",
+    "name": "Король Пик",
+    "description": "Контролирует территорию: останавливает выживших и меняет их расположение.",
+    "maxHealth": null,
+    "effects": [
+      {
+        "effectId": "stay-still",
+        "charges": null
+      },
+      {
+        "effectId": "forced-room",
+        "charges": null
+      },
+      {
+        "effectId": "look-at-me",
+        "charges": null
+      },
+      {
+        "effectId": "swap-places",
+        "charges": null
+      },
+      {
+        "effectId": "decoy",
+        "charges": null
+      }
+    ]
+  },
+  {
+    "id": "doctor",
+    "role": "KILLER",
+    "name": "Доктор",
+    "description": "Навязывает короткие неприятные процедуры: вскрытие позиции и принудительные паузы.",
+    "maxHealth": null,
+    "effects": [
+      {
+        "effectId": "force-shout",
+        "charges": null
+      },
+      {
+        "effectId": "silent-step",
+        "charges": null
+      },
+      {
+        "effectId": "hands-up",
+        "charges": null
+      },
+      {
+        "effectId": "lockdown",
+        "charges": null
+      },
+      {
+        "effectId": "toll",
+        "charges": null
+      }
+    ]
+  },
+  {
+    "id": "puppet-master",
+    "role": "KILLER",
+    "name": "Кукловод",
+    "description": "Связывает выживших друг с другом и заставляет их выполнять команды в паре.",
+    "maxHealth": null,
+    "effects": [
+      {
+        "effectId": "forced-room",
+        "charges": null
+      },
+      {
+        "effectId": "no-turning",
+        "charges": null
+      },
+      {
+        "effectId": "call-the-room",
+        "charges": null
+      },
+      {
+        "effectId": "pair-up",
+        "charges": null
+      },
+      {
+        "effectId": "courier",
+        "charges": null
+      }
+    ]
+  },
+  {
+    "id": "ronin",
+    "role": "KILLER",
+    "name": "Ронин",
+    "description": "Быстрое давление: групповые остановки и короткие ложные сигналы.",
+    "maxHealth": null,
+    "effects": [
+      {
+        "effectId": "stay-still",
+        "charges": null
+      },
+      {
+        "effectId": "killer-breath",
+        "charges": null
+      },
+      {
+        "effectId": "group-command",
+        "charges": null
+      },
+      {
+        "effectId": "lockdown",
+        "charges": null
+      },
+      {
+        "effectId": "decoy",
+        "charges": null
+      }
+    ]
+  }
 ]

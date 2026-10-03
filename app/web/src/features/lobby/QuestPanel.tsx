@@ -26,7 +26,10 @@ import type { GameQuest, QuestDefinition } from '@/gameStore'
 
 // Lobby quest panel — shows pinned quests (marker cards) and, for the owner,
 // the full definition list to add/remove/reorder.
-// Killer-specific quests are only shown for killer types actually assigned to players.
+// Killer-specific definitions are shown only for killer types currently
+// assigned to players. Universal quests are always listed.
+// When the owner swaps a killer type, the server removes selected quests
+// for the old type (no player has that type anymore).
 export function QuestPanel({
   quests,
   definitions,
@@ -41,8 +44,8 @@ export function QuestPanel({
   quests: GameQuest[]
   definitions: QuestDefinition[]
   killerLabels: Record<string, string | null | undefined>
-  // Set of killer character type IDs that players are currently assigned to.
-  // Killer-specific quests for unassigned types are hidden.
+  // Killer character type IDs that players are currently assigned to.
+  // Killer-specific quests for unassigned types are hidden in the lobby.
   assignedKillerTypes: Set<string>
   isOwner: boolean
   // Total quest points needed to unlock the exits.
@@ -51,7 +54,8 @@ export function QuestPanel({
   onToggle: (id: string) => void
   onMove: (id: string, direction: number) => void
 }) {
-  // Only show killer-specific quests for killers that are actually in the game.
+  // Only list/show killer-specific quests for killers actually in the game.
+  // Selected orphans are also removed server-side when a type is swapped.
   const killerDefinitions = definitions.filter(
     (definition) =>
       definition.killerCharacterTypeId &&

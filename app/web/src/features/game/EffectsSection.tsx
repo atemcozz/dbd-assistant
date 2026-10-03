@@ -141,9 +141,9 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
               </Badge>
             )}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          {/* <p className="mt-1 text-sm text-muted-foreground">
             {effect.description}
-          </p>
+          </p> */}
           {effect.instruction && (
             <p className="mt-1 text-sm italic text-primary">
               {displayText}

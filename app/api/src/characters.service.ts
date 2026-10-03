@@ -8,6 +8,7 @@ import {
   GameStatus,
   PlayerRole,
   PlayerStatus,
+  Prisma,
 } from '@prisma/client'
 import { PrismaService } from './prisma.service'
 
@@ -64,7 +65,9 @@ export class CharactersService {
       throw new NotFoundException('PLAYER_NOT_FOUND')
     }
 
-    // Remove character type and effects when changing role
+    // Remove character type and effects when changing role.
+    // Also drop selected killer-specific quests that no longer apply
+    // (this player was the last killer of that type).
     await this.prisma.$transaction(async (tx) => {
       await tx.player.update({
         where: { id: player.id },
@@ -78,6 +81,8 @@ export class CharactersService {
       await tx.playerEffect.deleteMany({
         where: { playerId: player.id },
       })
+
+      await this.removeOrphanKillerQuests(tx, game.id)
     })
 
     return game
@@ -111,8 +116,8 @@ export class CharactersService {
       throw new BadRequestException('INVALID_CHARACTER_TYPE')
     }
 
-    // copy character effects to player effects and set health
-    // based on character maxHealth
+    // Copy character effects to player effects, set health from maxHealth,
+    // and drop selected killer quests whose type this player no longer plays.
     await this.prisma.$transaction(async (tx) => {
       let health: number | null = null
 
@@ -142,9 +147,73 @@ export class CharactersService {
           })),
         })
       }
+
+      await this.removeOrphanKillerQuests(tx, game.id)
     })
 
     return game
+  }
+
+  // After a lobby role/character change, selected quests may reference a
+  // killer character type that is no longer assigned to anyone.
+  // Delete those GameQuest rows and renumber the rest so the physical
+  // marker numbers stay 1..n without gaps.
+  private async removeOrphanKillerQuests(
+    tx: Prisma.TransactionClient,
+    gameId: string,
+  ) {
+    const killers = await tx.player.findMany({
+      where: { gameId, role: PlayerRole.KILLER },
+      select: { characterTypeId: true },
+    })
+
+    const assignedKillerTypes = new Set(
+      killers
+        .map((killer) => killer.characterTypeId)
+        .filter((value): value is string => value !== null),
+    )
+
+    const gameQuests = await tx.gameQuest.findMany({
+      where: { gameId },
+      include: {
+        questDefinition: { select: { killerCharacterTypeId: true } },
+      },
+      orderBy: { number: 'asc' },
+    })
+
+    const orphanIds = gameQuests
+      .filter((quest) => {
+        const killerType = quest.questDefinition.killerCharacterTypeId
+        return killerType !== null && !assignedKillerTypes.has(killerType)
+      })
+      .map((quest) => quest.id)
+
+    if (orphanIds.length === 0) {
+      return
+    }
+
+    await tx.gameQuest.deleteMany({
+      where: { id: { in: orphanIds } },
+    })
+
+    const remaining = await tx.gameQuest.findMany({
+      where: { gameId },
+      include: {
+        questDefinition: { select: { killerCharacterTypeId: true } },
+      },
+      orderBy: { number: 'asc' },
+    })
+
+    for (let index = 0; index < remaining.length; index++) {
+      const nextNumber = index + 1
+
+      if (remaining[index].number !== nextNumber) {
+        await tx.gameQuest.update({
+          where: { id: remaining[index].id },
+          data: { number: nextNumber },
+        })
+      }
+    }
   }
 
   private async getOwnedLobby(

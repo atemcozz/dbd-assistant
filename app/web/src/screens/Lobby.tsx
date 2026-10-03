@@ -77,17 +77,17 @@ export function Lobby() {
   const canStart = hasEnoughPoints && hasExits
 
   // Build a lookup of killer character id → display name for quest badges.
+  // Derived from character types so labels work for any assigned killer.
   const killerLabels = Object.fromEntries(
-    state.players
-      .filter((player) => player.role === 'KILLER' && player.characterType)
-      .map((player) => [
-        player.characterTypeId,
-        player.characterType?.name ?? player.characterTypeId,
-      ]),
+    characterTypes
+      .filter((character) => character.role === 'KILLER')
+      .map((character) => [character.id, character.name]),
   )
 
-  // Set of killer character type IDs currently assigned to players.
-  // Used to hide killer-specific quests for unassigned killer types.
+  // Killer character type IDs currently assigned to players.
+  // Lobby shows only killer-specific quest definitions for these types.
+  // If the owner swaps a player's killer type, the server also removes
+  // selected quests for the old type (no longer assigned to anyone).
   const assignedKillerTypes = new Set(
     state.players
       .filter((player) => player.role === 'KILLER' && player.characterTypeId)

@@ -90,6 +90,20 @@ describe('Game logic', () => {
       },
     })
 
+    // Second killer type — used to test killer-specific quest filtering
+    // and auto-removal when a player's killer type changes.
+    await prisma.characterType.upsert({
+      where: { id: 'hunter' },
+      update: {},
+      create: {
+        id: 'hunter',
+        role: PlayerRole.KILLER,
+        name: 'Hunter',
+        description: 'Direct attacks.',
+        maxHealth: null,
+      },
+    })
+
     // Create effect definitions — HEAL type.
     await prisma.effectDefinition.upsert({
       where: { id: 'field-dressing' },
@@ -215,6 +229,20 @@ describe('Game logic', () => {
         radius: null,
         cost: 200,
         killerCharacterTypeId: 'stalker',
+      },
+    })
+
+    await prisma.questDefinition.upsert({
+      where: { id: 'hunter-quest' },
+      update: {},
+      create: {
+        id: 'hunter-quest',
+        name: 'Hunter Quest',
+        description: 'A quest specific to the hunter.',
+        type: 'SURVIVOR_OBJECTIVE',
+        radius: null,
+        cost: 150,
+        killerCharacterTypeId: 'hunter',
       },
     })
 
@@ -645,17 +673,189 @@ describe('Game logic', () => {
       ).rejects.toThrow('QUEST_ALREADY_COMPLETED')
     })
 
-    it('killer-specific quest visibility filtering works', async () => {
-      const { owner, survivor } = await setupLobbyGame()
+    it('in-game quest list is visible to every player regardless of killer type', async () => {
+      const owner = await createGameWithOwner()
+      const killerPlayer = await joinSurvivor(owner.state.code, 'Killer')
+      const survivorPlayer = await joinSurvivor(owner.state.code, 'Mate')
+
+      await gamesService.updateSettings(
+        owner.state.code,
+        owner.sessionToken,
+        3600,
+        1,
+      )
+      await exitsService.select(owner.state.code, owner.sessionToken, ['main-gate'])
+
+      await charactersService.assignRole(
+        owner.state.code,
+        owner.playerId,
+        owner.sessionToken,
+        PlayerRole.SURVIVOR,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        owner.playerId,
+        owner.sessionToken,
+        'medic',
+      )
+      await charactersService.assignRole(
+        owner.state.code,
+        survivorPlayer.playerId,
+        owner.sessionToken,
+        PlayerRole.SURVIVOR,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        survivorPlayer.playerId,
+        owner.sessionToken,
+        'medic',
+      )
+      await charactersService.assignRole(
+        owner.state.code,
+        killerPlayer.playerId,
+        owner.sessionToken,
+        PlayerRole.KILLER,
+      )
+      // Killer is stalker — quests for hunter must still be visible in-game.
+      await charactersService.assignCharacter(
+        owner.state.code,
+        killerPlayer.playerId,
+        owner.sessionToken,
+        'stalker',
+      )
 
       await questsService.select(
         owner.state.code,
         owner.sessionToken,
-        ['universal-quest', 'stalker-quest'],
+        ['universal-quest', 'stalker-quest', 'hunter-quest'],
       )
+
+      // Lobby (before start): ordinary killer only sees own type + universal.
+      const lobbyKillerState = await gamesService.getState(
+        owner.state.code,
+        killerPlayer.sessionToken,
+      )
+      const lobbyIds = lobbyKillerState.quests.map((q) => q.definition.id)
+      expect(lobbyIds).toContain('universal-quest')
+      expect(lobbyIds).toContain('stalker-quest')
+      expect(lobbyIds).not.toContain('hunter-quest')
+
       await gamesService.startGame(owner.state.code, owner.sessionToken)
 
-      // Killer (stalker) should see both quests.
+      // In game: every player sees the full selected quest list.
+      const killerState = await gamesService.getState(
+        owner.state.code,
+        killerPlayer.sessionToken,
+      )
+      const killerQuestIds = killerState.quests.map((q) => q.definition.id)
+      expect(killerQuestIds).toContain('universal-quest')
+      expect(killerQuestIds).toContain('stalker-quest')
+      expect(killerQuestIds).toContain('hunter-quest')
+
+      const survivorState = await gamesService.getState(
+        owner.state.code,
+        survivorPlayer.sessionToken,
+      )
+      const survivorQuestIds = survivorState.quests.map((q) => q.definition.id)
+      expect(survivorQuestIds).toContain('universal-quest')
+      expect(survivorQuestIds).toContain('stalker-quest')
+      expect(survivorQuestIds).toContain('hunter-quest')
+
+      // Definitions after start are also unfiltered for a non-owner killer.
+      const definitions = await questsService.listDefinitions(
+        owner.state.code,
+        killerPlayer.sessionToken,
+      )
+      const definitionIds = definitions.map((q) => q.id)
+      expect(definitionIds).toContain('hunter-quest')
+      expect(definitionIds).toContain('stalker-quest')
+    })
+
+    it('owner receives all quest definitions regardless of own role', async () => {
+      const { owner } = await setupLobbyGame()
+
+      // Owner is a survivor — still must see every definition.
+      const asSurvivor = await questsService.listDefinitions(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const survivorIds = asSurvivor.map((q) => q.id)
+      expect(survivorIds).toContain('universal-quest')
+      expect(survivorIds).toContain('stalker-quest')
+      expect(survivorIds).toContain('hunter-quest')
+
+      // Owner becomes the killer — definitions list must not shrink.
+      await charactersService.assignRole(
+        owner.state.code,
+        owner.playerId,
+        owner.sessionToken,
+        PlayerRole.KILLER,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        owner.playerId,
+        owner.sessionToken,
+        'stalker',
+      )
+
+      const asKiller = await questsService.listDefinitions(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const killerIds = asKiller.map((q) => q.id)
+      expect(killerIds).toContain('universal-quest')
+      expect(killerIds).toContain('stalker-quest')
+      expect(killerIds).toContain('hunter-quest')
+    })
+
+    it('ordinary killer only receives universal and own-type definitions', async () => {
+      const { owner, survivor } = await setupLobbyGame()
+
+      const definitions = await questsService.listDefinitions(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+      const ids = definitions.map((q) => q.id)
+
+      expect(ids).toContain('universal-quest')
+      expect(ids).toContain('stalker-quest')
+      expect(ids).not.toContain('hunter-quest')
+    })
+
+    it('owner sees all selected quests even when playing as a killer', async () => {
+      const { owner, survivor } = await setupLobbyGame()
+
+      // Owner becomes a stalker first, then selects quests.
+      // hunter-quest has no hunter assigned yet — still selected, still shown to owner.
+      await charactersService.assignRole(
+        owner.state.code,
+        owner.playerId,
+        owner.sessionToken,
+        PlayerRole.KILLER,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        owner.playerId,
+        owner.sessionToken,
+        'stalker',
+      )
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest', 'stalker-quest', 'hunter-quest'],
+      )
+
+      const ownerState = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const ownerQuestIds = ownerState.quests.map((q) => q.definition.id)
+      expect(ownerQuestIds).toContain('universal-quest')
+      expect(ownerQuestIds).toContain('stalker-quest')
+      expect(ownerQuestIds).toContain('hunter-quest')
+
+      // Non-owner stalker still only sees universal + stalker.
       const killerState = await gamesService.getState(
         owner.state.code,
         survivor.sessionToken,
@@ -663,6 +863,150 @@ describe('Game logic', () => {
       const killerQuestIds = killerState.quests.map((q) => q.definition.id)
       expect(killerQuestIds).toContain('universal-quest')
       expect(killerQuestIds).toContain('stalker-quest')
+      expect(killerQuestIds).not.toContain('hunter-quest')
+    })
+
+    it('changing killer character type removes orphaned killer-specific quests', async () => {
+      const { owner, survivor } = await setupLobbyGame()
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest', 'stalker-quest', 'hunter-quest'],
+      )
+
+      // Survivor player is stalker; change them to hunter.
+      // stalker-quest has no remaining stalker → must be removed.
+      await charactersService.assignCharacter(
+        owner.state.code,
+        survivor.playerId,
+        owner.sessionToken,
+        'hunter',
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const questIds = state.quests.map((q) => q.definition.id)
+      expect(questIds).toContain('universal-quest')
+      expect(questIds).toContain('hunter-quest')
+      expect(questIds).not.toContain('stalker-quest')
+
+      // Remaining quests renumber from 1 without gaps.
+      const numbers = state.quests.map((q) => q.number).sort((a, b) => a - b)
+      expect(numbers).toEqual([1, 2])
+    })
+
+    it('killer-specific quests stay while another killer still has that type', async () => {
+      const owner = await createGameWithOwner()
+      const playerA = await joinSurvivor(owner.state.code, 'Player A')
+      const playerB = await joinSurvivor(owner.state.code, 'Player B')
+
+      await charactersService.assignRole(
+        owner.state.code,
+        playerA.playerId,
+        owner.sessionToken,
+        PlayerRole.KILLER,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        playerA.playerId,
+        owner.sessionToken,
+        'stalker',
+      )
+      await charactersService.assignRole(
+        owner.state.code,
+        playerB.playerId,
+        owner.sessionToken,
+        PlayerRole.KILLER,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        playerB.playerId,
+        owner.sessionToken,
+        'hunter',
+      )
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest', 'stalker-quest', 'hunter-quest'],
+      )
+
+      // Change A from stalker to hunter — no stalker left → stalker-quest goes.
+      // hunter-quest stays because B is still a hunter.
+      await charactersService.assignCharacter(
+        owner.state.code,
+        playerA.playerId,
+        owner.sessionToken,
+        'hunter',
+      )
+
+      let state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      let questIds = state.quests.map((q) => q.definition.id)
+      expect(questIds).not.toContain('stalker-quest')
+      expect(questIds).toContain('hunter-quest')
+      expect(questIds).toContain('universal-quest')
+
+      // Put A back as stalker and restore both killer quests.
+      await charactersService.assignCharacter(
+        owner.state.code,
+        playerA.playerId,
+        owner.sessionToken,
+        'stalker',
+      )
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest', 'stalker-quest', 'hunter-quest'],
+      )
+
+      // Change B from hunter to stalker — no hunter left → hunter-quest goes.
+      // stalker-quest stays because A is still a stalker.
+      await charactersService.assignCharacter(
+        owner.state.code,
+        playerB.playerId,
+        owner.sessionToken,
+        'stalker',
+      )
+
+      state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      questIds = state.quests.map((q) => q.definition.id)
+      expect(questIds).toContain('stalker-quest')
+      expect(questIds).not.toContain('hunter-quest')
+    })
+
+    it('changing role away from killer removes orphaned killer quests', async () => {
+      const { owner, survivor } = await setupLobbyGame()
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest', 'stalker-quest'],
+      )
+
+      // Only stalker in the room leaves the killer role → stalker-quest removed.
+      await charactersService.assignRole(
+        owner.state.code,
+        survivor.playerId,
+        owner.sessionToken,
+        PlayerRole.SURVIVOR,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const questIds = state.quests.map((q) => q.definition.id)
+      expect(questIds).toContain('universal-quest')
+      expect(questIds).not.toContain('stalker-quest')
     })
 
     it('universal quests are visible to all killers', async () => {

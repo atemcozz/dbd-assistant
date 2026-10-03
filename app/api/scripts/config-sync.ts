@@ -67,6 +67,42 @@ async function main() {
 
   const charactersJson = [...survivorsJson, ...killersJson]
 
+  // Fail fast on config mistakes — silent defaults hide broken game content.
+  const effectIds = new Set(effectsJson.map((e) => e.id))
+  const characterIds = new Set(charactersJson.map((c) => c.id))
+
+  for (const effect of effectsJson) {
+    if (!effect.id || !effect.name || !effect.action) {
+      throw new Error(`Effect missing required fields: ${JSON.stringify(effect)}`)
+    }
+    if (!Array.isArray(effect.allowedTargets) || effect.allowedTargets.length === 0) {
+      throw new Error(`Effect ${effect.id} has invalid allowedTargets`)
+    }
+  }
+
+  for (const character of charactersJson) {
+    for (const item of character.effects) {
+      if (!effectIds.has(item.effectId)) {
+        throw new Error(
+          `Character ${character.id} references unknown effect ${item.effectId}`,
+        )
+      }
+    }
+  }
+
+  for (const quest of questsJson) {
+    if (typeof quest.cost !== 'number' || quest.cost < 0) {
+      throw new Error(
+        `Quest ${quest.id} must define a non-negative numeric cost`,
+      )
+    }
+    if (quest.killerCharacterTypeId && !characterIds.has(quest.killerCharacterTypeId)) {
+      throw new Error(
+        `Quest ${quest.id} references unknown killer ${quest.killerCharacterTypeId}`,
+      )
+    }
+  }
+
   const prisma = new PrismaClient()
 
   try {

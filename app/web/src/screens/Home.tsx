@@ -37,7 +37,7 @@ export function Home() {
       <div className="mx-auto flex flex-col max-w-6xl items-center gap-10 lg:grid-cols-[1fr_26rem] lg:gap-20">
         <section className="max-w-2xl mt-10">
           <h1 className="flex items-center gap-3 mt-5 max-w-xl font-display text-5xl font-semibold leading-[.95] tracking-tight text-foreground sm:text-7xl">
-            ДБД РИЛ ЛАЙФ ЕДИШОН V 0.000001
+            ДБД РИЛ ЛАЙФ ЕДИШОН V0.000001
           </h1>
         </section>
         <Card className="w-full mt-10">
