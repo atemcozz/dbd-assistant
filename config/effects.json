@@ -3,6 +3,7 @@
         "id": "field-dressing",
         "name": "Field Dressing",
         "description": "Restore 1 HP to yourself or a survivor.",
+        "targetDescription": "Your wounds are being treated.",
         "action": "HEAL",
         "quantity": 1,
         "duration": null,
@@ -13,22 +14,11 @@
         ]
     },
     {
-        "id": "quick-step",
-        "name": "Quick Step",
-        "description": "Move quickly to the next location. You may run for 60 seconds.",
-        "action": "ADD_EFFECT",
-        "quantity": 1,
-        "duration": 60,
-        "cooldown": 45,
-        "allowedTargets": [
-            "SELF"
-        ]
-    },
-    {
-        "id": "calm-instruction",
-        "name": "Calm Instruction",
-        "description": "Read a short instruction for the physical trial.",
-        "action": "TEXT",
+        "id": "self-attack",
+        "name": "Self Attack",
+        "description": "Hurt yourself. Removes 1 HP from your own health.",
+        "targetDescription": "You hurt yourself.",
+        "action": "DAMAGE",
         "quantity": 1,
         "duration": null,
         "cooldown": 0,
@@ -37,33 +27,63 @@
         ]
     },
     {
-        "id": "route-note",
-        "name": "Route Note",
-        "description": "Send a route instruction to one survivor.",
+        "id": "attack-survivor",
+        "name": "Attack Survivor",
+        "description": "Attack one survivor. Removes 1 HP.",
+        "targetDescription": "You were attacked! You lose 1 HP.",
+        "action": "DAMAGE",
+        "quantity": 1,
+        "duration": null,
+        "cooldown": 5,
+        "allowedTargets": [
+            "SURVIVOR"
+        ]
+    },
+    {
+        "id": "attack-all",
+        "name": "Attack All",
+        "description": "Attack all survivors. Each loses 1 HP.",
+        "targetDescription": "You were caught in an attack! You lose 1 HP.",
+        "action": "DAMAGE",
+        "quantity": 1,
+        "duration": null,
+        "cooldown": 30,
+        "allowedTargets": [
+            "ALL_SURVIVORS"
+        ]
+    },
+    {
+        "id": "stay-still",
+        "name": "Stay Still",
+        "description": "Don't move for 30 seconds. Stand exactly where you are.",
+        "targetDescription": "You are stunned! Don't move for 30 seconds.",
+        "action": "TEXT",
+        "quantity": 1,
+        "duration": 30,
+        "cooldown": 20,
+        "allowedTargets": [
+            "ALL_SURVIVORS",
+            "SURVIVOR"
+        ]
+    },
+    {
+        "id": "cry-out",
+        "name": "Cry Out",
+        "description": "Cry out your current location so everyone can hear you.",
+        "targetDescription": "Cry out your location!",
         "action": "TEXT",
         "quantity": 1,
         "duration": null,
-        "cooldown": 0,
+        "cooldown": 15,
         "allowedTargets": [
             "SURVIVOR"
         ]
     },
     {
-        "id": "stun-survivor",
-        "name": "Stun",
-        "description": "Temporarily restrict one survivor. They cannot run while stunned.",
-        "action": "ADD_EFFECT",
-        "quantity": 1,
-        "duration": 20,
-        "cooldown": 45,
-        "allowedTargets": [
-            "SURVIVOR"
-        ]
-    },
-    {
-        "id": "room-order",
+        "id": "go-to-room",
         "name": "Room Order",
-        "description": "Tell one survivor to visit a room. They must go there immediately.",
+        "description": "Go to room 3 immediately and wait there.",
+        "targetDescription": "Go to room 3 immediately!",
         "action": "TEXT",
         "quantity": 1,
         "duration": null,
@@ -73,63 +93,42 @@
         ]
     },
     {
-        "id": "mark-all-survivors",
-        "name": "Mark Everyone",
-        "description": "All survivors are marked. The killer can sense their general direction for 15 seconds.",
-        "action": "ADD_EFFECT",
-        "quantity": 1,
-        "duration": 15,
-        "cooldown": 90,
-        "allowedTargets": [
-            "ALL_SURVIVORS"
-        ]
-    },
-    {
-        "id": "slow-all-survivors",
-        "name": "Lockdown",
-        "description": "All survivors are restricted. Nobody can run for 30 seconds.",
-        "action": "ADD_EFFECT",
-        "quantity": 1,
-        "duration": 30,
-        "cooldown": 120,
-        "allowedTargets": [
-            "ALL_SURVIVORS"
-        ]
-    },
-    {
-        "id": "hidden-note",
-        "name": "Hidden Note",
-        "description": "You find a hidden note: The key is under the blue mat near the stairs.",
+        "id": "blast-radius",
+        "name": "Blast Radius",
+        "description": "You were in the blast radius. Hurt yourself — remove 1 HP.",
+        "targetDescription": "You were in the blast radius! Hurt yourself — remove 1 HP.",
         "action": "TEXT",
         "quantity": 1,
         "duration": null,
-        "cooldown": 60,
-        "allowedTargets": [
-            "SELF"
-        ]
-    },
-    {
-        "id": "warning-call",
-        "name": "Warning Call",
-        "description": "Send a warning to one survivor: the killer is nearby. Move quietly for 30 seconds.",
-        "action": "TEXT",
-        "quantity": 1,
-        "duration": 30,
-        "cooldown": 45,
+        "cooldown": 0,
         "allowedTargets": [
             "SURVIVOR"
         ]
     },
     {
-        "id": "adrenaline-rush",
-        "name": "Adrenaline Rush",
-        "description": "Burst of energy. You may run at double speed for 30 seconds.",
-        "action": "ADD_EFFECT",
+        "id": "stun-killer",
+        "name": "Stun Killer",
+        "description": "Stun the killer for 15 seconds. They cannot move.",
+        "targetDescription": "You are stunned! You cannot move for 15 seconds.",
+        "action": "TEXT",
+        "quantity": 1,
+        "duration": 15,
+        "cooldown": 60,
+        "allowedTargets": [
+            "KILLER"
+        ]
+    },
+    {
+        "id": "disarm",
+        "name": "Disarm",
+        "description": "The killer cannot attack for 30 seconds. Put your weapon down.",
+        "targetDescription": "You are disarmed! You cannot attack for 30 seconds.",
+        "action": "TEXT",
         "quantity": 1,
         "duration": 30,
-        "cooldown": 90,
+        "cooldown": 45,
         "allowedTargets": [
-            "SELF"
+            "KILLER"
         ]
     }
 ]

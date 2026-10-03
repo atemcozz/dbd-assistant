@@ -3,16 +3,16 @@
         "id": "medic",
         "role": "SURVIVOR",
         "name": "Medic",
-        "description": "Restores teammates with a compact first-aid kit.",
+        "description": "Heals allies using a field dressing.",
         "maxHealth": 3,
         "effects": [
             {
                 "effectId": "field-dressing",
-                "charges": 3
+                "charges": 999
             },
             {
-                "effectId": "calm-instruction",
-                "charges": 1
+                "effectId": "self-attack",
+                "charges": 999
             }
         ]
     },
@@ -20,20 +20,16 @@
         "id": "scout",
         "role": "SURVIVOR",
         "name": "Scout",
-        "description": "Finds routes and useful clues quickly.",
-        "maxHealth": 2,
+        "description": "Reveals information and can stun the killer briefly.",
+        "maxHealth": 3,
         "effects": [
             {
-                "effectId": "quick-step",
-                "charges": 2
+                "effectId": "self-attack",
+                "charges": 999
             },
             {
-                "effectId": "calm-instruction",
-                "charges": 1
-            },
-            {
-                "effectId": "hidden-note",
-                "charges": 1
+                "effectId": "stun-killer",
+                "charges": 999
             }
         ]
     },
@@ -41,20 +37,20 @@
         "id": "technician",
         "role": "SURVIVOR",
         "name": "Technician",
-        "description": "Keeps the group moving through simple locks and clues.",
-        "maxHealth": 2,
+        "description": "Interacts with special quests and objects.",
+        "maxHealth": 3,
         "effects": [
             {
                 "effectId": "field-dressing",
-                "charges": 1
+                "charges": 999
             },
             {
-                "effectId": "route-note",
-                "charges": 2
+                "effectId": "self-attack",
+                "charges": 999
             },
             {
-                "effectId": "warning-call",
-                "charges": 1
+                "effectId": "cry-out",
+                "charges": 999
             }
         ]
     }

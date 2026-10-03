@@ -18,16 +18,22 @@ import type { LobbyPlayer, PlayerEffect } from '@/gameStore'
 export function EffectsSection({
   effects,
   players,
+  currentPlayerId,
   onUse,
 }: {
   effects: PlayerEffect[]
   players: LobbyPlayer[]
+  currentPlayerId: string
   onUse: (effectId: string, targetPlayerId?: string) => void
 }) {
   // Split into owned abilities and incoming active effects.
   const ownedEffects = effects.filter((effect) => effect.owned)
+  // Only show active effects that haven't expired yet (remaining > 0).
   const activeEffects = effects.filter(
-    (effect) => !effect.owned && effect.expiresAt !== null,
+    (effect) =>
+      !effect.owned &&
+      effect.expiresAt !== null &&
+      getRemainingSeconds(effect.expiresAt) > 0,
   )
 
   return (
@@ -75,6 +81,7 @@ export function EffectsSection({
                 key={effect.id}
                 effect={effect}
                 players={players}
+                currentPlayerId={currentPlayerId}
                 onUse={onUse}
               />
             ))
@@ -85,7 +92,22 @@ export function EffectsSection({
   )
 }
 
+// Helper: seconds remaining until an ISO timestamp.
+function getRemainingSeconds(expiresAt: string | Date): number {
+  const expiresAtMs = new Date(expiresAt).getTime()
+  return Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000))
+}
+
+// Helper: seconds until cooldown ends, or 0 if not on cooldown.
+function getCooldownRemaining(effect: PlayerEffect): number {
+  if (!effect.lastUsedAt || effect.cooldown <= 0) return 0
+  const cooldownEnds =
+    new Date(effect.lastUsedAt).getTime() + effect.cooldown * 1000
+  return Math.max(0, Math.ceil((cooldownEnds - Date.now()) / 1000))
+}
+
 // Card showing an active effect applied to the player with a live countdown.
+// Uses targetDescription when available — what THIS player sees.
 function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
   const [now, setNow] = useState(() => Date.now())
 
@@ -97,6 +119,13 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
 
   const expiresAtMs = effect.expiresAt ? new Date(effect.expiresAt).getTime() : 0
   const remainingSeconds = Math.max(0, Math.ceil((expiresAtMs - now) / 1000))
+
+  // Hide when countdown reaches 0 — effect has expired.
+  if (remainingSeconds <= 0) return null
+
+  // For incoming effects, show targetDescription — the target's perspective.
+  const displayText =
+    effect.targetDescription ?? effect.description
 
   return (
     <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
@@ -118,7 +147,7 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
           </p>
           {effect.instruction && (
             <p className="mt-1 text-sm italic text-primary">
-              {effect.instruction}
+              {displayText}
             </p>
           )}
         </div>
@@ -144,53 +173,155 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
 function EffectCard({
   effect,
   players,
+  currentPlayerId,
   onUse,
 }: {
   effect: PlayerEffect
   players: LobbyPlayer[]
+  currentPlayerId: string
   onUse: (effectId: string, targetPlayerId?: string) => void
 }) {
-  // Show target picker for effects that can target others.
-  // SELF-only effects don't need a picker.
-  const selfOnlyEffectIds = ['quick-step', 'calm-instruction', 'hidden-note', 'adrenaline-rush']
-  const needsTargetPicker = !selfOnlyEffectIds.includes(effect.effectId)
+  // Compute cooldown state.
+  const cooldownRemaining = getCooldownRemaining(effect)
+  const onCooldown = cooldownRemaining > 0
 
-  // Alive players the effect could target.
-  const targetablePlayers = players.filter(
-    (player) => player.status === 'ALIVE',
+  // Disable Use when charges are exhausted OR on cooldown.
+  const outOfCharges = effect.charges !== null && effect.charges <= 0
+  const disabled = outOfCharges || onCooldown
+
+  // Decide whether this effect needs a target picker.
+  const selfOnly =
+    effect.allowedTargets.length === 1 &&
+    effect.allowedTargets[0] === 'SELF'
+  const supportsAllSurvivors = effect.allowedTargets.includes('ALL_SURVIVORS')
+
+  // Build the list of valid targets based on allowedTargets roles.
+  // Filter alive players whose role matches an allowed target category.
+  const validTargets = buildValidTargets(
+    effect.allowedTargets,
+    players,
+    currentPlayerId,
   )
 
-  if (!needsTargetPicker || targetablePlayers.length === 0) {
+  const needsTargetPicker = !selfOnly && !supportsAllSurvivors && validTargets.length > 0
+
+  if (selfOnly) {
     return (
-      <div className="flex items-center gap-3 rounded-md border border-border p-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">{effect.name}</p>
-          <p className="text-xs text-muted-foreground">
-            {effect.description} · charges: {effect.charges ?? '∞'}
-          </p>
-          {effect.instruction && (
-            <p className="mt-1 text-xs italic text-primary">
-              {effect.instruction}
-            </p>
-          )}
-          {/* Show active expiry on owned effects too (e.g. quick-step). */}
-          {effect.expiresAt && (
-            <ActiveBadge expiresAt={effect.expiresAt} />
-          )}
-        </div>
-        <Button size="sm" onClick={() => onUse(effect.effectId)}>
+      <EffectRowLayout effect={effect} cooldownRemaining={cooldownRemaining}>
+        <Button
+          size="sm"
+          disabled={disabled}
+          onClick={() => onUse(effect.effectId)}
+        >
           Use
         </Button>
-      </div>
+      </EffectRowLayout>
+    )
+  }
+
+  if (supportsAllSurvivors) {
+    return (
+      <AllSurvivorsEffectRow
+        effect={effect}
+        disabled={disabled}
+        cooldownRemaining={cooldownRemaining}
+        onUse={onUse}
+      />
+    )
+  }
+
+  if (!needsTargetPicker) {
+    return (
+      <EffectRowLayout effect={effect} cooldownRemaining={cooldownRemaining}>
+        <Button
+          size="sm"
+          disabled={disabled}
+          onClick={() => onUse(effect.effectId)}
+        >
+          Use
+        </Button>
+      </EffectRowLayout>
     )
   }
 
   return (
-    <TargetEffectRow effect={effect} players={targetablePlayers} onUse={onUse} />
+    <TargetEffectRow
+      effect={effect}
+      validTargets={validTargets}
+      disabled={disabled}
+      cooldownRemaining={cooldownRemaining}
+      onUse={onUse}
+    />
   )
 }
 
-// Badge showing time remaining for an active effect.
+// Build the list of valid target options based on allowedTargets.
+// Returns players with a displayLabel ("Yourself" for the current player when SELF is allowed).
+function buildValidTargets(
+  allowedTargets: string[],
+  players: LobbyPlayer[],
+  currentPlayerId: string,
+): { id: string; label: string }[] {
+  const result: { id: string; label: string }[] = []
+  const selfAllowed = allowedTargets.includes('SELF')
+  const survivorAllowed = allowedTargets.includes('SURVIVOR')
+  const killerAllowed = allowedTargets.includes('KILLER')
+
+  for (const player of players) {
+    if (player.status !== 'ALIVE') continue
+
+    // Check if this player's role matches an allowed target category.
+    const isSelf = player.id === currentPlayerId
+    const matchesSurvivor = survivorAllowed && player.role === 'SURVIVOR'
+    const matchesKiller = killerAllowed && player.role === 'KILLER'
+    const matchesSelf = selfAllowed && isSelf
+
+    if (!matchesSelf && !matchesSurvivor && !matchesKiller) continue
+
+    // Label "Yourself" for the current player when SELF is allowed.
+    const label = matchesSelf ? 'Yourself' : player.name
+    result.push({ id: player.id, label })
+  }
+
+  return result
+}
+
+// Shared layout for an owned-effect row.
+function EffectRowLayout({
+  effect,
+  cooldownRemaining,
+  children,
+}: {
+  effect: PlayerEffect
+  cooldownRemaining: number
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border border-border p-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{effect.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {effect.description}
+        </p>
+        <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
+          Charges: {effect.charges ?? '∞'}
+        </p>
+        {cooldownRemaining > 0 && (
+          <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
+            <Clock3 className="mr-1 size-3" />
+            Cooldown · {cooldownRemaining}s
+          </Badge>
+        )}
+        {effect.expiresAt && (
+          <ActiveBadge expiresAt={effect.expiresAt} />
+        )}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+// Badge showing time remaining for an active effect on an owned ability.
 function ActiveBadge({ expiresAt }: { expiresAt: string }) {
   const [now, setNow] = useState(() => Date.now())
 
@@ -212,14 +343,59 @@ function ActiveBadge({ expiresAt }: { expiresAt: string }) {
   )
 }
 
-// Effect row that lets the player pick a target before using.
-function TargetEffectRow({
+// Effect row for group effects (ALL_SURVIVORS).
+function AllSurvivorsEffectRow({
   effect,
-  players,
+  disabled,
+  cooldownRemaining,
   onUse,
 }: {
   effect: PlayerEffect
-  players: LobbyPlayer[]
+  disabled: boolean
+  cooldownRemaining: number
+  onUse: (effectId: string, targetPlayerId?: string) => void
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border border-border p-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{effect.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {effect.description}
+        </p>
+        <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
+          Charges: {effect.charges ?? '∞'}
+        </p>
+        {cooldownRemaining > 0 && (
+          <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
+            <Clock3 className="mr-1 size-3" />
+            Cooldown · {cooldownRemaining}s
+          </Badge>
+        )}
+      </div>
+      <Button
+        size="sm"
+        disabled={disabled}
+        onClick={() => onUse(effect.effectId)}
+      >
+        All survivors
+      </Button>
+    </div>
+  )
+}
+
+// Effect row that lets the player pick a target before using.
+// validTargets is pre-filtered by allowedTargets roles.
+function TargetEffectRow({
+  effect,
+  validTargets,
+  disabled,
+  cooldownRemaining,
+  onUse,
+}: {
+  effect: PlayerEffect
+  validTargets: { id: string; label: string }[]
+  disabled: boolean
+  cooldownRemaining: number
   onUse: (effectId: string, targetPlayerId?: string) => void
 }) {
   const [selectedTarget, setSelectedTarget] = useState('')
@@ -229,12 +405,16 @@ function TargetEffectRow({
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{effect.name}</p>
         <p className="text-xs text-muted-foreground">
-          {effect.description} · charges: {effect.charges ?? '∞'}
+          {effect.description}
         </p>
-        {effect.instruction && (
-          <p className="mt-1 text-xs italic text-primary">
-            {effect.instruction}
-          </p>
+        <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
+          Charges: {effect.charges ?? '∞'}
+        </p>
+        {cooldownRemaining > 0 && (
+          <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
+            <Clock3 className="mr-1 size-3" />
+            Cooldown · {cooldownRemaining}s
+          </Badge>
         )}
       </div>
       <Select value={selectedTarget} onValueChange={setSelectedTarget}>
@@ -242,16 +422,16 @@ function TargetEffectRow({
           <SelectValue placeholder="Target" />
         </SelectTrigger>
         <SelectContent>
-          {players.map((player) => (
-            <SelectItem key={player.id} value={player.id}>
-              {player.name}
+          {validTargets.map((target) => (
+            <SelectItem key={target.id} value={target.id}>
+              {target.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
       <Button
         size="sm"
-        disabled={!selectedTarget}
+        disabled={!selectedTarget || disabled}
         onClick={() => onUse(effect.effectId, selectedTarget)}
       >
         Use

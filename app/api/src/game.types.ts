@@ -46,15 +46,26 @@ export type PlayerEffectView = {
   effectId: string
   name: string
   description: string
+  // What the target sees when this effect is applied to them.
+  // Falls back to `description` when null.
+  targetDescription: string | null
   charges: number | null
   duration: number | null
   expiresAt: Date | null
   instruction: string | null
+  // Cooldown in seconds before this effect can be used again.
+  cooldown: number
+  // When the source last used this effect (null if never).
+  // Used by the frontend to compute remaining cooldown.
+  lastUsedAt: Date | null
   // true when this is an ability the player owns (from PlayerEffect table).
   // false when it's an active effect applied TO the player by someone else.
   owned: boolean
   // Name of the player who applied this effect (null for self-owned abilities).
   sourcePlayerName: string | null
+  // Allowed target types for this effect (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
+  // The frontend uses this to decide whether to show a target picker / "All survivors" option.
+  allowedTargets: string[]
 }
 
 // Game state with computional fields for frontend convenience,\

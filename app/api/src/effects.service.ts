@@ -54,12 +54,16 @@ export class EffectsService {
         effectId: item.effectId,
         name: item.effect.name,
         description: item.effect.description,
+        targetDescription: item.effect.targetDescription,
         charges: item.charges,
         duration: item.effect.duration,
         expiresAt: active ? active.expiresAt : null,
         instruction,
+        cooldown: item.effect.cooldown,
+        lastUsedAt: item.lastUsedAt,
         owned: true,
         sourcePlayerName: null,
+        allowedTargets: this.parseTargets(item.effect.allowedTargets),
       })
     }
 
@@ -82,10 +86,15 @@ export class EffectsService {
       // Skip if already shown as an owned ability with active expiry.
       if (seenEffectIds.has(active.effectId)) continue
 
+      // For incoming effects, show targetDescription — what THIS player sees.
+      // Falls back to the effect description when targetDescription is null.
+      const displayText =
+        active.effect.targetDescription ?? active.effect.description
+
       let instruction: string | null = null
 
       if (active.effect.action === 'TEXT') {
-        instruction = active.effect.description
+        instruction = displayText
       }
 
       result.push({
@@ -95,13 +104,19 @@ export class EffectsService {
         effectId: active.effectId,
         name: active.effect.name,
         description: active.effect.description,
+        targetDescription: active.effect.targetDescription,
         // Player doesn't own this ability — no charges to consume.
         charges: null,
         duration: active.effect.duration,
         expiresAt: active.expiresAt,
         instruction,
+        cooldown: active.effect.cooldown,
+        // Incoming effects don't track the target's last use — cooldown
+        // applies to the source's ability, not the target's state.
+        lastUsedAt: null,
         owned: false,
         sourcePlayerName: active.sourcePlayer?.name ?? null,
+        allowedTargets: this.parseTargets(active.effect.allowedTargets),
       })
     }
 

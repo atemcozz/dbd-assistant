@@ -49,14 +49,24 @@ export type PlayerEffect = {
   effectId: string
   name: string
   description: string
+  // What the target sees when this effect is applied to them.
+  // Falls back to `description` when null.
+  targetDescription: string | null
   charges: number | null
   duration: number | null
   expiresAt: string | null
   instruction: string | null
+  // Cooldown in seconds before this effect can be used again.
+  cooldown: number
+  // When the source last used this effect (null if never).
+  // Used to compute remaining cooldown on the frontend.
+  lastUsedAt: string | null
   // true when the player owns this ability; false when applied to them by someone else.
   owned: boolean
   // Name of the player who applied this effect (null for self-owned abilities).
   sourcePlayerName: string | null
+  // Allowed target types (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
+  allowedTargets: string[]
 }
 export type ChatMessage = { id: string; text: string; createdAt: string; playerId: string; playerName: string; playerStatus: PlayerStatus }
 

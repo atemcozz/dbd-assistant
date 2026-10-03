@@ -3,20 +3,20 @@
         "id": "stalker",
         "role": "KILLER",
         "name": "Stalker",
-        "description": "Pressures survivors with sudden attacks and restrictions.",
-        "maxHealth": 0,
+        "description": "Forces survivors to relocate under pressure.",
+        "maxHealth": 999,
         "effects": [
             {
-                "effectId": "stun-survivor",
-                "charges": 2
+                "effectId": "attack-survivor",
+                "charges": 999
             },
             {
-                "effectId": "mark-all-survivors",
-                "charges": 1
+                "effectId": "stay-still",
+                "charges": 999
             },
             {
-                "effectId": "adrenaline-rush",
-                "charges": 1
+                "effectId": "blast-radius",
+                "charges": 999
             }
         ]
     },
@@ -24,20 +24,20 @@
         "id": "warden",
         "role": "KILLER",
         "name": "Warden",
-        "description": "Controls routes and sends survivors elsewhere.",
-        "maxHealth": 0,
+        "description": "Controls areas and restricts survivor movement.",
+        "maxHealth": 999,
         "effects": [
             {
-                "effectId": "room-order",
-                "charges": 2
+                "effectId": "attack-all",
+                "charges": 999
             },
             {
-                "effectId": "slow-all-survivors",
-                "charges": 1
+                "effectId": "go-to-room",
+                "charges": 999
             },
             {
-                "effectId": "warning-call",
-                "charges": 1
+                "effectId": "disarm",
+                "charges": 999
             }
         ]
     }

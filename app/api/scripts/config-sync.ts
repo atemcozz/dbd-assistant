@@ -18,6 +18,7 @@ type EffectConfig = {
   id: string
   name: string
   description: string
+  targetDescription?: string | null
   action: string
   quantity: number
   duration: number | null
@@ -68,6 +69,7 @@ async function main() {
             id: effect.id,
             name: effect.name,
             description: effect.description,
+            targetDescription: effect.targetDescription ?? null,
             action: effect.action,
             quantity: effect.quantity,
             duration: effect.duration,
@@ -77,6 +79,7 @@ async function main() {
           update: {
             name: effect.name,
             description: effect.description,
+            targetDescription: effect.targetDescription ?? null,
             action: effect.action,
             quantity: effect.quantity,
             duration: effect.duration,

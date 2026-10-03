@@ -40,7 +40,7 @@ model Game {
   startedAt     DateTime?
   finishedAt DateTime?
   durationSeconds Int       @default(3600)
-  requiredQuestCount Int    @default(0)
+  requiredQuestCount Int    @default(3)
   players       Player[]
   quests        GameQuest[]
   chatMessages  ChatMessage[]
@@ -131,17 +131,20 @@ model CharacterEffect {
 }
 
 model EffectDefinition {
-  id             String @id
-  name           String
-  description    String
-  action         String
-  quantity       Int
-  duration       Int?
-  cooldown       Int
-  allowedTargets String
-  playerEffects PlayerEffect[]
-  activeEffects ActiveEffect[]
-  characterEffects CharacterEffect[]
+  id                String @id
+  name              String
+  description       String
+  // What the TARGET sees when this effect is applied to them.
+  // Falls back to `description` when null.
+  targetDescription String?
+  action            String
+  quantity          Int
+  duration          Int?
+  cooldown          Int
+  allowedTargets    String
+  playerEffects     PlayerEffect[]
+  activeEffects     ActiveEffect[]
+  characterEffects  CharacterEffect[]
 }
 
 model ActiveEffect {

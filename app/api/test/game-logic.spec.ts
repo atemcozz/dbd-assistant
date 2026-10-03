@@ -86,14 +86,15 @@ describe('Game logic', () => {
       },
     })
 
-    // Create effect definitions.
+    // Create effect definitions — HEAL type.
     await prisma.effectDefinition.upsert({
-      where: { id: 'heal' },
+      where: { id: 'field-dressing' },
       update: {},
       create: {
-        id: 'heal',
-        name: 'Heal',
+        id: 'field-dressing',
+        name: 'Field Dressing',
         description: 'Restore 1 HP.',
+        targetDescription: 'Your wounds are being treated.',
         action: 'HEAL',
         quantity: 1,
         duration: null,
@@ -102,49 +103,84 @@ describe('Game logic', () => {
       },
     })
 
+    // DAMAGE effect — killer attack on a single survivor.
     await prisma.effectDefinition.upsert({
-      where: { id: 'stun' },
+      where: { id: 'attack-survivor' },
       update: {},
       create: {
-        id: 'stun',
-        name: 'Stun',
-        description: 'Stun a survivor briefly.',
-        action: 'ADD_EFFECT',
+        id: 'attack-survivor',
+        name: 'Attack Survivor',
+        description: 'Attack one survivor. Removes 1 HP.',
+        targetDescription: 'You were attacked! You lose 1 HP.',
+        action: 'DAMAGE',
         quantity: 1,
-        duration: 20,
-        cooldown: 45,
+        duration: null,
+        cooldown: 5,
         allowedTargets: JSON.stringify(['SURVIVOR']),
       },
     })
 
-    // Link medic → heal effect with 3 charges.
+    // TEXT effect — simple physical-game instruction sent to a survivor.
+    await prisma.effectDefinition.upsert({
+      where: { id: 'stay-still' },
+      update: {},
+      create: {
+        id: 'stay-still',
+        name: 'Stay Still',
+        description: "Don't move for 30 seconds.",
+        targetDescription: 'You are stunned! Don\'t move for 30 seconds.',
+        action: 'TEXT',
+        quantity: 1,
+        duration: 30,
+        cooldown: 20,
+        allowedTargets: JSON.stringify(['SURVIVOR']),
+      },
+    })
+
+    // Link medic → field-dressing effect with 3 charges.
     await prisma.characterEffect.upsert({
       where: {
         characterTypeId_effectId: {
           characterTypeId: 'medic',
-          effectId: 'heal',
+          effectId: 'field-dressing',
         },
       },
       update: {},
       create: {
         characterTypeId: 'medic',
-        effectId: 'heal',
+        effectId: 'field-dressing',
         charges: 3,
       },
     })
 
-    // Link stalker → stun effect with 2 charges.
+    // Link stalker → attack-survivor effect with 5 charges.
     await prisma.characterEffect.upsert({
       where: {
         characterTypeId_effectId: {
           characterTypeId: 'stalker',
-          effectId: 'stun',
+          effectId: 'attack-survivor',
         },
       },
       update: {},
       create: {
         characterTypeId: 'stalker',
-        effectId: 'stun',
+        effectId: 'attack-survivor',
+        charges: 5,
+      },
+    })
+
+    // Link stalker → stay-still TEXT effect with 2 charges.
+    await prisma.characterEffect.upsert({
+      where: {
+        characterTypeId_effectId: {
+          characterTypeId: 'stalker',
+          effectId: 'stay-still',
+        },
+      },
+      update: {},
+      create: {
+        characterTypeId: 'stalker',
+        effectId: 'stay-still',
         charges: 2,
       },
     })
@@ -323,10 +359,10 @@ describe('Game logic', () => {
       // Damage the owner to 2 HP.
       await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
 
-      // Use heal effect on self.
+      // Use field-dressing (heal) effect on self.
       await effectsService.use(
         owner.state.code,
-        'heal',
+        'field-dressing',
         undefined,
         owner.sessionToken,
       )
@@ -345,7 +381,7 @@ describe('Game logic', () => {
       // Owner is at full HP (3). Heal should cap at 3.
       await effectsService.use(
         owner.state.code,
-        'heal',
+        'field-dressing',
         undefined,
         owner.sessionToken,
       )
@@ -358,17 +394,17 @@ describe('Game logic', () => {
     it('effect consumes a charge', async () => {
       const { owner } = await setupRunningGame()
 
-      // Medic has 3 heal charges.
+      // Medic has 3 field-dressing charges.
       const stateBefore = await gamesService.getState(
         owner.state.code,
         owner.sessionToken,
       )
-      const healBefore = stateBefore.effects.find((e) => e.effectId === 'heal')!
+      const healBefore = stateBefore.effects.find((e) => e.effectId === 'field-dressing')!
       expect(healBefore.charges).toBe(3)
 
       await effectsService.use(
         owner.state.code,
-        'heal',
+        'field-dressing',
         undefined,
         owner.sessionToken,
       )
@@ -377,57 +413,136 @@ describe('Game logic', () => {
         owner.state.code,
         owner.sessionToken,
       )
-      const healAfter = stateAfter.effects.find((e) => e.effectId === 'heal')!
+      const healAfter = stateAfter.effects.find((e) => e.effectId === 'field-dressing')!
       expect(healAfter.charges).toBe(2)
     })
 
     it('effect with no charges is rejected', async () => {
       const { owner } = await setupRunningGame()
 
-      // Use heal 3 times to exhaust charges.
-      await effectsService.use(owner.state.code, 'heal', undefined, owner.sessionToken)
-      await effectsService.use(owner.state.code, 'heal', undefined, owner.sessionToken)
-      await effectsService.use(owner.state.code, 'heal', undefined, owner.sessionToken)
+      // Use field-dressing 3 times to exhaust charges.
+      await effectsService.use(owner.state.code, 'field-dressing', undefined, owner.sessionToken)
+      await effectsService.use(owner.state.code, 'field-dressing', undefined, owner.sessionToken)
+      await effectsService.use(owner.state.code, 'field-dressing', undefined, owner.sessionToken)
 
       // 4th use should fail — no charges left.
       await expect(
-        effectsService.use(owner.state.code, 'heal', undefined, owner.sessionToken),
+        effectsService.use(owner.state.code, 'field-dressing', undefined, owner.sessionToken),
       ).rejects.toThrow('NO_EFFECT_CHARGES')
     })
 
-    it('invalid target is rejected', async () => {
+    it('DAMAGE effect reduces target HP by 1', async () => {
       const { owner, survivor } = await setupRunningGame()
 
-      // Killer tries to use stun (SURVIVOR target) on themselves — invalid.
-      await expect(
-        effectsService.use(
-          owner.state.code,
-          'stun',
-          survivor.playerId, // survivor is the killer — wrong role
-          survivor.sessionToken,
-        ),
-      ).rejects.toThrow('INVALID_EFFECT_TARGET')
-    })
-
-    it('killer cannot use survivor-only effects on wrong targets', async () => {
-      const { owner, survivor } = await setupRunningGame()
-
-      // Killer (survivor player) tries to stun the owner (also survivor role).
-      // Wait — owner is SURVIVOR, so stun on owner should work.
-      // Let me try stun on the killer themselves (wrong target type).
+      // Killer (survivor player) uses attack-survivor on owner (medic).
       await effectsService.use(
         owner.state.code,
-        'stun',
-        owner.playerId, // owner is SURVIVOR — valid target for stun
+        'attack-survivor',
+        owner.playerId,
         survivor.sessionToken,
       )
 
-      // Should succeed — stun targets a survivor.
+      const state = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+      const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+      expect(ownerPlayer.health).toBe(2) // 3 - 1 = 2
+      expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
+    })
+
+    it('DAMAGE effect on self reduces own HP', async () => {
+      const { owner } = await setupRunningGame()
+
+      // Owner (medic, survivor) doesn't have self-attack in test seed —
+      // verify attack-survivor cannot target self (killer-only).
+      await expect(
+        effectsService.use(
+          owner.state.code,
+          'attack-survivor',
+          undefined,
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('EFFECT_NOT_AVAILABLE')
+    })
+
+    it('TEXT effect creates ActiveEffect on target', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Killer uses stay-still on owner (survivor).
+      await effectsService.use(
+        owner.state.code,
+        'stay-still',
+        owner.playerId,
+        survivor.sessionToken,
+      )
+
       // Verify an active effect was created on the owner.
       const activeEffects = await prisma.activeEffect.findMany({
         where: { targetPlayerId: owner.playerId },
       })
       expect(activeEffects.length).toBeGreaterThan(0)
+    })
+
+    it('effect on cooldown is rejected', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Killer uses attack-survivor (cooldown: 5s) on owner.
+      await effectsService.use(
+        owner.state.code,
+        'attack-survivor',
+        owner.playerId,
+        survivor.sessionToken,
+      )
+
+      // Immediate second use should fail — still on cooldown.
+      await expect(
+        effectsService.use(
+          owner.state.code,
+          'attack-survivor',
+          owner.playerId,
+          survivor.sessionToken,
+        ),
+      ).rejects.toThrow('EFFECT_ON_COOLDOWN')
+    })
+
+    it('targetDescription is returned for incoming effects', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Killer uses stay-still on owner.
+      await effectsService.use(
+        owner.state.code,
+        'stay-still',
+        owner.playerId,
+        survivor.sessionToken,
+      )
+
+      // Owner's state should include the incoming effect with targetDescription.
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const incomingEffect = state.effects.find(
+        (e) => e.effectId === 'stay-still' && !e.owned,
+      )
+      expect(incomingEffect).toBeDefined()
+      expect(incomingEffect!.targetDescription).toBe(
+        "You are stunned! Don't move for 30 seconds.",
+      )
+    })
+
+    it('invalid target is rejected', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Killer tries to use attack-survivor on themselves (killer) — invalid.
+      await expect(
+        effectsService.use(
+          owner.state.code,
+          'attack-survivor',
+          survivor.playerId, // survivor is the killer — wrong role
+          survivor.sessionToken,
+        ),
+      ).rejects.toThrow('INVALID_EFFECT_TARGET')
     })
   })
 

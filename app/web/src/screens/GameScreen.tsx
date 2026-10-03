@@ -113,9 +113,11 @@ export function GameScreen() {
       const sourceText = effect.sourcePlayerName
         ? ` from ${effect.sourcePlayerName}`
         : ''
+      // Show targetDescription — what THIS player sees — falling back to description.
+      const displayText = effect.targetDescription ?? effect.description
       const body = effect.instruction
-        ? `${effect.description}${sourceText ? ` (${effect.sourcePlayerName})` : ''}`
-        : `${effect.description}${sourceText}`
+        ? `${displayText}${sourceText ? ` (${effect.sourcePlayerName})` : ''}`
+        : `${displayText}${sourceText}`
 
       setModal({
         kind: 'timed',
@@ -131,6 +133,13 @@ export function GameScreen() {
 
   const isKiller = currentPlayer.role === 'KILLER'
   const survivors = state.players.filter((player) => player.role === 'SURVIVOR')
+
+  // Count active (non-expired) effects on this player — used to flash the Effects tab.
+  const activeEffectCount = state.effects.filter((effect) => {
+    if (effect.owned || effect.expiresAt === null) return false
+    const remainingMs = new Date(effect.expiresAt).getTime() - Date.now()
+    return remainingMs > 0
+  }).length
 
   function confirmDamage(playerId: string, playerName: string) {
     setModal({
@@ -200,7 +209,14 @@ export function GameScreen() {
             <TabsTrigger value="quests">Quests</TabsTrigger>
             <TabsTrigger value="players">Players</TabsTrigger>
             {!isKiller && <TabsTrigger value="chat">Chat</TabsTrigger>}
-            <TabsTrigger value="effects">Effects</TabsTrigger>
+            <TabsTrigger value="effects" className="relative">
+              Effects
+              {activeEffectCount > 0 && (
+                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-xs font-bold text-slate-950 animate-pulse">
+                  {activeEffectCount}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="status" className="mt-5">
             <GameStatusPanel player={currentPlayer} isKiller={isKiller} />
@@ -236,6 +252,7 @@ export function GameScreen() {
             <EffectsSection
               effects={state.effects}
               players={state.players}
+              currentPlayerId={session.playerId}
               onUse={confirmEffectUse}
             />
           </TabsContent>
