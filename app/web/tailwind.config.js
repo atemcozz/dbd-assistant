@@ -7,8 +7,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Space Grotesk', 'ui-sans-serif', 'sans-serif'],
-        sans: ['DM Sans', 'ui-sans-serif', 'sans-serif'],
+        // Temporary: everything is PT Mono for now.
+        display: ['PT Mono', 'ui-monospace', 'monospace'],
+        sans: ['PT Mono', 'ui-monospace', 'monospace'],
+        mono: ['PT Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
         border: 'hsl(var(--border-ch))',

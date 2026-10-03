@@ -28,7 +28,7 @@
 --------------------------------------------------------------------------- */
 
 :root {
-  /* font-family: 'DM Sans', ui-sans-serif, sans-serif; */
+  /* Temporary: PT Mono everywhere (display + body). */
   font-family: 'PT Mono', ui-monospace, monospace;
 
   /* --- full colors (VS Code preview) --- */
