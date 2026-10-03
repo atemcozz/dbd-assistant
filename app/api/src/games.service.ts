@@ -13,6 +13,7 @@ import { randomBytes } from 'node:crypto'
 import { PrismaService } from './prisma.service'
 import { EffectsService } from './effects.service'
 import type {
+  GameExitView,
   GameQuestView,
   LobbyPlayer,
   LobbyState,
@@ -172,6 +173,15 @@ export class GamesService {
       throw new ConflictException('NOT_ENOUGH_QUEST_POINTS')
     }
 
+    // At least one exit must be selected — without exits survivors can never win.
+    const exitCount = await this.prisma.gameExit.count({
+      where: { gameId: game.id },
+    })
+
+    if (exitCount === 0) {
+      throw new ConflictException('NO_EXITS_SELECTED')
+    }
+
     await this.prisma.game.update({
       where: { id: game.id },
       data: {
@@ -250,6 +260,10 @@ export class GamesService {
           include: { questDefinition: true },
           orderBy: { number: 'asc' },
         },
+        exits: {
+          include: { exitDefinition: true },
+          orderBy: { exitDefinition: { id: 'asc' } },
+        },
         chatMessages: {
           include: { player: true },
           orderBy: { createdAt: 'desc' },
@@ -324,6 +338,21 @@ export class GamesService {
       quests = this.filterQuests(game.quests, viewer, exitsUnlocked)
     }
 
+    // Exits are shown to all players once the game runs.
+    // In lobby only the owner and killers see the selected exits.
+    let exits: GameExitView[] = []
+
+    if (canSeeQuests) {
+      exits = game.exits.map((exit) => ({
+        id: exit.id,
+        definition: {
+          id: exit.exitDefinition.id,
+          name: exit.exitDefinition.name,
+          description: exit.exitDefinition.description,
+        },
+      }))
+    }
+
     let remainingSeconds: number | null = null
 
     if (game.status === GameStatus.RUNNING && game.startedAt) {
@@ -377,6 +406,8 @@ export class GamesService {
       requiredQuestPoints: game.requiredQuestPoints,
       completedQuestPoints,
       exitsUnlocked,
+      exits,
+      winner: game.winner,
       players,
       quests,
       chatMessages,
@@ -499,11 +530,13 @@ async getStateById(
       return
     }
 
+    // Timeout means survivors did not all escape — the killer wins.
     await this.prisma.game.update({
       where: { id: game.id },
       data: {
         status: GameStatus.FINISHED,
         finishedAt: new Date(end),
+        winner: 'KILLER',
       },
     })
   }

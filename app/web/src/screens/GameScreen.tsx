@@ -1,4 +1,4 @@
-import { Skull, Sparkles } from 'lucide-react'
+import { DoorOpen, Skull, Sparkles, Trophy } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import {
   Card,
@@ -14,6 +14,7 @@ import { Modal, TimedModal } from '@/components/shared/Modal'
 import { Button } from '@/components/ui/button'
 import { ChatSection } from '@/features/game/ChatSection'
 import { EffectsSection } from '@/features/game/EffectsSection'
+import { GameExits } from '@/features/game/GameExits'
 import { GameHeader } from '@/features/game/GameHeader'
 import { GamePlayers } from '@/features/game/GamePlayers'
 import { GameQuests } from '@/features/game/GameQuests'
@@ -47,6 +48,7 @@ export function GameScreen() {
   const error = useGameStore((store) => store.error)
   const attackPlayer = useGameStore((store) => store.attackPlayer)
   const completeQuest = useGameStore((store) => store.completeQuest)
+  const escapeThroughExit = useGameStore((store) => store.escapeThroughExit)
   const sendChat = useGameStore((store) => store.sendChat)
   const triggerEffect = useGameStore((store) => store.useEffect)
   const clearSession = useGameStore((store) => store.clearSession)
@@ -64,7 +66,7 @@ export function GameScreen() {
   )
   const [modal, setModal] = useState<ModalState>(null)
   const [activeTab, setActiveTab] = useState<
-    'status' | 'quests' | 'players' | 'chat' | 'effects'
+    'status' | 'quests' | 'exits' | 'players' | 'chat' | 'effects'
   >('status')
 
   // Tick the countdown every second.
@@ -128,6 +130,11 @@ export function GameScreen() {
     }
   }, [state.effects])
 
+  // Escaped players see a dedicated victory screen — they already won.
+  if (currentPlayer.status === 'ESCAPED') {
+    return <EscapedScreen onLeave={clearSession} />
+  }
+
   // Dead players see a dedicated death screen.
   if (currentPlayer.status === 'DEAD') return <DeathScreen onLeave={clearSession} />
 
@@ -180,6 +187,19 @@ export function GameScreen() {
     })
   }
 
+  function confirmEscape(exitDefinitionId: string, exitName: string) {
+    setModal({
+      kind: 'confirm',
+      title: `Escape through ${exitName}?`,
+      body: 'You will leave the trial. The killer can no longer reach you, and the game will end if every survivor has escaped.',
+      confirmLabel: 'Escape',
+      onConfirm: () => {
+        setModal(null)
+        void escapeThroughExit(exitDefinitionId)
+      },
+    })
+  }
+
   return (
     <main className="min-h-screen px-4 pb-8 pt-4 sm:px-8 lg:px-16">
       <div className="mx-auto max-w-6xl">
@@ -191,11 +211,36 @@ export function GameScreen() {
           onLeave={clearSession}
         />
         {error && <p className="my-3 text-sm text-rose-300">{error}</p>}
-        {state.exitsUnlocked && (
+        {/* Winner banner — shown once the game has finished. */}
+        {state.status === 'FINISHED' && (
+          <Card
+            className={
+              state.winner === 'SURVIVORS'
+                ? 'mt-5 border-emerald-400/60 bg-emerald-500/10'
+                : 'mt-5 border-rose-400/60 bg-rose-500/10'
+            }
+          >
+            <CardContent className="flex items-center gap-3 p-4 text-sm font-semibold">
+              <Trophy
+                className={
+                  state.winner === 'SURVIVORS'
+                    ? 'size-5 text-emerald-400'
+                    : 'size-5 text-rose-400'
+                }
+              />
+              <span className={state.winner === 'SURVIVORS' ? 'text-emerald-400' : 'text-rose-400'}>
+                {state.winner === 'SURVIVORS'
+                  ? 'Survivors win! Everyone escaped.'
+                  : 'Killer wins. Time ran out.'}
+              </span>
+            </CardContent>
+          </Card>
+        )}
+        {state.exitsUnlocked && state.status === 'RUNNING' && (
           <Card className="mt-5 border-primary bg-primary/10">
             <CardContent className="flex items-center gap-3 p-4 text-sm font-semibold text-primary">
               <Sparkles className="size-5" />
-              Enough quest points gathered. The exits are open — survivors should proceed.
+              Enough quest points gathered. The exits are open — open the Exits tab and escape.
             </CardContent>
           </Card>
         )}
@@ -204,9 +249,10 @@ export function GameScreen() {
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as typeof activeTab)}
         >
-          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 sm:grid-cols-5">
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 sm:grid-cols-6">
             <TabsTrigger value="status">Game</TabsTrigger>
             <TabsTrigger value="quests">Quests</TabsTrigger>
+            <TabsTrigger value="exits">Exits</TabsTrigger>
             <TabsTrigger value="players">Players</TabsTrigger>
             {!isKiller && <TabsTrigger value="chat">Chat</TabsTrigger>}
             <TabsTrigger value="effects" className="relative">
@@ -233,6 +279,15 @@ export function GameScreen() {
               completedQuestPoints={state.completedQuestPoints}
               exitsUnlocked={state.exitsUnlocked}
               onComplete={confirmQuestComplete}
+            />
+          </TabsContent>
+          <TabsContent value="exits" className="mt-5">
+            <GameExits
+              exits={state.exits}
+              isSurvivor={!isKiller}
+              isAlive={currentPlayer.status === 'ALIVE'}
+              exitsUnlocked={state.exitsUnlocked}
+              onEscape={confirmEscape}
             />
           </TabsContent>
           <TabsContent value="players" className="mt-5">
@@ -296,6 +351,27 @@ function DeathScreen({ onLeave }: { onLeave: () => void }) {
         </h1>
         <p className="mt-4 text-muted-foreground">
           Your role in the physical trial has ended.
+        </p>
+        <Button className="mt-8" onClick={onLeave} variant="outline">
+          Leave game
+        </Button>
+      </div>
+    </main>
+  )
+}
+
+// Shown when the current player has escaped — they won.
+function EscapedScreen({ onLeave }: { onLeave: () => void }) {
+  return (
+    <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-center">
+      <div className="max-w-md">
+        <DoorOpen className="mx-auto size-16 text-emerald-400" />
+        <h1 className="mt-6 font-display text-5xl font-semibold text-foreground">
+          You escaped!
+        </h1>
+        <p className="mt-4 text-muted-foreground">
+          You made it out. The killer can no longer reach you — your side wins
+          if every survivor escapes.
         </p>
         <Button className="mt-8" onClick={onLeave} variant="outline">
           Leave game

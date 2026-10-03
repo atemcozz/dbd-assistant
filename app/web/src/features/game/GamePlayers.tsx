@@ -1,4 +1,4 @@
-import { Shield, Skull, Swords } from 'lucide-react'
+import { DoorOpen, Shield, Skull, Swords } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -11,6 +11,7 @@ import { HealthDisplay } from '@/components/shared/HealthDisplay'
 import type { LobbyPlayer } from '@/gameStore'
 
 // Player list during the game — killer sees attack buttons on alive survivors.
+// Escaped players are shown with a door icon — killer can no longer touch them.
 export function GamePlayers({
   players,
   isKiller,
@@ -35,7 +36,9 @@ export function GamePlayers({
             className="flex items-center gap-3 rounded-md border border-border p-3"
           >
             <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-              {player.role === 'KILLER' ? (
+              {player.status === 'ESCAPED' ? (
+                <DoorOpen className="size-4 text-emerald-400" />
+              ) : player.role === 'KILLER' ? (
                 <Skull className="size-4" />
               ) : (
                 <Shield className="size-4" />
@@ -44,7 +47,8 @@ export function GamePlayers({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{player.name}</p>
               <p className="text-xs text-muted-foreground">
-                {player.characterType?.name ?? 'Unassigned'} · {player.status}
+                {player.characterType?.name ?? 'Unassigned'} ·{' '}
+                {player.status === 'ESCAPED' ? 'Escaped' : player.status}
               </p>
             </div>
             <HealthDisplay

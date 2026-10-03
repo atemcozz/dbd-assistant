@@ -22,6 +22,7 @@ enum PlayerStatus {
   ALIVE
   DEAD
   DISCONNECTED
+  ESCAPED
 }
 
 enum QuestStatus {
@@ -43,8 +44,11 @@ model Game {
   // Total quest points needed to unlock the exits.
   // Sum of completed quest costs is compared against this value.
   requiredQuestPoints Int    @default(500)
+  // Who won when the game finished: 'SURVIVORS' | 'KILLER' | null (not finished / manual).
+  winner        String?
   players       Player[]
   quests        GameQuest[]
+  exits         GameExit[]
   chatMessages  ChatMessage[]
 }
 
@@ -78,6 +82,29 @@ model GameQuest {
   @@index([gameId])
 }
 
+// Reusable exit definition — physical escape routes in the venue.
+// Like quests, these live in config/exits.json and are synced to SQLite.
+model ExitDefinition {
+  id          String     @id
+  name        String
+  description String
+  gameExits   GameExit[]
+}
+
+// An exit selected for a specific game (owner picks these in the lobby).
+// No status field — an exit is just available once the game runs and
+// quest points are met. Usage is tracked on the Player (ESCAPED status).
+model GameExit {
+  id               String         @id @default(cuid())
+  gameId           String
+  game             Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  exitDefinitionId String
+  exitDefinition   ExitDefinition @relation(fields: [exitDefinitionId], references: [id])
+
+  @@unique([gameId, exitDefinitionId])
+  @@index([gameId])
+}
+
 model Player {
   id              String        @id @default(cuid())
   gameId          String
@@ -89,6 +116,8 @@ model Player {
   characterType   CharacterType? @relation(fields: [characterTypeId], references: [id])
   health          Int?
   status          PlayerStatus  @default(ALIVE)
+  // When this player escaped through an exit (null unless ESCAPED).
+  escapedAt       DateTime?
   createdAt       DateTime      @default(now())
   chatMessages    ChatMessage[]
   effects        PlayerEffect[]

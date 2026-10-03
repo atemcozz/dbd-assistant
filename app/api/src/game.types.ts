@@ -53,6 +53,23 @@ export type GameQuestView = {
     killerCharacterTypeId: string | null
   }
 }
+
+// Selected exit with definition flattened — shown to all players.
+export type GameExitView = {
+  id: string
+  definition: {
+    id: string
+    name: string
+    description: string
+  }
+}
+
+// Exit definition for the lobby selection panel.
+export type ExitDefinitionView = {
+  id: string
+  name: string
+  description: string
+}
 // UI specific view
 export type PlayerEffectView = {
   id: string
@@ -100,6 +117,10 @@ export type LobbyState = {
   // Sum of costs of all completed quests so far.
   completedQuestPoints: number
   exitsUnlocked: boolean
+  // Selected exits for this game — visible to all players once the game runs.
+  exits: GameExitView[]
+  // Winner when the game has finished: 'SURVIVORS' | 'KILLER' | null.
+  winner: string | null
   players: LobbyPlayer[]
   quests: GameQuestView[]
   chatMessages: ChatMessageView[]

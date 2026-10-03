@@ -13,6 +13,8 @@ import { EffectsService } from './effects.service'
 import { ChatService } from './chat.service'
 import { CombatService } from './combat.service'
 import { CombatController } from './combat.controller'
+import { ExitsService } from './exits.service'
+import { ExitsController } from './exits.controller'
 
 // Simple health-check endpoint — useful for manual verification and LAN checks.
 @Controller()
@@ -29,6 +31,7 @@ class AppController {
     GamesController,
     CharactersController,
     QuestsController,
+    ExitsController,
     EffectsController,
     CombatController,
     ChatController,
@@ -38,6 +41,7 @@ class AppController {
     GamesService,
     CharactersService,
     QuestsService,
+    ExitsService,
     EffectsService,
     CombatService,
     ChatService,

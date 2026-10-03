@@ -36,6 +36,12 @@ type QuestConfig = {
   killerCharacterTypeId: string | null
 }
 
+type ExitConfig = {
+  id: string
+  name: string
+  description: string
+}
+
 const configPath = resolve(process.cwd(), '../../config')
 
 async function main() {
@@ -54,6 +60,10 @@ async function main() {
   const effectsJson = JSON.parse(
     await readFile(resolve(configPath, 'effects.json'), 'utf8'),
   ) as EffectConfig[]
+
+  const exitsJson = JSON.parse(
+    await readFile(resolve(configPath, 'exits.json'), 'utf8'),
+  ) as ExitConfig[]
 
   const charactersJson = [...survivorsJson, ...killersJson]
 
@@ -156,7 +166,27 @@ async function main() {
       ),
     )
 
+    await Promise.all(
+      exitsJson.map((exit) =>
+        prisma.exitDefinition.upsert({
+          where: {
+            id: exit.id,
+          },
+          create: {
+            id: exit.id,
+            name: exit.name,
+            description: exit.description,
+          },
+          update: {
+            name: exit.name,
+            description: exit.description,
+          },
+        }),
+      ),
+    )
+
     console.log(`Synced ${questsJson.length} quest definitions.`)
+    console.log(`Synced ${exitsJson.length} exit definitions.`)
     console.log(`Synced ${survivorsJson.length} survivor definitions.`)
     console.log(`Synced ${killersJson.length} killer definitions.`)
     console.log(`Synced ${effectsJson.length} effect definitions.`)

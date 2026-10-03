@@ -65,8 +65,8 @@ export function GameQuests({
               Quests complete!
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enough points have been gathered. The exits are open — survivors
-              should proceed to the exit.
+              Enough points have been gathered. The exits are open — open the
+              Exits tab and escape.
             </p>
           </div>
         ) : (

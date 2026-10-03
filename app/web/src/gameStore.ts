@@ -5,7 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const SESSION_KEY = 'dbd-assistant-session'
 
 export type Role = 'SURVIVOR' | 'KILLER'
-export type PlayerStatus = 'ALIVE' | 'DEAD' | 'DISCONNECTED'
+export type PlayerStatus = 'ALIVE' | 'DEAD' | 'DISCONNECTED' | 'ESCAPED'
 
 // Read-only effect summary attached to a character type (e.g. killer abilities).
 export type CharacterEffectInfo = {
@@ -54,6 +54,10 @@ export type LobbyState = {
   // Sum of costs of all completed quests so far.
   completedQuestPoints: number
   exitsUnlocked: boolean
+  // Selected exits for this game — visible to all players once the game runs.
+  exits: GameExit[]
+  // Winner when the game has finished: 'SURVIVORS' | 'KILLER' | null.
+  winner: string | null
   chatMessages: ChatMessage[]
   effects: PlayerEffect[]
   players: LobbyPlayer[]
@@ -107,6 +111,19 @@ export type GameQuest = {
   definition: QuestDefinition
 }
 
+// Exit definition — a physical escape route selected for the game.
+export type ExitDefinition = {
+  id: string
+  name: string
+  description: string
+}
+
+// Selected exit with definition flattened — shown to all players in game.
+export type GameExit = {
+  id: string
+  definition: ExitDefinition
+}
+
 type Session = { gameCode: string; playerId: string; sessionToken: string }
 
 type GameStore = {
@@ -114,6 +131,7 @@ type GameStore = {
   state: LobbyState | null
   characterTypes: CharacterType[]
   questDefinitions: QuestDefinition[]
+  exitDefinitions: ExitDefinition[]
   error: string | null
   isLoading: boolean
   connectionStatus: 'idle' | 'connecting' | 'connected' | 'disconnected'
@@ -124,10 +142,12 @@ type GameStore = {
   assignRole: (playerId: string, role: Role) => Promise<void>
   assignCharacter: (playerId: string, characterTypeId: string) => Promise<void>
   selectQuests: (questDefinitionIds: string[]) => Promise<void>
+  selectExits: (exitDefinitionIds: string[]) => Promise<void>
   startGame: () => Promise<void>
   finishGame: () => Promise<void>
   attackPlayer: (playerId: string) => Promise<void>
   completeQuest: (questId: string) => Promise<void>
+  escapeThroughExit: (exitDefinitionId: string) => Promise<void>
   useEffect: (effectId: string, targetPlayerId?: string) => Promise<void>
   updateSettings: (durationSeconds: number, requiredQuestPoints: number) => Promise<void>
   sendChat: (text: string) => Promise<void>
@@ -176,6 +196,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   state: null,
   characterTypes: [],
   questDefinitions: [],
+  exitDefinitions: [],
   error: null,
   isLoading: false,
   connectionStatus: 'idle',
@@ -284,6 +305,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
     await questMutationQueue
   },
 
+  selectExits: async (exitDefinitionIds) => {
+    const { session } = get()
+    if (!session) return
+    questMutationQueue = questMutationQueue.then(async () => {
+      set({ error: null })
+      try {
+        const state = await request<LobbyState>(`/games/${session.gameCode}/exits`, {
+          method: 'PUT',
+          body: JSON.stringify({ exitDefinitionIds }),
+        }, session.sessionToken)
+        set({ state })
+      } catch (error) {
+        set({ error: error instanceof Error ? error.message : 'Could not save exits' })
+      }
+    })
+    await questMutationQueue
+  },
+
   startGame: async () => {
     const { session } = get()
     if (!session) return
@@ -338,6 +377,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ state, error: null })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Could not complete quest' })
+    }
+  },
+
+  escapeThroughExit: async (exitDefinitionId) => {
+    const { session } = get()
+    if (!session) return
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/exits/${exitDefinitionId}/use`, { method: 'POST' }, session.sessionToken)
+      set({ state, error: null })
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Could not escape' })
     }
   },
 
@@ -408,4 +458,9 @@ export async function loadCharacterTypes() {
 export async function loadQuestDefinitions() {
   const session = useGameStore.getState().session
   return request<QuestDefinition[]>(`/quest-definitions?code=${encodeURIComponent(session?.gameCode ?? '')}`, undefined, session?.sessionToken)
+}
+
+export async function loadExitDefinitions() {
+  const session = useGameStore.getState().session
+  return request<ExitDefinition[]>(`/exit-definitions?code=${encodeURIComponent(session?.gameCode ?? '')}`, undefined, session?.sessionToken)
 }

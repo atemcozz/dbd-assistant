@@ -13,9 +13,11 @@ import {
 } from '@/components/ui/tabs'
 import { ConnectionStatus } from '@/components/shared/ConnectionStatus'
 import { PlayerCard } from '@/components/shared/PlayerCard'
+import { ExitPanel } from '@/features/lobby/ExitPanel'
 import { QuestPanel } from '@/features/lobby/QuestPanel'
 import {
   loadCharacterTypes,
+  loadExitDefinitions,
   loadQuestDefinitions,
   useGameStore,
 } from '@/gameStore'
@@ -27,12 +29,14 @@ export function Lobby() {
   const session = useGameStore((store) => store.session)!
   const characterTypes = useGameStore((store) => store.characterTypes)
   const questDefinitions = useGameStore((store) => store.questDefinitions)
+  const exitDefinitions = useGameStore((store) => store.exitDefinitions)
   const connectionStatus = useGameStore((store) => store.connectionStatus)
   const error = useGameStore((store) => store.error)
   const clearSession = useGameStore((store) => store.clearSession)
   const assignRole = useGameStore((store) => store.assignRole)
   const assignCharacter = useGameStore((store) => store.assignCharacter)
   const selectQuests = useGameStore((store) => store.selectQuests)
+  const selectExits = useGameStore((store) => store.selectExits)
   const startGame = useGameStore((store) => store.startGame)
   const updateSettings = useGameStore((store) => store.updateSettings)
 
@@ -40,6 +44,9 @@ export function Lobby() {
   const [activeTab, setActiveTab] = useState('players')
   const [selectedQuestIds, setSelectedQuestIds] = useState(() =>
     state.quests.map((quest) => quest.definition.id),
+  )
+  const [selectedExitIds, setSelectedExitIds] = useState(() =>
+    state.exits.map((exit) => exit.definition.id),
   )
   const [durationMinutes, setDurationMinutes] = useState(
     Math.round(state.durationSeconds / 60),
@@ -63,6 +70,9 @@ export function Lobby() {
     0,
   )
   const hasEnoughPoints = totalQuestPoints >= requiredQuestPoints
+  // At least one exit is required to start the game.
+  const hasExits = state.exits.length > 0
+  const canStart = hasEnoughPoints && hasExits
 
   // Build a lookup of killer character id → display name for quest badges.
   const killerLabels = Object.fromEntries(
@@ -101,10 +111,22 @@ export function Lobby() {
       .catch(() => undefined)
   }, [isOwner, questDefinitions.length])
 
+  // Owner loads exit definitions once — needed for the exit selection panel.
+  useEffect(() => {
+    if (!isOwner || exitDefinitions.length > 0) return
+    void loadExitDefinitions()
+      .then((definitions) => useGameStore.setState({ exitDefinitions: definitions }))
+      .catch(() => undefined)
+  }, [isOwner, exitDefinitions.length])
+
   // Keep local selected IDs in sync when server state changes (e.g. another tab).
   useEffect(() => {
     setSelectedQuestIds(state.quests.map((quest) => quest.definition.id))
   }, [state.quests])
+
+  useEffect(() => {
+    setSelectedExitIds(state.exits.map((exit) => exit.definition.id))
+  }, [state.exits])
 
   // Keep local settings inputs in sync when server state changes.
   useEffect(() => {
@@ -149,6 +171,20 @@ export function Lobby() {
     const next = [...currentOrder]
     ;[next[index], next[nextIndex]] = [next[nextIndex], next[index]]
     updateQuestOrder(next)
+  }
+
+  // Serialize exit mutations the same way as quests.
+  function updateExitSelection(next: string[]) {
+    setSelectedExitIds(next)
+    void selectExits(next)
+  }
+
+  function toggleExit(id: string) {
+    updateExitSelection(
+      selectedExitIds.includes(id)
+        ? selectedExitIds.filter((value) => value !== id)
+        : [...selectedExitIds, id],
+    )
   }
 
   // Auto-save settings with a 600ms debounce after the last change.
@@ -230,13 +266,21 @@ export function Lobby() {
           value={activeTab}
           onValueChange={setActiveTab}
         >
-          <TabsList className="grid h-11 w-full max-w-lg grid-cols-2 sm:grid-cols-4">
+          <TabsList className="grid h-11 w-full max-w-2xl grid-cols-2 sm:grid-cols-5">
             <TabsTrigger value="players">Players</TabsTrigger>
             {canSeeQuestsTab && (
               <TabsTrigger value="quests">
                 Quests{' '}
                 <Badge variant="secondary" className="ml-2">
                   {state.quests.length}
+                </Badge>
+              </TabsTrigger>
+            )}
+            {canSeeQuestsTab && (
+              <TabsTrigger value="exits">
+                Exits{' '}
+                <Badge variant="secondary" className="ml-2">
+                  {state.exits.length}
                 </Badge>
               </TabsTrigger>
             )}
@@ -275,6 +319,17 @@ export function Lobby() {
                 selectedQuestIds={selectedQuestIds}
                 onToggle={toggleQuest}
                 onMove={moveQuest}
+              />
+            </TabsContent>
+          )}
+          {canSeeQuestsTab && (
+            <TabsContent value="exits" className="mt-5">
+              <ExitPanel
+                exits={state.exits}
+                definitions={exitDefinitions}
+                isOwner={isOwner}
+                selectedExitIds={selectedExitIds}
+                onToggle={toggleExit}
               />
             </TabsContent>
           )}
@@ -330,10 +385,16 @@ export function Lobby() {
             {isOwner ? (
               <>
                 <span>
-                  {durationMinutes} min · {requiredQuestPoints} points required
+                  {durationMinutes} min · {requiredQuestPoints} points required ·{' '}
+                  {state.exits.length} exit{state.exits.length === 1 ? '' : 's'}
                 </span>
                 <div className="flex flex-col items-end gap-1">
-                  {!hasEnoughPoints && (
+                  {!hasExits && (
+                    <span className="text-xs font-semibold text-rose-400">
+                      Select at least one exit
+                    </span>
+                  )}
+                  {!hasEnoughPoints && hasExits && (
                     <span className="text-xs font-semibold text-amber-400">
                       Select more quests — only {totalQuestPoints}/
                       {requiredQuestPoints} points
@@ -341,7 +402,7 @@ export function Lobby() {
                   )}
                   <Button
                     onClick={() => void startGame()}
-                    disabled={!hasEnoughPoints}
+                    disabled={!canStart}
                   >
                     <Swords className="size-4" />
                     Start game

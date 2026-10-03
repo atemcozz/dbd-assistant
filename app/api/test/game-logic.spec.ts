@@ -6,6 +6,7 @@ import { GamesService } from '../src/games.service'
 import { CombatService } from '../src/combat.service'
 import { EffectsService } from '../src/effects.service'
 import { QuestsService } from '../src/quests.service'
+import { ExitsService } from '../src/exits.service'
 import { CharactersService } from '../src/characters.service'
 import { PlayerRole, PlayerStatus, GameStatus } from '@prisma/client'
 
@@ -20,6 +21,7 @@ describe('Game logic', () => {
   let combatService: CombatService
   let effectsService: EffectsService
   let questsService: QuestsService
+  let exitsService: ExitsService
   let charactersService: CharactersService
 
   beforeAll(async () => {
@@ -35,6 +37,7 @@ describe('Game logic', () => {
     combatService = app.get(CombatService)
     effectsService = app.get(EffectsService)
     questsService = app.get(QuestsService)
+    exitsService = app.get(ExitsService)
     charactersService = app.get(CharactersService)
 
     // Seed minimal config data needed for tests.
@@ -56,6 +59,7 @@ describe('Game logic', () => {
     await prisma.playerEffect.deleteMany()
     await prisma.chatMessage.deleteMany()
     await prisma.gameQuest.deleteMany()
+    await prisma.gameExit.deleteMany()
     await prisma.player.deleteMany()
     await prisma.game.deleteMany()
   })
@@ -227,6 +231,27 @@ describe('Game logic', () => {
         killerCharacterTypeId: null,
       },
     })
+
+    // Exit definitions — physical escape routes.
+    await prisma.exitDefinition.upsert({
+      where: { id: 'main-gate' },
+      update: {},
+      create: {
+        id: 'main-gate',
+        name: 'Main Gate',
+        description: 'The main entrance gate.',
+      },
+    })
+
+    await prisma.exitDefinition.upsert({
+      where: { id: 'side-door' },
+      update: {},
+      create: {
+        id: 'side-door',
+        name: 'Side Door',
+        description: 'A quiet side door.',
+      },
+    })
   }
 
   // Helper: create a game with an owner (survivor) and return session info.
@@ -241,10 +266,10 @@ describe('Game logic', () => {
   }
 
   // Helper: create a lobby-ready game with owner + survivor and characters assigned.
-  // Does NOT start the game — quest selection must happen in LOBBY status.
-  // Sets requiredQuestPoints to 1 so exits stay locked (0 completed points < 1)
-  // while still allowing startGame with any selected quest. Point-system tests
-  // override this value explicitly.
+  // Does NOT start the game — quest/exit selection must happen in LOBBY status.
+  // Selects one exit (startGame requires at least one) and sets requiredQuestPoints
+  // to 1 so exits stay locked (0 completed points < 1) while still allowing
+  // startGame with any selected quest. Point-system tests override this value.
   async function setupLobbyGame() {
     const owner = await createGameWithOwner()
     const survivor = await joinSurvivor(owner.state.code, 'Survivor')
@@ -255,6 +280,13 @@ describe('Game logic', () => {
       owner.sessionToken,
       3600,
       1,
+    )
+
+    // At least one exit is required to start the game.
+    await exitsService.select(
+      owner.state.code,
+      owner.sessionToken,
+      ['main-gate'],
     )
 
     await charactersService.assignRole(
@@ -812,6 +844,326 @@ describe('Game logic', () => {
         owner.sessionToken,
       )
       expect(state.status).toBe('LOBBY')
+    })
+
+    it('game cannot start without at least one exit', async () => {
+      const { owner } = await setupLobbyGame()
+
+      // Remove the exit selected by setupLobbyGame.
+      await exitsService.select(owner.state.code, owner.sessionToken, [])
+
+      // Select a quest so the points check passes — failure should be about exits.
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest'],
+      )
+
+      await expect(
+        gamesService.startGame(owner.state.code, owner.sessionToken),
+      ).rejects.toThrow('NO_EXITS_SELECTED')
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.status).toBe('LOBBY')
+    })
+  })
+
+  describe('Exits', () => {
+    // Helper: running game with exits unlocked.
+    // requiredQuestPoints stays at 1 from setupLobbyGame; completing
+    // universal-quest (cost 100) pushes completed points over the threshold.
+    async function setupGameWithUnlockedExits() {
+      const { owner, survivor } = await setupLobbyGame()
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest'],
+      )
+      await gamesService.startGame(owner.state.code, owner.sessionToken)
+
+      // Complete the quest so completed points meet the requirement.
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      await questsService.complete(
+        owner.state.code,
+        state.quests[0].id,
+        owner.sessionToken,
+      )
+
+      return { owner, survivor }
+    }
+
+    it('selected exits appear in game state', async () => {
+      const { owner } = await setupGameWithUnlockedExits()
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+
+      expect(state.exits.length).toBe(1)
+      expect(state.exits[0].definition.id).toBe('main-gate')
+      expect(state.exits[0].definition.name).toBe('Main Gate')
+    })
+
+    it('survivor can escape through an exit when points are met', async () => {
+      const { owner } = await setupGameWithUnlockedExits()
+
+      const beforeState = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(beforeState.exitsUnlocked).toBe(true)
+
+      await exitsService.use(
+        owner.state.code,
+        'main-gate',
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const ownerPlayer = state.players.find((p) => p.id === owner.playerId)
+      expect(ownerPlayer?.status).toBe('ESCAPED')
+    })
+
+    it('escaped player cannot be attacked by the killer', async () => {
+      const { owner, survivor } = await setupLobbyGame()
+
+      // Add a second survivor so the game keeps running after one escapes.
+      const second = await joinSurvivor(owner.state.code, 'Second')
+      await charactersService.assignRole(
+        owner.state.code,
+        second.playerId,
+        owner.sessionToken,
+        PlayerRole.SURVIVOR,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        second.playerId,
+        owner.sessionToken,
+        'medic',
+      )
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest'],
+      )
+      await gamesService.startGame(owner.state.code, owner.sessionToken)
+
+      const startedState = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      await questsService.complete(
+        owner.state.code,
+        startedState.quests[0].id,
+        owner.sessionToken,
+      )
+
+      await exitsService.use(
+        owner.state.code,
+        'main-gate',
+        owner.sessionToken,
+      )
+
+      await expect(
+        combatService.attack(
+          owner.state.code,
+          owner.playerId,
+          survivor.sessionToken,
+        ),
+      ).rejects.toThrow('PLAYER_NOT_ACTIVE')
+    })
+
+    it('escaped player cannot complete quests', async () => {
+      const { owner } = await setupGameWithUnlockedExits()
+
+      // Grab the game quest id directly — available quests are hidden once
+      // exits unlock, so we can't rely on state.quests here.
+      const game = await prisma.game.findUnique({
+        where: { code: owner.state.code },
+      })
+      const gameQuest = await prisma.gameQuest.findFirst({
+        where: { gameId: game!.id },
+      })
+
+      await exitsService.use(
+        owner.state.code,
+        'main-gate',
+        owner.sessionToken,
+      )
+
+      await expect(
+        questsService.complete(
+          owner.state.code,
+          gameQuest!.id,
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('ONLY_ACTIVE_SURVIVORS')
+    })
+
+    it('all survivors escaped ends the game with survivors winning', async () => {
+      const { owner } = await setupGameWithUnlockedExits()
+
+      // Owner is the only survivor — escaping ends the game.
+      await exitsService.use(
+        owner.state.code,
+        'main-gate',
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.status).toBe('FINISHED')
+      expect(state.winner).toBe('SURVIVORS')
+    })
+
+    it('killer cannot escape through an exit', async () => {
+      const { owner, survivor } = await setupGameWithUnlockedExits()
+
+      await expect(
+        exitsService.use(
+          owner.state.code,
+          'main-gate',
+          survivor.sessionToken,
+        ),
+      ).rejects.toThrow('ONLY_SURVIVORS_CAN_ESCAPE')
+    })
+
+    it('dead survivor cannot escape', async () => {
+      const { owner, survivor } = await setupGameWithUnlockedExits()
+
+      // Kill the owner (medic, 3 HP).
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+
+      await expect(
+        exitsService.use(
+          owner.state.code,
+          'main-gate',
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('PLAYER_NOT_ACTIVE')
+    })
+
+    it('escape is rejected while exits are locked', async () => {
+      const { owner } = await setupLobbyGame()
+
+      // Select expensive-quest (cost 500) so startGame passes the points check,
+      // but don't complete it — exits stay locked (0 completed < 500 required).
+      await gamesService.updateSettings(
+        owner.state.code,
+        owner.sessionToken,
+        3600,
+        500,
+      )
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['expensive-quest'],
+      )
+      await gamesService.startGame(owner.state.code, owner.sessionToken)
+
+      await expect(
+        exitsService.use(
+          owner.state.code,
+          'main-gate',
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('EXITS_LOCKED')
+    })
+
+    it('escape through an exit not selected for the game is rejected', async () => {
+      const { owner } = await setupGameWithUnlockedExits()
+
+      // side-door was not selected — only main-gate is in the game.
+      await expect(
+        exitsService.use(
+          owner.state.code,
+          'side-door',
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('EXIT_NOT_IN_GAME')
+    })
+
+    it('partially escaped team keeps playing until timeout or full escape', async () => {
+      const { owner } = await setupLobbyGame()
+
+      // Add a third player as survivor so not everyone escapes at once.
+      const third = await joinSurvivor(owner.state.code, 'Third')
+      await charactersService.assignRole(
+        owner.state.code,
+        third.playerId,
+        owner.sessionToken,
+        PlayerRole.SURVIVOR,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        third.playerId,
+        owner.sessionToken,
+        'medic',
+      )
+
+      await questsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['universal-quest'],
+      )
+      await gamesService.startGame(owner.state.code, owner.sessionToken)
+
+      // Complete the quest so exits unlock (required points = 1, quest cost = 100).
+      const startedState = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      await questsService.complete(
+        owner.state.code,
+        startedState.quests[0].id,
+        owner.sessionToken,
+      )
+
+      // Owner escapes — game should still be running (Third has not escaped).
+      await exitsService.use(
+        owner.state.code,
+        'main-gate',
+        owner.sessionToken,
+      )
+
+      let state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.status).toBe('RUNNING')
+      expect(state.winner).toBeNull()
+
+      const ownerPlayer = state.players.find((p) => p.id === owner.playerId)
+      expect(ownerPlayer?.status).toBe('ESCAPED')
+
+      // Third escapes — now both survivors have escaped → game ends.
+      await exitsService.use(
+        owner.state.code,
+        'main-gate',
+        third.sessionToken,
+      )
+
+      state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.status).toBe('FINISHED')
+      expect(state.winner).toBe('SURVIVORS')
     })
   })
 

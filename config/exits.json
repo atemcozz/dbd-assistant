@@ -1,0 +1,17 @@
+[
+  {
+    "id": "main-gate",
+    "name": "Main Gate",
+    "description": "The main entrance gate of the building. Unlatch it and step outside."
+  },
+  {
+    "id": "side-door",
+    "name": "Side Door",
+    "description": "A side door near the recreation area. Quiet and quick if you can reach it."
+  },
+  {
+    "id": "broken-window",
+    "name": "Broken Window",
+    "description": "A ground-floor window with a cracked pane. Climb out carefully."
+  }
+]
