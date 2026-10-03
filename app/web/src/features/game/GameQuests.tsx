@@ -122,7 +122,7 @@ function GameQuestCard({
           {quest.definition.cost} очков
         </Badge>
         <Button
-          aria-label="Expand quest"
+          aria-label="Развернуть квест"
           onClick={() => setExpanded((value) => !value)}
           size="icon"
           variant="ghost"

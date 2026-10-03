@@ -200,6 +200,19 @@ export function GameScreen() {
     })
   }
 
+  function confirmLeave() {
+    setModal({
+      kind: 'confirm',
+      title: 'Покинуть игру?',
+      body: 'Вы выйдете из комнаты. Вы не сможете вернуться позже.',
+      confirmLabel: 'Ливнуть',
+      onConfirm: () => {
+        setModal(null)
+        clearSession()
+      },
+    })
+  }
+
   return (
     <main className="min-h-screen px-4 pb-8 sm:px-8 lg:px-16">
       <div className="mx-auto max-w-6xl">
@@ -208,7 +221,7 @@ export function GameScreen() {
           player={currentPlayer}
           remainingSeconds={remainingSeconds}
           connectionStatus={connectionStatus}
-          onLeave={clearSession}
+          onLeave={confirmLeave}
         />
         {error && <p className="my-3 text-sm text-rose-300">{error}</p>}
         {/* Winner banner — shown once the game has finished. */}
@@ -230,8 +243,8 @@ export function GameScreen() {
               />
               <span className={state.winner === 'SURVIVORS' ? 'text-emerald-400' : 'text-rose-400'}>
                 {state.winner === 'SURVIVORS'
-                  ? 'Survivors win! Everyone escaped.'
-                  : 'Killer wins. Time ran out.'}
+                  ? 'Выжившие побеждают! Все сбежали.'
+                  : 'Ман побеждает. Время вышло.'}
               </span>
             </CardContent>
           </Card>
@@ -343,6 +356,7 @@ export function GameScreen() {
 
 // Shown when the current player is dead — game over for that participant.
 function DeathScreen({ onLeave }: { onLeave: () => void }) {
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false)
   return (
     <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-center">
       <div className="max-w-md">
@@ -353,9 +367,25 @@ function DeathScreen({ onLeave }: { onLeave: () => void }) {
         <p className="mt-4 text-muted-foreground">
           Покойся с миром
         </p>
-        <Button className="mt-8" onClick={onLeave} variant="outline">
+        <Button
+          className="mt-8"
+          onClick={() => setConfirmLeaveOpen(true)}
+          variant="outline"
+        >
           Ливнуть
         </Button>
+        {confirmLeaveOpen && (
+          <Modal
+            title="Покинуть игру?"
+            body="Вы выйдете из комнаты. Вы сможете вернуться по коду игры."
+            confirmLabel="Ливнуть"
+            onConfirm={() => {
+              setConfirmLeaveOpen(false)
+              onLeave()
+            }}
+            onClose={() => setConfirmLeaveOpen(false)}
+          />
+        )}
       </div>
     </main>
   )
@@ -363,6 +393,7 @@ function DeathScreen({ onLeave }: { onLeave: () => void }) {
 
 // Shown when the current player has escaped — they won.
 function EscapedScreen({ onLeave }: { onLeave: () => void }) {
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false)
   return (
     <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-center">
       <div className="max-w-md">
@@ -373,9 +404,25 @@ function EscapedScreen({ onLeave }: { onLeave: () => void }) {
         <p className="mt-4 text-muted-foreground">
           Молодец! Возьми с полки пирожок
         </p>
-        <Button className="mt-8" onClick={onLeave} variant="outline">
+        <Button
+          className="mt-8"
+          onClick={() => setConfirmLeaveOpen(true)}
+          variant="outline"
+        >
           Ливнуть
         </Button>
+        {confirmLeaveOpen && (
+          <Modal
+            title="Покинуть игру?"
+            body="Вы выйдете из комнаты. Вы сможете вернуться по коду игры."
+            confirmLabel="Ливнуть"
+            onConfirm={() => {
+              setConfirmLeaveOpen(false)
+              onLeave()
+            }}
+            onClose={() => setConfirmLeaveOpen(false)}
+          />
+        )}
       </div>
     </main>
   )

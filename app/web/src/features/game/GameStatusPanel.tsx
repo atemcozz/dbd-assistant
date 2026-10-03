@@ -1,8 +1,7 @@
-import { Clock, Skull, Users } from 'lucide-react'
+import { Skull, Users } from 'lucide-react'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -135,7 +134,7 @@ function CharacterIntelCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-display text-lg font-semibold">
-              {character?.name ?? `Unknown ${variant}`}
+              {character?.name ?? (variant === 'killer' ? 'Неизвестный ман' : 'Неизвестный выживший')}
             </p>
             <Badge variant="secondary" className="text-xs">
               {target.name}

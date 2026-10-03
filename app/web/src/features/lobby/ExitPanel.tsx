@@ -141,12 +141,12 @@ function ExitDefinitionCard({
         <Button
           type="button"
           aria-label={
-            selected ? `Remove ${definition.name}` : `Add ${definition.name}`
+            selected ? `Убрать выход ${definition.name}` : `Добавить выход ${definition.name}`
           }
           onClick={() => onToggle(definition.id)}
           size="icon"
           variant={selected ? 'secondary' : 'outline'}
-          title={selected ? 'Remove exit' : 'Add exit'}
+          title={selected ? 'Убрать выход' : 'Добавить выход'}
         >
           {selected ? (
             <span className="text-xs font-bold">✓</span>

@@ -311,7 +311,7 @@ function QuestDefinitionCard({
         <Button
           type="button"
           aria-label={
-            selected ? `Remove ${definition.name}` : `Add ${definition.name}`
+            selected ? `Убрать квест ${definition.name}` : `Добавить квест ${definition.name}`
           }
           onClick={() => onToggle(definition.id)}
           size="icon"
@@ -327,7 +327,7 @@ function QuestDefinitionCard({
         <Button
           type="button"
           aria-label={
-            expanded ? `Collapse ${definition.name}` : `Expand ${definition.name}`
+            expanded ? `Свернуть квест ${definition.name}` : `Развернуть квест ${definition.name}`
           }
           onClick={() => setExpanded((value) => !value)}
           size="icon"
@@ -391,7 +391,7 @@ function QuestCard({
         </div>
         <CardContent className="grid min-w-0 flex-1 content-center gap-2 p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{quest.definition.cost} pts</Badge>
+            <Badge variant="outline">{quest.definition.cost} очков</Badge>
             {/* <Badge
               variant={
                 quest.status === 'COMPLETED' ? 'secondary' : 'default'
@@ -406,23 +406,23 @@ function QuestCard({
               <span className="ml-auto flex gap-1">
                 <Button
                   type="button"
-                  aria-label="Move quest up"
+                  aria-label="Переместить квест выше"
                   disabled={quest.number === 1}
                   onClick={() => onMove(quest.definition.id, -1)}
                   size="icon"
                   variant="ghost"
-                  title="Move up"
+                  title="Выше"
                 >
                   <ArrowUp className="size-3" />
                 </Button>
                 <Button
                   type="button"
-                  aria-label="Move quest down"
+                  aria-label="Переместить квест ниже"
                   disabled={quest.number === total}
                   onClick={() => onMove(quest.definition.id, 1)}
                   size="icon"
                   variant="ghost"
-                  title="Move down"
+                  title="Ниже"
                 >
                   <ArrowDown className="size-3" />
                 </Button>

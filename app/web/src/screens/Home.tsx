@@ -1,10 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -106,7 +104,7 @@ export function Home() {
               {error && <p className="text-sm text-rose-300">{error}</p>}
               <Button disabled={isLoading} type="submit">
                 {isLoading
-                  ? 'Connecting...'
+                  ? 'Подключение...'
                   : mode === 'create'
                     ? 'Создать комнату'
                     : 'Присоединиться'}

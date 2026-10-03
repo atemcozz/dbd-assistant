@@ -35,7 +35,7 @@ export function GameHeader({
         <div className="flex items-center gap-3">
           <div
             className="flex items-center gap-1"
-            aria-label={`${player.health} of ${player.characterType?.maxHealth} health`}
+            aria-label={`Здоровье: ${player.health} из ${player.characterType?.maxHealth ?? '?'}`}
           >
             <HealthDisplay
               health={player.health}
@@ -48,11 +48,11 @@ export function GameHeader({
             {formatTime(remainingSeconds)}
           </div>
           <Button
-            aria-label="Leave game"
+            aria-label="Покинуть игру"
             onClick={onLeave}
             size="icon"
             variant="ghost"
-            title="Leave game"
+            title="Покинуть игру"
           >
             <LogOut className="size-4" />
           </Button>

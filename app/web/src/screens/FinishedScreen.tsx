@@ -15,20 +15,20 @@ export function FinishedScreen() {
     <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-center">
       <div className="max-w-md">
         <h1 className="font-display text-5xl font-semibold text-foreground">
-          Trial finished
+          Игра окончена
         </h1>
         <p className="mt-4 text-muted-foreground">
-          The game has ended. Thanks for playing!
+          Игра завершена. Спасибо за игру!
         </p>
         {state && (
           <div className="mt-6 rounded-md border border-border p-4 text-sm text-slate-400">
             <p>
-              Quests completed: {completedQuests}/{totalQuests}
+              Квесты завершены: {completedQuests}/{totalQuests}
             </p>
           </div>
         )}
         <Button className="mt-8" onClick={clearSession} variant="outline">
-          Leave game
+          Ливнуть
         </Button>
       </div>
     </main>

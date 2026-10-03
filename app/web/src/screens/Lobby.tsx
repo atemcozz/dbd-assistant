@@ -12,6 +12,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs'
 import { ConnectionStatus } from '@/components/shared/ConnectionStatus'
+import { Modal } from '@/components/shared/Modal'
 import { PlayerCard } from '@/components/shared/PlayerCard'
 import { ExitPanel } from '@/features/lobby/ExitPanel'
 import { QuestPanel } from '@/features/lobby/QuestPanel'
@@ -40,8 +41,9 @@ export function Lobby() {
   const startGame = useGameStore((store) => store.startGame)
   const updateSettings = useGameStore((store) => store.updateSettings)
 
-  const [copyLabel, setCopyLabel] = useState('Copy code')
+  const [copyLabel, setCopyLabel] = useState('Скопировать код')
   const [activeTab, setActiveTab] = useState('players')
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false)
   const [selectedQuestIds, setSelectedQuestIds] = useState(() =>
     state.quests.map((quest) => quest.definition.id),
   )
@@ -145,8 +147,8 @@ export function Lobby() {
 
   async function copyCode() {
     await navigator.clipboard.writeText(state.code)
-    setCopyLabel('Copied')
-    window.setTimeout(() => setCopyLabel('Copy code'), 1400)
+    setCopyLabel('Скопировано')
+    window.setTimeout(() => setCopyLabel('Скопировать код'), 1400)
   }
 
   // Serialize quest mutations to avoid race conditions on rapid toggles.
@@ -251,7 +253,7 @@ export function Lobby() {
           <ConnectionStatus status={connectionStatus} />
           <Button
             className="ml-auto"
-            onClick={clearSession}
+            onClick={() => setConfirmLeaveOpen(true)}
             size="sm"
             variant="ghost"
           >
@@ -291,7 +293,7 @@ export function Lobby() {
             )}
           </TabsList>
           <TabsContent value="players" className="mt-5">
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <section className="flex flex-col gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {state.players.map((player) => (
                 <PlayerCard
                   key={player.id}
@@ -416,6 +418,18 @@ export function Lobby() {
           </div>
         </footer>
       </div>
+      {confirmLeaveOpen && (
+        <Modal
+          title="Покинуть лобби?"
+          body="Вы выйдете из комнаты. Вы сможете вернуться по коду игры."
+          confirmLabel="Ливнуть"
+          onConfirm={() => {
+            setConfirmLeaveOpen(false)
+            clearSession()
+          }}
+          onClose={() => setConfirmLeaveOpen(false)}
+        />
+      )}
     </main>
   )
 }

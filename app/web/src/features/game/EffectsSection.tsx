@@ -212,7 +212,7 @@ function EffectCard({
           disabled={disabled}
           onClick={() => onUse(effect.effectId)}
         >
-          Use
+          Использовать
         </Button>
       </EffectRowLayout>
     )
@@ -418,7 +418,7 @@ function TargetEffectRow({
       </div>
       <Select value={selectedTarget} onValueChange={setSelectedTarget}>
         <SelectTrigger className="w-36">
-          <SelectValue placeholder="Target" />
+          <SelectValue placeholder="Цель" />
         </SelectTrigger>
         <SelectContent>
           {validTargets.map((target) => (

@@ -34,7 +34,7 @@ export function Modal({
               {title}
             </CardTitle>
             <Button
-              aria-label="Close modal"
+              aria-label="Закрыть"
               onClick={onClose}
               size="icon"
               variant="ghost"
@@ -50,7 +50,7 @@ export function Modal({
           </Button>
           {onConfirm && (
             <Button onClick={onConfirm} variant="destructive">
-              {confirmLabel ?? 'OK'}
+              {confirmLabel ?? 'Подтвердить'}
             </Button>
           )}
         </CardContent>
@@ -94,7 +94,7 @@ export function TimedModal({
               {title}
             </CardTitle>
             <Button
-              aria-label="Close modal"
+              aria-label="Закрыть"
               onClick={onClose}
               disabled={!canClose}
               size="icon"
