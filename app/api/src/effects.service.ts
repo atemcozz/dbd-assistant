@@ -149,7 +149,7 @@ export class EffectsService {
       throw new NotFoundException('GAME_NOT_FOUND')
     }
 
-    if (source.game.status !== 'RUNNING') {
+    if (source.game.status === 'LOBBY') {
       throw new ConflictException('GAME_NOT_RUNNING')
     }
 

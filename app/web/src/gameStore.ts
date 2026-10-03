@@ -56,7 +56,8 @@ export type LobbyState = {
   exitsUnlocked: boolean
   // Selected exits for this game — visible to all players once the game runs.
   exits: GameExit[]
-  // Winner when the game has finished: 'SURVIVORS' | 'KILLER' | null.
+  // Winner when the game has finished: 'SURVIVORS' | 'KILLER' | 'DRAW' | null.
+  // DRAW = time out with survivors still alive and not escaped (both lose).
   winner: string | null
   chatMessages: ChatMessage[]
   effects: PlayerEffect[]

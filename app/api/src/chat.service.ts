@@ -38,7 +38,7 @@ export class ChatService {
       throw new NotFoundException('GAME_NOT_FOUND')
     }
 
-    if (player.game.status !== GameStatus.RUNNING) {
+    if (player.game.status === GameStatus.LOBBY) {
       throw new ConflictException('GAME_NOT_RUNNING')
     }
 

@@ -11,18 +11,21 @@ import {
 
 // Simple confirm/info modal used for quest completion and effect use.
 // Deliberately minimal — no portal library needed for a single fixed overlay.
+// `info` mode shows a single acknowledge button (end-game announcements).
 export function Modal({
   title,
   body,
   confirmLabel,
   onConfirm,
   onClose,
+  info = false,
 }: {
   title: string
   body: string
   confirmLabel?: string
   onConfirm?: () => void
   onClose: () => void
+  info?: boolean
 }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/75 p-4 backdrop-blur-sm">
@@ -45,13 +48,19 @@ export function Modal({
           <CardDescription>{body}</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-end gap-2">
-          <Button onClick={onClose} variant="outline">
-            Отмена
-          </Button>
-          {onConfirm && (
-            <Button onClick={onConfirm} variant="destructive">
-              {confirmLabel ?? 'Подтвердить'}
-            </Button>
+          {info ? (
+            <Button onClick={onClose}>{confirmLabel ?? 'Понятно'}</Button>
+          ) : (
+            <>
+              <Button onClick={onClose} variant="outline">
+                Отмена
+              </Button>
+              {onConfirm && (
+                <Button onClick={onConfirm} variant="destructive">
+                  {confirmLabel ?? 'Подтвердить'}
+                </Button>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

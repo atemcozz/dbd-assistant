@@ -188,8 +188,26 @@ export class GamesService {
         status: GameStatus.RUNNING,
         startedAt: new Date(),
         finishedAt: null,
+        winner: null,
       },
     })
+
+    // No survivors in the room — nothing to hunt or save. End immediately
+    // so the client can show the same end-game modal as a timeout win.
+    const survivorCount = await this.prisma.player.count({
+      where: { gameId: game.id, role: PlayerRole.SURVIVOR },
+    })
+
+    if (survivorCount === 0) {
+      await this.prisma.game.update({
+        where: { id: game.id },
+        data: {
+          status: GameStatus.FINISHED,
+          finishedAt: new Date(),
+          winner: 'KILLER',
+        },
+      })
+    }
 
     return this.getState(game.code, sessionToken)
   }
@@ -276,7 +294,16 @@ export class GamesService {
       throw new NotFoundException('GAME_NOT_FOUND')
     }
 
+    // Mid-game win checks first (all escaped / all dead / no killers left)
+    // so timeout only applies when someone is still alive and not escaped.
+    await this.finishIfDecided(game.id)
     await this.finishIfExpired(game)
+
+    // Re-read status/winner so the response reflects any finish that just fired.
+    const fresh = await this.prisma.game.findUnique({
+      where: { id: game.id },
+      select: { status: true, winner: true, finishedAt: true },
+    })
 
     const viewer = game.players.find(
       (player) => player.sessionToken === sessionToken,
@@ -396,18 +423,18 @@ export class GamesService {
       id: game.id,
       code: game.code,
       name: game.name,
-      status: game.status,
+      status: fresh?.status ?? game.status,
       ownerPlayerId: game.ownerPlayerId,
       createdAt: game.createdAt,
       startedAt: game.startedAt,
-      finishedAt: game.finishedAt,
+      finishedAt: fresh?.finishedAt ?? game.finishedAt,
       durationSeconds: game.durationSeconds,
       remainingSeconds,
       requiredQuestPoints: game.requiredQuestPoints,
       completedQuestPoints,
       exitsUnlocked,
       exits,
-      winner: game.winner,
+      winner: fresh?.winner ?? game.winner,
       players,
       quests,
       chatMessages,
@@ -514,31 +541,113 @@ async getStateById(
     startedAt: Date | null
     durationSeconds: number
   }) {
-    if (game.status !== GameStatus.RUNNING) {
+    // Re-read — finishIfDecided may have just finished the game.
+    const current = await this.prisma.game.findUnique({
+      where: { id: game.id },
+      select: { status: true, startedAt: true, durationSeconds: true },
+    })
+
+    if (!current || current.status !== GameStatus.RUNNING) {
       return
     }
 
-    if (!game.startedAt) {
+    if (!current.startedAt) {
       return
     }
 
     const end =
-      game.startedAt.getTime() +
-      game.durationSeconds * 1000
+      current.startedAt.getTime() +
+      current.durationSeconds * 1000
 
     if (Date.now() < end) {
       return
     }
 
-    // Timeout means survivors did not all escape — the killer wins.
+    // Time is out and the game is still running — nobody secured a win.
+    // finishIfDecided already handled all-escaped / all-dead cases.
+    // Remaining case: some survivors are still alive and not escaped → both lose.
     await this.prisma.game.update({
       where: { id: game.id },
       data: {
         status: GameStatus.FINISHED,
         finishedAt: new Date(end),
-        winner: 'KILLER',
+        winner: 'DRAW',
       },
     })
+  }
+
+  // Win conditions that can fire mid-game (not only on timeout):
+  // - every survivor has escaped → survivors win;
+  // - no survivors left alive (all dead or left the room) → killer wins;
+  // - no killers left in the room (dead/disconnected) → survivors win.
+  // Called from getState after actions that change player status.
+  async finishIfDecided(gameId: string) {
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+    })
+
+    if (!game || game.status !== GameStatus.RUNNING) {
+      return
+    }
+
+    const players = await this.prisma.player.findMany({
+      where: { gameId },
+      select: { role: true, status: true },
+    })
+
+    const survivors = players.filter((p) => p.role === PlayerRole.SURVIVOR)
+    const killers = players.filter((p) => p.role === PlayerRole.KILLER)
+
+    // All survivors escaped — survivors win.
+    if (
+      survivors.length > 0 &&
+      survivors.every((s) => s.status === PlayerStatus.ESCAPED)
+    ) {
+      await this.prisma.game.update({
+        where: { id: gameId },
+        data: {
+          status: GameStatus.FINISHED,
+          finishedAt: new Date(),
+          winner: 'SURVIVORS',
+        },
+      })
+      return
+    }
+
+    // No survivors left alive (all dead or disconnected) — killer wins.
+    // Covers killing the last survivor mid-game, not only the clock running out.
+    const survivorsInRoom = survivors.filter(
+      (s) => s.status === PlayerStatus.ALIVE,
+    )
+
+    if (survivors.length > 0 && survivorsInRoom.length === 0) {
+      await this.prisma.game.update({
+        where: { id: gameId },
+        data: {
+          status: GameStatus.FINISHED,
+          finishedAt: new Date(),
+          winner: 'KILLER',
+        },
+      })
+      return
+    }
+
+    // Killers existed but none remain in the room — survivors win.
+    // (No killers at all is a misconfigured lobby; leave the game running.)
+    const killersInRoom = killers.filter(
+      (k) => k.status === PlayerStatus.ALIVE,
+    )
+
+    if (killers.length > 0 && killersInRoom.length === 0) {
+      await this.prisma.game.update({
+        where: { id: gameId },
+        data: {
+          status: GameStatus.FINISHED,
+          finishedAt: new Date(),
+          winner: 'SURVIVORS',
+        },
+      })
+    }
   }
 
   private filterQuests(

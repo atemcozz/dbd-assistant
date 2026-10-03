@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { LoadingScreen } from '@/components/shared/LoadingScreen'
-import { FinishedScreen } from '@/screens/FinishedScreen'
 import { GameScreen } from '@/screens/GameScreen'
 import { Home } from '@/screens/Home'
 import { Lobby } from '@/screens/Lobby'
@@ -8,6 +7,8 @@ import { useGameStore } from '@/gameStore'
 
 // App root — restores session on mount, connects Socket.IO when a session
 // exists, then routes to the correct screen based on game status.
+// FINISHED games stay on GameScreen: a dismissible end-game modal appears,
+// and players may keep using the UI if they want to continue informally.
 export default function App() {
   const state = useGameStore((store) => store.state)
   const session = useGameStore((store) => store.session)
@@ -29,8 +30,9 @@ export default function App() {
   }, [connectRealtime, disconnectRealtime, session])
 
   if (!isReady) return <LoadingScreen />
-  if (state && session && state.status === 'RUNNING') return <GameScreen />
-  if (state && session && state.status === 'FINISHED') return <FinishedScreen />
+  if (state && session && (state.status === 'RUNNING' || state.status === 'FINISHED')) {
+    return <GameScreen />
+  }
   if (state && session) return <Lobby />
   return <Home />
 }

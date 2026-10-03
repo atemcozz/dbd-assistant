@@ -44,7 +44,8 @@ model Game {
   // Total quest points needed to unlock the exits.
   // Sum of completed quest costs is compared against this value.
   requiredQuestPoints Int    @default(500)
-  // Who won when the game finished: 'SURVIVORS' | 'KILLER' | null (not finished / manual).
+  // Who won when the game finished: 'SURVIVORS' | 'KILLER' | 'DRAW' | null.
+  // DRAW = time out with survivors still alive and not escaped (both lose).
   winner        String?
   players       Player[]
   quests        GameQuest[]

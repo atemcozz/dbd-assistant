@@ -19,8 +19,8 @@ import { GameHeader } from '@/features/game/GameHeader'
 import { GamePlayers } from '@/features/game/GamePlayers'
 import { GameQuests } from '@/features/game/GameQuests'
 import { GameStatusPanel } from '@/features/game/GameStatusPanel'
-import { getRemainingSeconds } from '@/lib/format'
-import { useGameStore } from '@/gameStore'
+import { describeGameEnd, getRemainingSeconds } from '@/lib/format'
+import { useGameStore, type LobbyState } from '@/gameStore'
 
 // Modal state — either a regular confirm modal or a timed modal.
 type ModalState =
@@ -39,6 +39,26 @@ type ModalState =
     }
   | null
 
+// Shared end-of-game modal — same announcement for timeout, full escape,
+// no killers left, or no survivors at start. Dismissible; play may continue.
+function GameEndModal({
+  state,
+  onClose,
+}: {
+  state: LobbyState
+  onClose: () => void
+}) {
+  return (
+    <Modal
+      info
+      title="Игра окончена"
+      body={describeGameEnd(state)}
+      confirmLabel="Продолжить"
+      onClose={onClose}
+    />
+  )
+}
+
 // Main in-game screen — tabs for status, quests, players, chat, effects.
 // Killer and survivor see different tabs and actions based on role.
 export function GameScreen() {
@@ -52,6 +72,7 @@ export function GameScreen() {
   const sendChat = useGameStore((store) => store.sendChat)
   const triggerEffect = useGameStore((store) => store.useEffect)
   const clearSession = useGameStore((store) => store.clearSession)
+  const refreshState = useGameStore((store) => store.refreshState)
 
   const currentPlayer = state.players.find(
     (player) => player.id === session.playerId,
@@ -61,10 +82,13 @@ export function GameScreen() {
   // Track which active effect IDs we've already shown a modal for,
   // so we don't re-show the same effect every state broadcast.
   const shownEffectModals = useRef<Set<string>>(new Set())
+  // End-game modal is shown once per finish (not on every state broadcast).
+  const endModalShownFor = useRef<string | null>(null)
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
     getRemainingSeconds(state.startedAt, state.durationSeconds),
   )
   const [modal, setModal] = useState<ModalState>(null)
+  const [endModalOpen, setEndModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<
     'status' | 'quests' | 'exits' | 'players' | 'chat' | 'effects'
   >('status')
@@ -80,6 +104,24 @@ export function GameScreen() {
     )
     return () => window.clearInterval(timer)
   }, [state.startedAt, state.durationSeconds])
+
+  // When the client clock hits zero, ask the server to re-check expiry so
+  // status/winner flip to FINISHED/KILLER without waiting for another action.
+  useEffect(() => {
+    if (remainingSeconds <= 0 && state.status === 'RUNNING') {
+      void refreshState()
+    }
+  }, [remainingSeconds, state.status, refreshState])
+
+  // Show the shared end-game modal once when the game finishes.
+  // Covers timeout, all escaped, no killers left, and no survivors at start.
+  useEffect(() => {
+    if (state.status !== 'FINISHED') return
+    const key = state.id
+    if (endModalShownFor.current === key) return
+    endModalShownFor.current = key
+    setEndModalOpen(true)
+  }, [state.status, state.id])
 
   // Detect health drops and show a timed damage modal.
   useEffect(() => {
@@ -132,11 +174,27 @@ export function GameScreen() {
 
   // Escaped players see a dedicated victory screen — they already won.
   if (currentPlayer.status === 'ESCAPED') {
-    return <EscapedScreen onLeave={clearSession} />
+    return (
+      <EscapedScreen
+        onLeave={clearSession}
+        state={state}
+        endModalOpen={endModalOpen}
+        onCloseEndModal={() => setEndModalOpen(false)}
+      />
+    )
   }
 
   // Dead players see a dedicated death screen.
-  if (currentPlayer.status === 'DEAD') return <DeathScreen onLeave={clearSession} />
+  if (currentPlayer.status === 'DEAD') {
+    return (
+      <DeathScreen
+        onLeave={clearSession}
+        state={state}
+        endModalOpen={endModalOpen}
+        onCloseEndModal={() => setEndModalOpen(false)}
+      />
+    )
+  }
 
   const isKiller = currentPlayer.role === 'KILLER'
   const survivors = state.players.filter((player) => player.role === 'SURVIVOR')
@@ -230,7 +288,9 @@ export function GameScreen() {
             className={
               state.winner === 'SURVIVORS'
                 ? 'mt-5 border-success/60 bg-success/10'
-                : 'mt-5 border-primary/60 bg-primary/10'
+                : state.winner === 'DRAW'
+                  ? 'mt-5 border-warning/60 bg-warning/10'
+                  : 'mt-5 border-primary/60 bg-primary/10'
             }
           >
             <CardContent className="flex items-center gap-3 p-4 text-sm font-semibold">
@@ -238,13 +298,21 @@ export function GameScreen() {
                 className={
                   state.winner === 'SURVIVORS'
                     ? 'size-5 text-success'
-                    : 'size-5 text-primary'
+                    : state.winner === 'DRAW'
+                      ? 'size-5 text-warning'
+                      : 'size-5 text-primary'
                 }
               />
-              <span className={state.winner === 'SURVIVORS' ? 'text-success' : 'text-primary'}>
-                {state.winner === 'SURVIVORS'
-                  ? 'Выжившие побеждают! Все сбежали.'
-                  : 'Ман побеждает. Время вышло.'}
+              <span
+                className={
+                  state.winner === 'SURVIVORS'
+                    ? 'text-success'
+                    : state.winner === 'DRAW'
+                      ? 'text-warning'
+                      : 'text-primary'
+                }
+              >
+                {describeGameEnd(state)}
               </span>
             </CardContent>
           </Card>
@@ -333,6 +401,9 @@ export function GameScreen() {
           </TabsContent>
         </Tabs>
       </div>
+      {endModalOpen && (
+        <GameEndModal state={state} onClose={() => setEndModalOpen(false)} />
+      )}
       {modal?.kind === 'confirm' && (
         <Modal
           title={modal.title}
@@ -355,7 +426,17 @@ export function GameScreen() {
 }
 
 // Shown when the current player is dead — game over for that participant.
-function DeathScreen({ onLeave }: { onLeave: () => void }) {
+function DeathScreen({
+  onLeave,
+  state,
+  endModalOpen,
+  onCloseEndModal,
+}: {
+  onLeave: () => void
+  state: LobbyState
+  endModalOpen: boolean
+  onCloseEndModal: () => void
+}) {
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false)
   return (
     <main className="grid min-h-screen place-items-center bg-background px-6 text-center">
@@ -386,13 +467,26 @@ function DeathScreen({ onLeave }: { onLeave: () => void }) {
             onClose={() => setConfirmLeaveOpen(false)}
           />
         )}
+        {endModalOpen && (
+          <GameEndModal state={state} onClose={onCloseEndModal} />
+        )}
       </div>
     </main>
   )
 }
 
 // Shown when the current player has escaped — they won.
-function EscapedScreen({ onLeave }: { onLeave: () => void }) {
+function EscapedScreen({
+  onLeave,
+  state,
+  endModalOpen,
+  onCloseEndModal,
+}: {
+  onLeave: () => void
+  state: LobbyState
+  endModalOpen: boolean
+  onCloseEndModal: () => void
+}) {
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false)
   return (
     <main className="grid min-h-screen place-items-center bg-background px-6 text-center">
@@ -422,6 +516,9 @@ function EscapedScreen({ onLeave }: { onLeave: () => void }) {
             }}
             onClose={() => setConfirmLeaveOpen(false)}
           />
+        )}
+        {endModalOpen && (
+          <GameEndModal state={state} onClose={onCloseEndModal} />
         )}
       </div>
     </main>

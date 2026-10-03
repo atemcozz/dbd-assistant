@@ -45,7 +45,8 @@ export function GameHeader({
           </div>
           <div className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-3 py-2 text-sm font-semibold tabular-nums">
             <Clock3 className="size-4 text-primary" />
-            {formatTime(remainingSeconds)}
+            {/* Timer text: live countdown, or "time is out" once the clock hits zero. */}
+            {remainingSeconds <= 0 ? 'Время вышло' : formatTime(remainingSeconds)}
           </div>
           <Button
             aria-label="Покинуть игру"

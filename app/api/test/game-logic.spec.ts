@@ -1167,6 +1167,198 @@ describe('Game logic', () => {
     })
   })
 
+  describe('Game end conditions', () => {
+    it('startGame with no survivors finishes immediately with killer win', async () => {
+      const owner = await gamesService.createGame('No Survivors', 'KillerOnly')
+
+      await gamesService.updateSettings(
+        owner.state.code,
+        owner.sessionToken,
+        3600,
+        0,
+      )
+      await exitsService.select(
+        owner.state.code,
+        owner.sessionToken,
+        ['main-gate'],
+      )
+      await charactersService.assignRole(
+        owner.state.code,
+        owner.playerId,
+        owner.sessionToken,
+        PlayerRole.KILLER,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        owner.playerId,
+        owner.sessionToken,
+        'stalker',
+      )
+
+      const state = await gamesService.startGame(
+        owner.state.code,
+        owner.sessionToken,
+      )
+
+      expect(state.status).toBe(GameStatus.FINISHED)
+      expect(state.winner).toBe('KILLER')
+    })
+
+    it('timeout with survivors still alive is a draw — both lose', async () => {
+      const { owner } = await setupRunningGame()
+
+      // Backdate startedAt so the 3600s timer is already expired.
+      // Owner is still ALIVE — nobody secured a win.
+      const game = await prisma.game.findUnique({
+        where: { code: owner.state.code },
+      })
+      await prisma.game.update({
+        where: { id: game!.id },
+        data: {
+          startedAt: new Date(Date.now() - 4000 * 1000),
+        },
+      })
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+
+      expect(state.status).toBe(GameStatus.FINISHED)
+      expect(state.winner).toBe('DRAW')
+    })
+
+    it('timeout after all survivors dead is a killer win', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Kill the only survivor, then let the clock run out.
+      await prisma.player.update({
+        where: { id: owner.playerId },
+        data: { status: PlayerStatus.DEAD, health: 0 },
+      })
+      const game = await prisma.game.findUnique({
+        where: { code: owner.state.code },
+      })
+      await prisma.game.update({
+        where: { id: game!.id },
+        data: {
+          startedAt: new Date(Date.now() - 4000 * 1000),
+        },
+      })
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+
+      expect(state.status).toBe(GameStatus.FINISHED)
+      expect(state.winner).toBe('KILLER')
+    })
+
+    it('all killers dead finishes the game with survivors win', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Remove the killer from the room — survivors win by elimination.
+      await prisma.player.update({
+        where: { id: survivor.playerId },
+        data: { status: PlayerStatus.DEAD },
+      })
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+
+      expect(state.status).toBe(GameStatus.FINISHED)
+      expect(state.winner).toBe('SURVIVORS')
+    })
+
+    it('killing the last survivor finishes the game with killer win', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Owner is the only survivor (medic, 3 HP). Killer attacks three times.
+      await combatService.attack(
+        owner.state.code,
+        owner.playerId,
+        survivor.sessionToken,
+      )
+      await combatService.attack(
+        owner.state.code,
+        owner.playerId,
+        survivor.sessionToken,
+      )
+      await combatService.attack(
+        owner.state.code,
+        owner.playerId,
+        survivor.sessionToken,
+      )
+
+      // getState runs finishIfDecided — killing the last survivor ends the game.
+      const state = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+
+      expect(state.status).toBe(GameStatus.FINISHED)
+      expect(state.winner).toBe('KILLER')
+
+      const ownerPlayer = state.players.find((p) => p.id === owner.playerId)
+      expect(ownerPlayer?.status).toBe(PlayerStatus.DEAD)
+    })
+
+    it('all survivors disconnected finishes the game with killer win', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      await prisma.player.update({
+        where: { id: owner.playerId },
+        data: { status: PlayerStatus.DISCONNECTED },
+      })
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+
+      expect(state.status).toBe(GameStatus.FINISHED)
+      expect(state.winner).toBe('KILLER')
+    })
+
+    it('actions still work after the game officially finishes', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Finish via timeout (draw — owner still alive).
+      const game = await prisma.game.findUnique({
+        where: { code: owner.state.code },
+      })
+      await prisma.game.update({
+        where: { id: game!.id },
+        data: {
+          startedAt: new Date(Date.now() - 4000 * 1000),
+        },
+      })
+      const finished = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(finished.winner).toBe('DRAW')
+
+      // Informal continue-play: killer can still attack an alive survivor.
+      await combatService.attack(
+        owner.state.code,
+        owner.playerId,
+        survivor.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(state.status).toBe(GameStatus.FINISHED)
+      const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+      expect(ownerPlayer.health).toBe(2) // medic 3 → 2 after attack
+    })
+  })
+
   describe('Game session', () => {
     it('create returns sessionToken, playerId, and state', async () => {
       const result = await gamesService.createGame('Test', 'Player1')

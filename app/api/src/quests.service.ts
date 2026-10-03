@@ -118,7 +118,7 @@ export class QuestsService {
       throw new NotFoundException('GAME_NOT_FOUND')
     }
 
-    if (game.status !== GameStatus.RUNNING) {
+    if (game.status === GameStatus.LOBBY) {
       throw new ConflictException('GAME_NOT_RUNNING')
     }
     // updateMany to avoid race conditions

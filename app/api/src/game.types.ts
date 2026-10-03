@@ -119,7 +119,8 @@ export type LobbyState = {
   exitsUnlocked: boolean
   // Selected exits for this game — visible to all players once the game runs.
   exits: GameExitView[]
-  // Winner when the game has finished: 'SURVIVORS' | 'KILLER' | null.
+  // Winner when the game has finished: 'SURVIVORS' | 'KILLER' | 'DRAW' | null.
+  // DRAW = time ran out with survivors still alive and not escaped (both lose).
   winner: string | null
   players: LobbyPlayer[]
   quests: GameQuestView[]
