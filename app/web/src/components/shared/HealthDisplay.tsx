@@ -25,7 +25,7 @@ export function HealthDisplay({
             className={cn(
               'size-4',
               index < health
-                ? 'fill-rose-400 text-rose-400'
+                ? 'fill-destructive text-destructive'
                 : 'text-muted-foreground',
             )}
           />
@@ -42,7 +42,7 @@ export function HealthDisplay({
   return (
     <span className="inline-flex items-center gap-1 text-sm font-semibold">
       {health}/{maxHealth}
-      <Heart className="size-4 fill-rose-400 text-rose-400" />
+      <Heart className="size-4 fill-destructive text-destructive" />
     </span>
   )
 }

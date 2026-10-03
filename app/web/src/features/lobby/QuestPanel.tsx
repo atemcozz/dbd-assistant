@@ -83,8 +83,8 @@ export function QuestPanel({
         className={cn(
           'flex items-center justify-between rounded-md border-2 p-4',
           hasEnoughPoints
-            ? 'border-emerald-400/60 bg-emerald-500/10'
-            : 'border-amber-400/60 bg-amber-500/10',
+            ? 'border-success/60 bg-success/10'
+            : 'border-warning/60 bg-warning/10',
         )}
       >
         <div>
@@ -94,7 +94,7 @@ export function QuestPanel({
           <p
             className={cn(
               'font-display text-2xl font-bold tabular-nums',
-              hasEnoughPoints ? 'text-emerald-400' : 'text-amber-400',
+              hasEnoughPoints ? 'text-success' : 'text-warning',
             )}
           >
             {totalPoints}
@@ -106,8 +106,8 @@ export function QuestPanel({
           className={cn(
             'text-sm font-semibold',
             hasEnoughPoints
-              ? 'border-emerald-400/60 text-emerald-400'
-              : 'border-amber-400/60 text-amber-400',
+              ? 'border-success/60 text-success'
+              : 'border-warning/60 text-warning',
           )}
         >
           {hasEnoughPoints

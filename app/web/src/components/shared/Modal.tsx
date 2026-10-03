@@ -25,7 +25,7 @@ export function Modal({
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/75 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/75 p-4 backdrop-blur-sm">
       <Card className="w-full max-w-md border-border shadow-2xl">
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
@@ -85,7 +85,7 @@ export function TimedModal({
   const canClose = remaining <= 0
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/75 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/75 p-4 backdrop-blur-sm">
       <Card className="w-full max-w-md border-border shadow-2xl">
         <CardHeader>
           <div className="flex items-start justify-between gap-4">

@@ -223,25 +223,25 @@ export function GameScreen() {
           connectionStatus={connectionStatus}
           onLeave={confirmLeave}
         />
-        {error && <p className="my-3 text-sm text-rose-300">{error}</p>}
+        {error && <p className="my-3 text-sm text-destructive">{error}</p>}
         {/* Winner banner — shown once the game has finished. */}
         {state.status === 'FINISHED' && (
           <Card
             className={
               state.winner === 'SURVIVORS'
-                ? 'mt-5 border-emerald-400/60 bg-emerald-500/10'
-                : 'mt-5 border-rose-400/60 bg-rose-500/10'
+                ? 'mt-5 border-success/60 bg-success/10'
+                : 'mt-5 border-primary/60 bg-primary/10'
             }
           >
             <CardContent className="flex items-center gap-3 p-4 text-sm font-semibold">
               <Trophy
                 className={
                   state.winner === 'SURVIVORS'
-                    ? 'size-5 text-emerald-400'
-                    : 'size-5 text-rose-400'
+                    ? 'size-5 text-success'
+                    : 'size-5 text-primary'
                 }
               />
-              <span className={state.winner === 'SURVIVORS' ? 'text-emerald-400' : 'text-rose-400'}>
+              <span className={state.winner === 'SURVIVORS' ? 'text-success' : 'text-primary'}>
                 {state.winner === 'SURVIVORS'
                   ? 'Выжившие побеждают! Все сбежали.'
                   : 'Ман побеждает. Время вышло.'}
@@ -267,7 +267,7 @@ export function GameScreen() {
              <TabsTrigger value="effects" className="relative">
               Эффекты
               {activeEffectCount > 0 && (
-                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-xs font-bold text-slate-950 animate-pulse">
+                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1 text-xs font-bold text-warning-foreground animate-pulse">
                   {activeEffectCount}
                 </span>
               )}
@@ -358,7 +358,7 @@ export function GameScreen() {
 function DeathScreen({ onLeave }: { onLeave: () => void }) {
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false)
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-center">
+    <main className="grid min-h-screen place-items-center bg-background px-6 text-center">
       <div className="max-w-md">
         <Skull className="mx-auto size-16 text-destructive" />
         <h1 className="mt-6 font-display text-5xl font-semibold text-foreground">
@@ -395,9 +395,9 @@ function DeathScreen({ onLeave }: { onLeave: () => void }) {
 function EscapedScreen({ onLeave }: { onLeave: () => void }) {
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false)
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-center">
+    <main className="grid min-h-screen place-items-center bg-background px-6 text-center">
       <div className="max-w-md">
-        <DoorOpen className="mx-auto size-16 text-emerald-400" />
+        <DoorOpen className="mx-auto size-16 text-success" />
         <h1 className="mt-6 font-display text-5xl font-semibold text-foreground">
           Ты сбежал!
         </h1>

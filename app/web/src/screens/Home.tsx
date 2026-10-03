@@ -36,7 +36,7 @@ export function Home() {
     <main className="min-h-screen px-4 py-6 sm:px-8 sm:py-10 lg:px-16">
       <div className="mx-auto flex flex-col max-w-6xl items-center gap-10 lg:grid-cols-[1fr_26rem] lg:gap-20">
         <section className="max-w-2xl mt-10">
-          <h1 className="flex items-center gap-3 mt-5 max-w-xl font-display text-5xl font-semibold leading-[.95] tracking-tight text-white sm:text-7xl">
+          <h1 className="flex items-center gap-3 mt-5 max-w-xl font-display text-5xl font-semibold leading-[.95] tracking-tight text-foreground sm:text-7xl">
             ДБД РИЛ ЛАЙФ ЕДИШОН V 0.000001
           </h1>
         </section>
@@ -101,7 +101,7 @@ export function Home() {
                   required
                 />
               </div>
-              {error && <p className="text-sm text-rose-300">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
               <Button disabled={isLoading} type="submit">
                 {isLoading
                   ? 'Подключение...'

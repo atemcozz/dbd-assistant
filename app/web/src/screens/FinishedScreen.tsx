@@ -12,7 +12,7 @@ export function FinishedScreen() {
   const totalQuests = state?.quests.length ?? 0
 
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-center">
+    <main className="grid min-h-screen place-items-center bg-background px-6 text-center">
       <div className="max-w-md">
         <h1 className="font-display text-5xl font-semibold text-foreground">
           Игра окончена
@@ -21,7 +21,7 @@ export function FinishedScreen() {
           Игра завершена. Спасибо за игру!
         </p>
         {state && (
-          <div className="mt-6 rounded-md border border-border p-4 text-sm text-slate-400">
+          <div className="mt-6 rounded-md border border-border p-4 text-sm text-muted-foreground">
             <p>
               Квесты завершены: {completedQuests}/{totalQuests}
             </p>

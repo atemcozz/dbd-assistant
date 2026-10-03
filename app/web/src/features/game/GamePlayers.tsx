@@ -37,7 +37,7 @@ export function GamePlayers({
           >
             <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
               {player.status === 'ESCAPED' ? (
-                <DoorOpen className="size-4 text-emerald-400" />
+                <DoorOpen className="size-4 text-success" />
               ) : player.role === 'KILLER' ? (
                 <Skull className="size-4" />
               ) : (
@@ -48,9 +48,7 @@ export function GamePlayers({
               <p className="truncate text-sm font-medium">{player.name}</p>
               <p className="text-xs text-muted-foreground">
                 {player.characterType?.name ?? 'Не назначен'} ·{' '}
-                {player.status === 'ESCAPED' ? 'Сбежал' 
-                : player.status === 'DEAD'
-                ? 'Мертв' : 'Жив'}
+                {player.status}
 
               </p>
             </div>

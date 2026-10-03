@@ -40,9 +40,9 @@ export function EffectsSection({
     <div className="grid gap-4">
       {/* Active effects currently affecting this player. */}
       {activeEffects.length > 0 && (
-        <Card className="border-amber-500/40">
+        <Card className="border-warning/40">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-400">
+            <CardTitle className="flex items-center gap-2 text-warning">
               <Clock3 className="size-5" />
               Активные эффекты
             </CardTitle>
@@ -127,11 +127,11 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
     effect.targetDescription ?? effect.description
 
   return (
-    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+    <div className="rounded-md border border-warning/30 bg-warning/5 p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-amber-400">
+            <p className="text-sm font-semibold text-warning">
               {effect.name}
             </p>
             {effect.sourcePlayerName && (
@@ -157,7 +157,7 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
           <p
             className={cn(
               'font-display text-2xl font-bold tabular-nums',
-              remainingSeconds <= 5 ? 'text-red-400' : 'text-amber-400',
+              remainingSeconds <= 5 ? 'text-destructive' : 'text-warning',
             )}
           >
             {remainingSeconds}с.
@@ -306,7 +306,7 @@ function EffectRowLayout({
           Осталось: {effect.charges ?? '∞'}
         </p>
         {cooldownRemaining > 0 && (
-          <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
+          <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
             <Clock3 className="mr-1 size-3" />
             К/д · {cooldownRemaining}с.
           </Badge>
@@ -365,7 +365,7 @@ function AllSurvivorsEffectRow({
           Осталось: {effect.charges ?? '∞'}
         </p>
         {cooldownRemaining > 0 && (
-          <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
+          <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
             <Clock3 className="mr-1 size-3" />
             К/д · {cooldownRemaining}с.
           </Badge>
@@ -410,7 +410,7 @@ function TargetEffectRow({
           Осталось: {effect.charges ?? '∞'}
         </p>
         {cooldownRemaining > 0 && (
-          <Badge variant="outline" className="mt-1 text-xs text-orange-400 border-orange-500/40">
+          <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
             <Clock3 className="mr-1 size-3" />
             К/д · {cooldownRemaining}с.
           </Badge>

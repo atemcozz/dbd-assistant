@@ -1,38 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=PT+Mono&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   Theme tokens (shadcn/ui style)
+
+   Base colors (from user reference):
+     #0C0D0D  background
+     #181919  cards / surfaces
+     #4A3038  muted plum (borders, secondary)
+     #A43A4D  crimson primary
+     #B87554  copper accent / warning
+
+   Two layers, keep in sync:
+
+   1) Full color values (hsl(...)) — VS Code shows interactive color previews.
+      Edit these when changing the look.
+
+   2) Channel-only values (H S% L%) — Tailwind maps these as
+      hsl(var(--x-ch)) so opacity modifiers like bg-primary/10 work.
+      Tailwind config points at the *-ch variables.
+
+   Components use semantic classes only:
+     bg-primary, text-muted-foreground, border-success/60, etc.
+--------------------------------------------------------------------------- */
+
 :root {
-	font-family: 'DM Sans', ui-sans-serif, sans-serif;
- --background: 222 47% 7%;
- --foreground: 210 40% 98%;
- --card: 222 47% 10%;
- --card-foreground: 210 40% 98%;
- --popover: 222 47% 10%;
- --popover-foreground: 210 40% 98%;
- --primary: 161 57% 70%;
- --primary-foreground: 222 47% 7%;
- --secondary: 217 33% 20%;
- --secondary-foreground: 210 40% 98%;
- --muted: 217 33% 17%;
- --muted-foreground: 215 20% 65%;
- --accent: 181 35% 22%;
- --accent-foreground: 210 40% 98%;
- --destructive: 0 68% 65%;
- --destructive-foreground: 210 40% 98%;
- --border: 217 25% 23%;
- --input: 217 25% 23%;
- --ring: 161 57% 70%;
- color: hsl(var(--foreground));
- background: hsl(var(--background));
-	font-synthesis: none;
-	text-rendering: optimizeLegibility;
+  /* font-family: 'DM Sans', ui-sans-serif, sans-serif; */
+  font-family: 'PT Mono', ui-monospace, monospace;
+
+  /* --- full colors (VS Code preview) --- */
+  --background: hsl(180 4% 5%);          /* #0C0D0D */
+  --foreground: hsl(40 8% 92%);
+  --card: hsl(180 4% 10%);               /* #181919 */
+  --card-foreground: hsl(40 8% 92%);
+  --popover: hsl(180 4% 10%);
+  --popover-foreground: hsl(40 8% 92%);
+  --primary: hsl(349 37% 44%);           /* #A43A4D */
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(340 12% 18%);         /* dark plum, from #4A3038 */
+  --secondary-foreground: hsl(40 8% 92%);
+  --muted: hsl(340 10% 14%);
+  --muted-foreground: hsl(340 8% 55%);
+  --accent: hsl(20 38% 46%);             /* copper, from #B87554 */
+  --accent-foreground: hsl(20 30% 10%);
+  --destructive: hsl(349 42% 40%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --success: hsl(150 22% 34%);           /* muted forest, not neon */
+  --success-foreground: hsl(0 0% 100%);
+  --warning: hsl(20 41% 48%);            /* #B87554 copper */
+  --warning-foreground: hsl(20 30% 10%);
+  --border: hsl(340 10% 16%);            /* plum-tinted border */
+  --input: hsl(340 10% 16%);
+  --ring: hsl(349 37% 44%);
+
+  /* --- channels for Tailwind (sync with full colors above) --- */
+  --background-ch: 180 4% 5%;
+  --foreground-ch: 40 8% 92%;
+  --card-ch: 180 4% 10%;
+  --card-foreground-ch: 40 8% 92%;
+  --popover-ch: 180 4% 10%;
+  --popover-foreground-ch: 40 8% 92%;
+  --primary-ch: 349 37% 44%;
+  --primary-foreground-ch: 0 0% 100%;
+  --secondary-ch: 340 12% 18%;
+  --secondary-foreground-ch: 40 8% 92%;
+  --muted-ch: 340 10% 14%;
+  --muted-foreground-ch: 340 8% 55%;
+  --accent-ch: 20 38% 46%;
+  --accent-foreground-ch: 20 30% 10%;
+  --destructive-ch: 349 42% 40%;
+  --destructive-foreground-ch: 0 0% 100%;
+  --success-ch: 150 22% 34%;
+  --success-foreground-ch: 0 0% 100%;
+  --warning-ch: 20 41% 48%;
+  --warning-foreground-ch: 20 30% 10%;
+  --border-ch: 340 10% 16%;
+  --input-ch: 340 10% 16%;
+  --ring-ch: 349 37% 44%;
+
+  color: var(--foreground);
+  background: var(--background);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
 * { box-sizing: border-box; }
+
 body {
-	min-width: 320px;
-	min-height: 100vh;
-	margin: 0;
-	background: radial-gradient(circle at 85% 0%, rgba(20, 78, 78, .35), transparent 36%), #020617;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  /* Very subtle crimson glow — background stays dark and calm. */
+  background:
+    radial-gradient(circle at 85% 0%, rgba(164, 58, 77, 0.14), transparent 40%),
+    var(--background);
 }

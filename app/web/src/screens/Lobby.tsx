@@ -216,20 +216,20 @@ export function Lobby() {
           <div>
             <Badge
               variant="outline"
-              className="border-teal-300/30 text-teal-200"
+              className="border-primary/40 text-primary"
             >
               Лобби
             </Badge>
-            <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-white sm:text-6xl">
+            <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
               {state.name}
             </h1>
           </div>
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-800 bg-slate-900/70 p-3 sm:min-w-56">
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card/70 p-3 sm:min-w-56">
             <div>
-              <p className="text-xs uppercase tracking-[.16em] text-slate-500">
+              <p className="text-xs uppercase tracking-[.16em] text-muted-foreground">
                 Код комнаты
               </p>
-              <strong className="font-display text-2xl tracking-[.16em] text-teal-200">
+              <strong className="font-display text-2xl tracking-[.16em] text-primary">
                 {state.code}
               </strong>
             </div>
@@ -245,7 +245,7 @@ export function Lobby() {
           </div>
         </header>
         <Separator />
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 py-5 text-sm text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 py-5 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <Users className="size-4" />
             {state.players.length}
@@ -261,7 +261,7 @@ export function Lobby() {
             Ливнуть
           </Button>
         </div>
-        {error && <p className="mb-4 text-sm text-rose-300">{error}</p>}
+        {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
         <Tabs
           className="w-full"
           value={activeTab}
@@ -381,7 +381,7 @@ export function Lobby() {
             </TabsContent>
           )}
         </Tabs>
-        <footer className="flex flex-col gap-4 py-6 text-sm text-slate-500">
+        <footer className="flex flex-col gap-4 py-6 text-sm text-muted-foreground">
           <div className="flex items-center justify-between rounded-md border border-border p-4">
             {isOwner ? (
               <>
@@ -391,12 +391,12 @@ export function Lobby() {
                 </span>
                 <div className="flex flex-col items-end gap-1">
                   {!hasExits && (
-                    <span className="text-xs font-semibold text-rose-400">
+                    <span className="text-xs font-semibold text-destructive">
                       Выберите хотя бы один выход
                     </span>
                   )}
                   {!hasEnoughPoints && hasExits && (
-                    <span className="text-xs font-semibold text-amber-400">
+                    <span className="text-xs font-semibold text-warning">
                       Выберите больше квестов: {totalQuestPoints}/
                       {requiredQuestPoints} очков квестов
                     </span>

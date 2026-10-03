@@ -141,9 +141,7 @@ function CharacterIntelCard({
             </Badge>
             {target.status !== 'ALIVE' && (
               <Badge variant="outline" className="text-xs text-muted-foreground">
-                {target.status === 'ESCAPED' ?
-                 'Сбежал' : target.status === 'DEAD' ?
-                 'Мертв' : 'Жив'}
+                {target.status}
               </Badge>
             )}
           </div>
