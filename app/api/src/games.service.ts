@@ -362,13 +362,7 @@ export class GamesService {
       completedQuestPoints >= game.requiredQuestPoints
 
     if (canSeeQuests) {
-      quests = this.filterQuests(
-        game.quests,
-        viewer,
-        exitsUnlocked,
-        game.ownerPlayerId,
-        game.status,
-      )
+      quests = this.filterQuests(game.quests, exitsUnlocked)
     }
 
     // Exits are shown to all players once the game runs.
@@ -656,47 +650,20 @@ async getStateById(
     }
   }
 
+  // No killer-type filtering here — everyone who can see quests (owner,
+  // killers in lobby, all players in game) gets the full selected list.
+  // Orphaned killer quests are removed on the server when a type is swapped.
   private filterQuests(
     quests: QuestWithDefinition[],
-    viewer: {
-      id: string
-      role: PlayerRole
-      characterTypeId: string | null
-    } | undefined,
     exitsUnlocked: boolean,
-    ownerPlayerId: string | null,
-    status: GameStatus,
   ): GameQuestView[] {
     const result: GameQuestView[] = []
-
-    // Owner configures the lobby — they must see every selected quest,
-    // including other killers' quests, otherwise points/selection look broken.
-    const isOwner = viewer?.id === ownerPlayerId
-
-    // Killer-type filtering is lobby-only. Once the game runs (or finishes),
-    // every player sees the full selected quest list — type tags are just labels.
-    const applyKillerFilter =
-      status === GameStatus.LOBBY &&
-      viewer?.role === PlayerRole.KILLER &&
-      !isOwner
 
     for (const quest of quests) {
       // When exits are unlocked, hide remaining available quests —
       // survivors no longer need to complete them.
       if (exitsUnlocked && quest.status === QuestStatus.AVAILABLE) {
         continue
-      }
-
-      // In the lobby, a killer sees universal + own-type quests only.
-      if (applyKillerFilter) {
-        const killerType = quest.questDefinition.killerCharacterTypeId
-
-        if (
-          killerType !== null &&
-          killerType !== viewer?.characterTypeId
-        ) {
-          continue
-        }
       }
 
       result.push({
