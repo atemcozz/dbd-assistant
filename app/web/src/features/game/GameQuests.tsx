@@ -118,7 +118,7 @@ function GameQuestCard({
         <p className="min-w-0 flex-1 truncate text-sm font-medium">
           {quest.definition.name}
         </p>
-        <Badge variant="outline" className="shrink-0 text-xs">
+        <Badge variant="secondary" className="shrink-0 text-xs">
           {quest.definition.cost} очков
         </Badge>
         <Button

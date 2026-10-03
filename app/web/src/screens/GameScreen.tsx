@@ -263,20 +263,20 @@ export function GameScreen() {
           onValueChange={(value) => setActiveTab(value as typeof activeTab)}
         >
           <TabsList className="grid h-auto w-full grid-cols-3 gap-1 sm:grid-cols-6">
-            <TabsTrigger value="status">Игра</TabsTrigger>
+<TabsTrigger value="status">[ Игра ]</TabsTrigger>
              <TabsTrigger value="effects" className="relative">
-              Эффекты
+              [ Эффекты ]
               {activeEffectCount > 0 && (
                 <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1 text-xs font-bold text-warning-foreground animate-pulse">
                   {activeEffectCount}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="quests">Квесты</TabsTrigger>
-            <TabsTrigger value="players">Игроки</TabsTrigger>
-            {!isKiller && <TabsTrigger value="chat">Чат</TabsTrigger>}
-           
-            <TabsTrigger value="exits">Выходы</TabsTrigger>
+            <TabsTrigger value="quests">[ Квесты ]</TabsTrigger>
+            <TabsTrigger value="players">[ Игроки ]</TabsTrigger>
+            {!isKiller && <TabsTrigger value="chat">[ Чат ]</TabsTrigger>}
+
+            <TabsTrigger value="exits">[ Выходы ]</TabsTrigger>
           </TabsList>
           <TabsContent value="status" className="mt-5">
             <GameStatusPanel

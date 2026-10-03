@@ -11,6 +11,27 @@ import {
 import { Input } from '@/components/ui/input'
 import type { ChatMessage } from '@/gameStore'
 
+// High-contrast nickname colors for the dark UI.
+// Hash the player id so each person keeps a stable color.
+const NICK_COLORS = [
+  'hsl(20 70% 64%)',    // copper
+  'hsl(349 65% 68%)',   // light crimson
+  'hsl(150 35% 58%)',   // sage
+  'hsl(32 75% 64%)',    // amber
+  'hsl(320 45% 72%)',   // lilac
+  'hsl(195 50% 62%)',   // muted cyan
+  'hsl(45 70% 62%)',    // pale gold
+  'hsl(265 40% 72%)',   // soft violet
+] as const
+
+function nickColor(playerId: string): string {
+  let hash = 0
+  for (let i = 0; i < playerId.length; i++) {
+    hash = (hash * 31 + playerId.charCodeAt(i)) | 0
+  }
+  return NICK_COLORS[Math.abs(hash) % NICK_COLORS.length]
+}
+
 // Survivor-only chat panel. Server enforces alive-survivor access;
 // this UI is only shown to survivors and the input is for sending.
 export function ChatSection({
@@ -51,9 +72,21 @@ export function ChatSection({
           ) : (
             messages.map((message) => (
               <div key={message.id} className="rounded-md bg-muted/50 p-3">
-                <p className="text-xs font-semibold">
-                  {message.playerStatus === 'DEAD' ? '[УМЕР] ' : ''}
-                  {message.playerName}
+                <p className="text-xs font-bold uppercase tracking-wide">
+                  {message.playerStatus === 'DEAD' && (
+                    <span className="mr-1 text-destructive">[УМЕР]</span>
+                  )}
+                  <span
+                    className="font-semibold"
+                    style={{
+                      color:
+                        message.playerStatus === 'DEAD'
+                          ? 'hsl(340 12% 48%)'
+                          : nickColor(message.playerId),
+                    }}
+                  >
+                    {message.playerName}
+                  </span>
                 </p>
                 <p className="mt-1 text-sm">{message.text}</p>
               </div>

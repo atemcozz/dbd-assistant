@@ -268,10 +268,10 @@ export function Lobby() {
           onValueChange={setActiveTab}
         >
           <TabsList className="grid h-11 w-full max-w-2xl grid-cols-2 sm:grid-cols-5">
-            <TabsTrigger value="players">Игроки</TabsTrigger>
+            <TabsTrigger value="players">[ Игроки ]</TabsTrigger>
             {canSeeQuestsTab && (
               <TabsTrigger value="quests">
-                Квесты{' '}
+                [ Квесты ]{' '}
                 <Badge variant="secondary" className="ml-2">
                   {state.quests.length}
                 </Badge>
@@ -279,7 +279,7 @@ export function Lobby() {
             )}
             {canSeeQuestsTab && (
               <TabsTrigger value="exits">
-                Выходы{' '}
+                [ Выходы ]{' '}
                 <Badge variant="secondary" className="ml-2">
                   {state.exits.length}
                 </Badge>
@@ -288,7 +288,7 @@ export function Lobby() {
             {isOwner && (
               <TabsTrigger value="settings">
                 <Settings className="mr-1 size-3.5" />
-                Настройки
+                [ Настройки ]
               </TabsTrigger>
             )}
           </TabsList>
@@ -336,7 +336,7 @@ export function Lobby() {
           )}
           {isOwner && (
             <TabsContent value="settings" className="mt-5">
-              <div className="mx-auto max-w-md rounded-md border border-border p-6">
+              <div className="bg-card mx-auto max-w-md rounded-md border border-border p-6">
                 <h2 className="font-display text-xl font-semibold">
                   Настройки
                 </h2>

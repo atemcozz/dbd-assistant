@@ -109,7 +109,7 @@ export function TimedModal({
           {/* Countdown indicator — shows how long until the modal can be closed. */}
   
           <Button onClick={onClose} disabled={!canClose}>
-            {canClose ? 'Закрыть' : `Закрыть через ${remaining}с.`}
+            {canClose ? 'Закрыть' : `Закрыть через ${remaining} с.`}
           </Button>
         </CardContent>
       </Card>

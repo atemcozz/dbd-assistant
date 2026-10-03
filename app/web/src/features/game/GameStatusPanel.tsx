@@ -40,7 +40,7 @@ export function GameStatusPanel({
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
               Твоя роль
             </p>
-            <p className="mt-1 font-display text-2xl font-semibold">
+            <p className="mt-1 uppercase text-2xl font-semibold">
               {player.characterType?.name ?? player.role}
             </p>
 
@@ -52,7 +52,7 @@ export function GameStatusPanel({
                 maxHealth={player.characterType?.maxHealth ?? null}
               />
             </div>
-              <p className="mt-1 font-display">
+              <p className="mt-1">
               {player.characterType?.description ?? ''}
             </p>
           </div>

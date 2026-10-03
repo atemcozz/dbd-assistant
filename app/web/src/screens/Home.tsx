@@ -42,13 +42,13 @@ export function Home() {
         </section>
         <Card className="w-full mt-10">
           <Tabs
-            className="border-b p-2"
+            className=" p-2"
             value={mode}
             onValueChange={(value) => setMode(value as 'create' | 'join')}
           >
             <TabsList className="grid h-11 w-full grid-cols-2">
-              <TabsTrigger value="create">Создать комнату</TabsTrigger>
-              <TabsTrigger value="join">Присоединиться к игре</TabsTrigger>
+              <TabsTrigger value="create">[ Создать комнату ]</TabsTrigger>
+              <TabsTrigger value="join">[ Присоединиться к игре ]</TabsTrigger>
             </TabsList>
           </Tabs>
           <CardHeader>
