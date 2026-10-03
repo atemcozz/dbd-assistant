@@ -16,10 +16,33 @@ export class CharactersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(role?: PlayerRole) {
-    return this.prisma.characterType.findMany({
+    const characters = await this.prisma.characterType.findMany({
       where: role ? { role } : undefined,
+      include: {
+        characterEffects: {
+          include: { effect: true },
+        },
+      },
       orderBy: [{ role: 'asc' }, { name: 'asc' }],
     })
+
+    // Flatten characterEffects into the same CharacterEffectInfo shape
+    // used by getState, so the frontend can consume both sources uniformly.
+    return characters.map((character) => ({
+      id: character.id,
+      role: character.role,
+      name: character.name,
+      description: character.description,
+      maxHealth: character.maxHealth,
+      characterEffects: character.characterEffects.map((ce) => ({
+        effectId: ce.effectId,
+        name: ce.effect.name,
+        description: ce.effect.description,
+        charges: ce.charges,
+        duration: ce.effect.duration,
+        cooldown: ce.effect.cooldown,
+      })),
+    }))
   }
 
   async assignRole(

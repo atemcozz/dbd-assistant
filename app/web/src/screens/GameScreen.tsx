@@ -219,7 +219,11 @@ export function GameScreen() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="status" className="mt-5">
-            <GameStatusPanel player={currentPlayer} isKiller={isKiller} />
+            <GameStatusPanel
+              player={currentPlayer}
+              players={state.players}
+              isKiller={isKiller}
+            />
           </TabsContent>
           <TabsContent value="quests" className="mt-5">
             <GameQuests

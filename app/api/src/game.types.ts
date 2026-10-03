@@ -5,6 +5,16 @@ import type {
   QuestStatus,
 } from '@prisma/client'
 
+// Read-only effect summary for character type display (e.g. killer info for survivors).
+export type CharacterEffectInfo = {
+  effectId: string
+  name: string
+  description: string
+  charges: number | null
+  duration: number | null
+  cooldown: number
+}
+
 // Player view without credentials (sessionToken)
 export type LobbyPlayer = {
   id: string
@@ -19,6 +29,9 @@ export type LobbyPlayer = {
     name: string
     description: string
     maxHealth: number | null
+    // Effects this character type starts with (from CharacterEffect + EffectDefinition).
+    // Used to show killers their abilities in the survivor's game status view.
+    characterEffects: CharacterEffectInfo[]
   } | null
 }
 

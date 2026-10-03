@@ -1,3 +1,4 @@
+import { Skull, Users } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -5,43 +6,192 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { HealthDisplay } from '@/components/shared/HealthDisplay'
-import type { LobbyPlayer } from '@/gameStore'
+import type { CharacterEffectInfo, LobbyPlayer } from '@/gameStore'
 
 // Game status tab — shows the player's own role and HP.
+// Survivors see killer intel; killers see survivor intel.
+// Each entry lists the character's starting abilities (read-only).
 export function GameStatusPanel({
   player,
+  players,
   isKiller,
 }: {
   player: LobbyPlayer
+  players: LobbyPlayer[]
   isKiller: boolean
 }) {
+  const killers = players.filter((p) => p.role === 'KILLER')
+  const survivors = players.filter((p) => p.role === 'SURVIVOR')
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Game status</CardTitle>
-        <CardDescription>
-          {isKiller
-            ? 'Control the pressure and watch survivor status.'
-            : 'Keep moving through the physical venue.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        <div className="rounded-md border border-border p-4">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Your role
-          </p>
-          <p className="mt-1 font-display text-2xl font-semibold">
-            {player.characterType?.name ?? player.role}
-          </p>
-          <div className="mt-3">
-            <HealthDisplay
-              health={player.health}
-              maxHealth={player.characterType?.maxHealth ?? null}
-            />
+    <div className="grid gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Game status</CardTitle>
+          <CardDescription>
+            {isKiller
+              ? 'Control the pressure and watch survivor status.'
+              : 'Keep moving through the physical venue.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="rounded-md border border-border p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Your role
+            </p>
+            <p className="mt-1 font-display text-2xl font-semibold">
+              {player.characterType?.name ?? player.role}
+            </p>
+            <div className="mt-3">
+              <HealthDisplay
+                health={player.health}
+                maxHealth={player.characterType?.maxHealth ?? null}
+              />
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Killer intel — only visible to survivors. */}
+      {!isKiller && killers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Skull className="size-5 text-destructive" />
+              Killers in this game
+            </CardTitle>
+            <CardDescription>
+              Know who you're up against. These are the killer's starting abilities.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {killers.map((killer) => (
+              <CharacterIntelCard
+                key={killer.id}
+                target={killer}
+                variant="killer"
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Survivor intel — only visible to killers. */}
+      {isKiller && survivors.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="size-5 text-primary" />
+              Survivors in this game
+            </CardTitle>
+            <CardDescription>
+              Track who's still in play. These are each survivor's starting abilities.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {survivors.map((survivor) => (
+              <CharacterIntelCard
+                key={survivor.id}
+                target={survivor}
+                variant="survivor"
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+// Shared card for a single character (killer or survivor) —
+// character name, player name, status, description, HP (survivors), and effects.
+function CharacterIntelCard({
+  target,
+  variant,
+}: {
+  target: LobbyPlayer
+  variant: 'killer' | 'survivor'
+}) {
+  const character = target.characterType
+  const effects: CharacterEffectInfo[] = character?.characterEffects ?? []
+
+  return (
+    <div
+      className={
+        variant === 'killer'
+          ? 'rounded-md border border-destructive/30 bg-destructive/5 p-4'
+          : 'rounded-md border border-primary/30 bg-primary/5 p-4'
+      }
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-display text-lg font-semibold">
+              {character?.name ?? `Unknown ${variant}`}
+            </p>
+            <Badge variant="secondary" className="text-xs">
+              {target.name}
+            </Badge>
+            {target.status !== 'ALIVE' && (
+              <Badge variant="outline" className="text-xs text-muted-foreground">
+                {target.status}
+              </Badge>
+            )}
+          </div>
+          {character?.description && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {character.description}
+            </p>
+          )}
+          {/* Show HP for survivors — killers track who's still healthy. */}
+          {variant === 'survivor' && (
+            <div className="mt-2">
+              <HealthDisplay
+                health={target.health}
+                maxHealth={character?.maxHealth ?? null}
+              />
+            </div>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Read-only list of the character's starting abilities. */}
+      {effects.length > 0 && (
+        <div className="mt-3">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">
+            Abilities
+          </p>
+          <ul className="mt-2 grid gap-2">
+            {effects.map((effect) => (
+              <li
+                key={effect.effectId}
+                className="rounded-md border border-border bg-background/50 p-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{effect.name}</p>
+                  <div className="flex shrink-0 gap-1">
+                    {effect.duration !== null && (
+                      <Badge variant="outline" className="text-xs">
+                        {effect.duration}s
+                      </Badge>
+                    )}
+                    {effect.cooldown > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        CD {effect.cooldown}s
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {effect.description}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }

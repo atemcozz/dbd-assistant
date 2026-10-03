@@ -7,12 +7,26 @@ const SESSION_KEY = 'dbd-assistant-session'
 export type Role = 'SURVIVOR' | 'KILLER'
 export type PlayerStatus = 'ALIVE' | 'DEAD' | 'DISCONNECTED'
 
+// Read-only effect summary attached to a character type (e.g. killer abilities).
+export type CharacterEffectInfo = {
+  effectId: string
+  name: string
+  description: string
+  charges: number | null
+  duration: number | null
+  cooldown: number
+}
+
 export type CharacterType = {
   id: string
   role: Role
   name: string
   description: string
   maxHealth: number | null
+  // Effects this character type starts with.
+  // Only present in game state (getState), not in the lobby character-types list.
+  // Used to show killers their abilities in the survivor's game status view.
+  characterEffects?: CharacterEffectInfo[]
 }
 
 export type LobbyPlayer = {

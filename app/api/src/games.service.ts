@@ -218,7 +218,15 @@ export class GamesService {
       where: { code },
       include: {
         players: {
-          include: { characterType: true },
+          include: {
+            characterType: {
+              include: {
+                characterEffects: {
+                  include: { effect: true },
+                },
+              },
+            },
+          },
           orderBy: { createdAt: 'asc' },
         },
         quests: {
@@ -255,6 +263,17 @@ export class GamesService {
           name: player.characterType.name,
           description: player.characterType.description,
           maxHealth: player.characterType.maxHealth,
+          // Flatten character effects into a read-only summary for the frontend.
+          characterEffects: player.characterType.characterEffects.map(
+            (ce) => ({
+              effectId: ce.effectId,
+              name: ce.effect.name,
+              description: ce.effect.description,
+              charges: ce.charges,
+              duration: ce.effect.duration,
+              cooldown: ce.effect.cooldown,
+            }),
+          ),
         }
       }
 
