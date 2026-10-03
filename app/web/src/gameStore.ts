@@ -12,7 +12,7 @@ export type CharacterType = {
   role: Role
   name: string
   description: string
-  maxHealth: number
+  maxHealth: number | null
 }
 
 export type LobbyPlayer = {
@@ -20,12 +20,10 @@ export type LobbyPlayer = {
   name: string
   role: Role
   characterTypeId: string | null
-  health: number
-  maxHealth: number
+  health: number | null
   status: PlayerStatus
   characterType: CharacterType | null
 }
-
 export type LobbyState = {
   id: string
   code: string
@@ -34,7 +32,9 @@ export type LobbyState = {
   ownerPlayerId: string
   createdAt: string
   startedAt: string | null
+  finishedAt: string | null
   durationSeconds: number
+  remainingSeconds: number | null
   requiredQuestCount: number
   exitsUnlocked: boolean
   chatMessages: ChatMessage[]
@@ -52,7 +52,6 @@ export type QuestDefinition = {
   description: string
   type: string
   radius: number | null
-  settings: string
   killerCharacterTypeId: string | null
 }
 
@@ -83,7 +82,7 @@ type GameStore = {
   assignCharacter: (playerId: string, characterTypeId: string) => Promise<void>
   selectQuests: (questDefinitionIds: string[]) => Promise<void>
   startGame: () => Promise<void>
-  damagePlayer: (playerId: string) => Promise<void>
+  attackPlayer: (playerId: string) => Promise<void>
   completeQuest: (questId: string) => Promise<void>
   useEffect: (effectId: string, targetPlayerId?: string) => Promise<void>
   updateSettings: (durationSeconds: number, requiredQuestCount: number) => Promise<void>
@@ -252,14 +251,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  damagePlayer: async (playerId) => {
+  attackPlayer: async (playerId) => {
     const { session } = get()
     if (!session) return
+
     try {
-      const state = await request<LobbyState>(`/games/${session.gameCode}/players/${playerId}/damage`, { method: 'POST' }, session.sessionToken)
+      const state = await request<LobbyState>(
+        `/games/${session.gameCode}/players/${playerId}/attack`,
+        {
+          method: 'POST',
+        },
+        session.sessionToken,
+      )
+
       set({ state, error: null })
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Could not damage player' })
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Could not attack player',
+      })
     }
   },
 

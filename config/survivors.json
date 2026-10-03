@@ -5,7 +5,7 @@
         "name": "Medic",
         "description": "Restores teammates with a compact first-aid kit.",
         "maxHealth": 3,
-        "startingEffects": [
+        "effects": [
             {
                 "effectId": "field-dressing",
                 "charges": 3
@@ -22,7 +22,7 @@
         "name": "Scout",
         "description": "Finds routes and useful clues quickly.",
         "maxHealth": 2,
-        "startingEffects": [
+        "effects": [
             {
                 "effectId": "quick-step",
                 "charges": 2
@@ -39,7 +39,7 @@
         "name": "Technician",
         "description": "Keeps the group moving through simple locks and clues.",
         "maxHealth": 2,
-        "startingEffects": [
+        "effects": [
             {
                 "effectId": "field-dressing",
                 "charges": 1

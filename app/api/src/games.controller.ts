@@ -1,123 +1,94 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Put, Query } from '@nestjs/common'
-import { PlayerRole } from '@prisma/client'
-import { GamesService } from './games.service'
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common'
 import { GameGateway } from './game.gateway'
+import { GamesService } from './games.service'
 
 @Controller()
 export class GamesController {
-  constructor(private readonly gamesService: GamesService, private readonly gameGateway: GameGateway) {}
-
-  @Get('character-types')
-  characterTypes(@Query('role') role?: PlayerRole) {
-    return this.gamesService.listCharacterTypes(role)
-  }
-
-  @Get('quest-definitions')
-  questDefinitions(@Headers('x-session-token') sessionToken?: string, @Query('code') code?: string) {
-    return this.gamesService.listQuestDefinitions(sessionToken, code)
-  }
+  constructor(
+    private readonly gamesService: GamesService,
+    private readonly gameGateway: GameGateway,
+  ) {}
 
   @Post('games')
-  async createGame(@Body() body: Record<string, unknown>) {
-    const result = await this.gamesService.createGame(body)
-    await this.gameGateway.broadcastGameState(result.state.id)
+  async create(
+    @Body('name') name: string,
+    @Body('playerName') playerName: string,
+  ) {
+    const result = await this.gamesService.createGame(name, playerName)
+
+    await this.gameGateway.broadcastGameState(result.id)
+
     return result
   }
 
   @Post('games/join')
-  async joinGame(@Body() body: Record<string, unknown>) {
-    const result = await this.gamesService.joinGame(body)
-    await this.gameGateway.broadcastGameState(result.state.id)
-    return result
+  async join(
+    @Body('code') code: string,
+    @Body('playerName') playerName: string,
+  ) {
+    const state = await this.gamesService.joinGame(code, playerName)
+
+    await this.gameGateway.broadcastGameState(state.id)
+
+    return state
   }
 
   @Get('games/:code')
-  state(@Param('code') code: string, @Headers('x-session-token') sessionToken?: string) {
+  state(
+    @Param('code') code: string,
+    @Headers('x-session-token') sessionToken?: string,
+  ) {
     return this.gamesService.getState(code, sessionToken)
   }
 
-  @Put('games/:code/quests')
-  async selectQuests(
-    @Param('code') code: string,
-    @Headers('x-session-token') sessionToken: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    const state = await this.gamesService.selectQuests(code, sessionToken, body)
-    await this.gameGateway.broadcastGameState(state.id)
-    return state
-  }
-
-  @Post('games/:code/quests/:questId/complete')
-  async completeQuest(
-    @Param('code') code: string,
-    @Param('questId') questId: string,
-    @Headers('x-session-token') sessionToken: string,
-  ) {
-    const state = await this.gamesService.completeQuest(code, questId, sessionToken)
-    await this.gameGateway.broadcastGameState(state.id)
-    return state
-  }
-
   @Post('games/:code/start')
-  async startGame(@Param('code') code: string, @Headers('x-session-token') sessionToken: string) {
+  async start(
+    @Param('code') code: string,
+    @Headers('x-session-token') sessionToken: string,
+  ) {
     const state = await this.gamesService.startGame(code, sessionToken)
+
     await this.gameGateway.broadcastGameState(state.id)
+
+    return state
+  }
+
+  @Post('games/:code/finish')
+  async finish(
+    @Param('code') code: string,
+    @Headers('x-session-token') sessionToken: string,
+  ) {
+    const state = await this.gamesService.finishGame(code, sessionToken)
+
+    await this.gameGateway.broadcastGameState(state.id)
+
     return state
   }
 
   @Patch('games/:code/settings')
-  async updateSettings(@Param('code') code: string, @Headers('x-session-token') sessionToken: string, @Body() body: Record<string, unknown>) {
-    const state = await this.gamesService.updateSettings(code, sessionToken, body)
-    await this.gameGateway.broadcastGameState(state.id)
-    return state
-  }
-
-  @Post('games/:code/chat')
-  async sendChat(@Param('code') code: string, @Headers('x-session-token') sessionToken: string, @Body() body: Record<string, unknown>) {
-    const state = await this.gamesService.sendChat(code, sessionToken, body)
-    await this.gameGateway.broadcastGameState(state.id)
-    return state
-  }
-
-  @Post('games/:code/players/:playerId/damage')
-  async damagePlayer(
+  async updateSettings(
     @Param('code') code: string,
-    @Param('playerId') playerId: string,
     @Headers('x-session-token') sessionToken: string,
+    @Body('durationSeconds') durationSeconds: number,
+    @Body('requiredQuestCount') requiredQuestCount: number,
   ) {
-    const state = await this.gamesService.damagePlayer(code, playerId, sessionToken)
-    await this.gameGateway.broadcastGameState(state.id)
-    return state
-  }
+    const state = await this.gamesService.updateSettings(
+      code,
+      sessionToken,
+      durationSeconds,
+      requiredQuestCount,
+    )
 
-  @Post('games/:code/effects/:effectId/use')
-  async useEffect(@Param('code') code: string, @Param('effectId') effectId: string, @Headers('x-session-token') sessionToken: string, @Body('targetPlayerId') targetPlayerId?: string) {
-    const state = await this.gamesService.useEffect(code, effectId, targetPlayerId, sessionToken)
     await this.gameGateway.broadcastGameState(state.id)
-    return state
-  }
 
-  @Patch('games/:code/players/:playerId/role')
-  async assignRole(
-    @Param('code') code: string,
-    @Param('playerId') playerId: string,
-    @Headers('x-session-token') sessionToken: string,
-    @Body('role') role: unknown,
-  ): Promise<unknown> {
-    const state = await this.gamesService.assignRole(code, playerId, sessionToken, role)
-    await this.gameGateway.broadcastGameState(state.id)
-    return state
-  }
-
-  @Patch('games/:code/players/:playerId/character')
-  async assignCharacter(
-    @Param('code') code: string,
-    @Param('playerId') playerId: string,
-    @Headers('x-session-token') sessionToken: string,
-    @Body('characterTypeId') characterTypeId: unknown,
-  ): Promise<unknown> {
-    const state = await this.gamesService.assignCharacter(code, playerId, sessionToken, characterTypeId)
-    await this.gameGateway.broadcastGameState(state.id)
     return state
   }
 }

@@ -5,7 +5,7 @@
         "name": "Stalker",
         "description": "Pressures survivors with sudden attacks and restrictions.",
         "maxHealth": 0,
-        "startingEffects": [
+        "effects": [
             {
                 "effectId": "stun-survivor",
                 "charges": 2
@@ -22,7 +22,7 @@
         "name": "Warden",
         "description": "Controls routes and sends survivors elsewhere.",
         "maxHealth": 0,
-        "startingEffects": [
+        "effects": [
             {
                 "effectId": "room-order",
                 "charges": 2

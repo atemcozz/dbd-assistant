@@ -1,431 +1,465 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
+import {
+  GameStatus,
+  PlayerRole,
+  PlayerStatus,
+  QuestStatus,
+} from '@prisma/client'
 import { randomBytes } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { PlayerRole, QuestStatus } from '@prisma/client'
 import { PrismaService } from './prisma.service'
-import type { GameQuestView, LobbyState } from './game.types'
-
-type CreateGameInput = { name?: unknown; playerName?: unknown }
-type JoinGameInput = { code?: unknown; playerName?: unknown }
-type QuestSelectionInput = { questDefinitionIds?: unknown }
-
-type QuestConfig = {
-  id: string
-  name: string
-  description: string
-  type: string
-  radius: number | null
-  settings: Record<string, unknown>
-  killerCharacterTypeId: string | null
-}
-
-
-type PersistedQuest = {
-  id: string
-  number: number
-  status: QuestStatus
-  completedBy: string | null
-  completedAt: Date | null
-  questDefinition: Omit<QuestConfig, 'settings'> & { settings: string }
-}
-type SettingsInput = { durationSeconds?: unknown; requiredQuestCount?: unknown }
-type ChatInput = { text?: unknown }
-
-const characterDefinitions = [
-  {
-    id: 'medic',
-    role: PlayerRole.SURVIVOR,
-    name: 'Medic',
-    description: 'Keeps the team alive.',
-    maxHealth: 3,
-  },
-  {
-    id: 'scout',
-    role: PlayerRole.SURVIVOR,
-    name: 'Scout',
-    description: 'Fast and observant.',
-    maxHealth: 2,
-  },
-  {
-    id: 'stalker',
-    role: PlayerRole.KILLER,
-    name: 'Stalker',
-    description: 'A relentless hunter.',
-    maxHealth: 0,
-  },
-]
+import { EffectsService } from './effects.service'
+import type {
+  GameQuestView,
+  LobbyPlayer,
+  LobbyState,
+  PlayerEffectView,
+} from './game.types'
 
 @Injectable()
 export class GamesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly effects: EffectsService,
+  ) {}
 
-  async listCharacterTypes(role?: PlayerRole) {
-    await this.ensureCharacterTypes()
-    return this.prisma.characterType.findMany({
-      where: role ? { role } : undefined,
-      orderBy: [{ role: 'asc' }, { name: 'asc' }],
-    })
+ async createGame(name: string, playerName: string) {
+  const sessionToken = this.createSessionToken()
+
+  let code = this.createCode()
+
+  while (await this.prisma.game.findUnique({ where: { code } })) {
+    code = this.createCode()
   }
 
-  async createGame(input: CreateGameInput) {
-    const name = this.requiredText(input.name, 'Game name')
-    const playerName = this.requiredText(input.playerName, 'Player name')
-    await this.ensureCharacterTypes()
+  const game = await this.prisma.$transaction(async (tx) => {
+    const createdGame = await tx.game.create({
+      data: {
+        code,
+        name,
+      },
+    })
 
-    let code = this.createCode()
-    while (await this.prisma.game.findUnique({ where: { code } })) {
-      code = this.createCode()
+    const player = await tx.player.create({
+      data: {
+        gameId: createdGame.id,
+        name: playerName,
+        sessionToken,
+        role: PlayerRole.SURVIVOR,
+        health: null,
+      },
+    })
+
+    return tx.game.update({
+      where: { id: createdGame.id },
+      data: {
+        ownerPlayerId: player.id,
+      },
+    })
+  })
+
+  return this.getState(game.code, sessionToken)
+}
+
+  async joinGame(codeInput: string, playerName: string) {
+    const code = codeInput.toUpperCase()
+
+    const game = await this.prisma.game.findUnique({
+      where: { code },
+    })
+
+    if (!game) {
+      throw new NotFoundException('GAME_NOT_FOUND')
+    }
+
+    if (game.status !== GameStatus.LOBBY) {
+      throw new ConflictException('GAME_NOT_IN_LOBBY')
     }
 
     const sessionToken = this.createSessionToken()
-    const game = await this.prisma.$transaction(async (transaction) => {
-      const createdGame = await transaction.game.create({
-        data: { code, name, ownerPlayerId: 'pending' },
-      })
-      const player = await transaction.player.create({
-        data: {
-          gameId: createdGame.id,
-          name: playerName,
-          sessionToken,
-        },
-      })
-      return transaction.game.update({
-        where: { id: createdGame.id },
-        data: { ownerPlayerId: player.id },
-      })
-    })
-
-    return { sessionToken, playerId: game.ownerPlayerId, state: await this.getState(game.code, sessionToken) }
-  }
-
-  async joinGame(input: JoinGameInput) {
-    const code = this.requiredText(input.code, 'Game code').toUpperCase()
-    const playerName = this.requiredText(input.playerName, 'Player name')
-    const game = await this.prisma.game.findUnique({ where: { code } })
-    if (!game) throw new NotFoundException('GAME_NOT_FOUND')
-    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
 
     const player = await this.prisma.player.create({
-      data: { gameId: game.id, name: playerName, sessionToken: this.createSessionToken() },
+      data: {
+        gameId: game.id,
+        name: playerName,
+        sessionToken,
+        role: PlayerRole.SURVIVOR,
+        health: null,
+      },
     })
-    return { sessionToken: player.sessionToken, playerId: player.id, state: await this.getState(code, player.sessionToken) }
-  }
 
-  async listQuestDefinitions(sessionToken?: string, codeInput?: string) {
-    if (!sessionToken) throw new ForbiddenException('SESSION_REQUIRED')
-    const viewer = await this.getRealtimeSession(sessionToken)
-    if (viewer.game.status === 'LOBBY' && viewer.role !== PlayerRole.KILLER && viewer.id !== viewer.game.ownerPlayerId) {
-      throw new ForbiddenException('QUESTS_HIDDEN_UNTIL_GAME_START')
-    }
-
-    const code = codeInput ? this.requiredText(codeInput, 'Game code').toUpperCase() : undefined
-    const game = code ? await this.prisma.game.findUnique({ where: { code }, include: { players: true } }) : null
-    if (code && (!game || game.id !== viewer.gameId)) throw new NotFoundException('GAME_NOT_FOUND')
-    const killerTypeIds = new Set((game?.players ?? []).filter((player) => player.role === PlayerRole.KILLER && player.characterTypeId).map((player) => player.characterTypeId as string))
-    return this.prisma.questDefinition.findMany({
-      where: code ? { OR: [{ killerCharacterTypeId: null }, { killerCharacterTypeId: { in: [...killerTypeIds] } }] } : undefined,
-      orderBy: { id: 'asc' },
-    })
-  }
-
-  async selectQuests(codeInput: string, sessionToken: string, input: QuestSelectionInput) {
-    const game = await this.authorizeOwner(codeInput, sessionToken)
-    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
-    const values = input.questDefinitionIds
-    if (!Array.isArray(values) || values.some((value) => typeof value !== 'string')) {
-      throw new BadRequestException('QUEST_SELECTION_REQUIRED')
-    }
-    const questDefinitionIds = [...new Set(values)] as string[]
-    const killerTypeIds = new Set((await this.prisma.player.findMany({ where: { gameId: game.id, role: PlayerRole.KILLER, characterTypeId: { not: null } }, select: { characterTypeId: true } })).map((player) => player.characterTypeId as string))
-    const definitions = await this.prisma.questDefinition.findMany({ where: { OR: [{ killerCharacterTypeId: null }, { killerCharacterTypeId: { in: [...killerTypeIds] } }] } })
-    const availableIds = new Set(definitions.map((definition) => definition.id))
-    if (questDefinitionIds.some((id) => !availableIds.has(id))) throw new BadRequestException('INVALID_QUEST_DEFINITION')
-
-    await this.prisma.$transaction(async (transaction) => {
-      const existing = await transaction.gameQuest.findMany({ where: { gameId: game.id } })
-      const existingIds = new Set(existing.map((quest) => quest.questDefinitionId))
-      await transaction.gameQuest.deleteMany({ where: { gameId: game.id, questDefinitionId: { notIn: questDefinitionIds } } })
-      await transaction.gameQuest.updateMany({ where: { gameId: game.id }, data: { number: { increment: 100000 } } })
-      for (const [index, questDefinitionId] of questDefinitionIds.entries()) {
-        if (existingIds.has(questDefinitionId)) {
-          await transaction.gameQuest.updateMany({ where: { gameId: game.id, questDefinitionId }, data: { number: index + 1 } })
-        } else {
-          await transaction.gameQuest.create({ data: { gameId: game.id, questDefinitionId, number: index + 1 } })
-        }
-      }
-    })
-    return this.getState(game.code, sessionToken)
-  }
-
-  async completeQuest(codeInput: string, questId: string, sessionToken: string) {
-    const code = this.requiredText(codeInput, 'Game code').toUpperCase()
-    const player = await this.prisma.player.findUnique({ where: { sessionToken } })
-    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
-    if (player.role !== PlayerRole.SURVIVOR) throw new ConflictException('ONLY_SURVIVORS_CAN_COMPLETE_QUESTS')
-    if (player.status !== 'ALIVE') throw new ConflictException('PLAYER_NOT_ACTIVE')
-
-    const game = await this.prisma.game.findUnique({ where: { code } })
-    if (!game || game.id !== player.gameId) throw new NotFoundException('GAME_NOT_FOUND')
-    if (game.status !== 'RUNNING') throw new ConflictException('GAME_NOT_RUNNING')
-
-    const quest = await this.prisma.gameQuest.findFirst({ where: { id: questId, gameId: game.id } })
-    if (!quest) throw new NotFoundException('QUEST_NOT_FOUND')
-    if (quest.status === QuestStatus.COMPLETED) throw new ConflictException('QUEST_ALREADY_COMPLETED')
-    await this.prisma.gameQuest.update({
-      where: { id: quest.id },
-      data: { status: QuestStatus.COMPLETED, completedBy: player.id, completedAt: new Date() },
-    })
-    return this.getState(code, sessionToken)
+    return this.getState(code, player.sessionToken)
   }
 
   async startGame(codeInput: string, sessionToken: string) {
     const game = await this.authorizeOwner(codeInput, sessionToken)
-    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
+
+    const players = await this.prisma.player.findMany({
+      where: { gameId: game.id },
+      select: { characterTypeId: true },
+    })
+
+    for (const player of players) {
+      if (!player.characterTypeId) {
+        throw new ConflictException(
+          'ALL_PLAYERS_NEED_CHARACTER',
+        )
+      }
+    }
+
     await this.prisma.game.update({
       where: { id: game.id },
-      data: { status: 'RUNNING', startedAt: new Date() },
+      data: {
+        status: GameStatus.RUNNING,
+        startedAt: new Date(),
+        finishedAt: null,
+      },
     })
+
     return this.getState(game.code, sessionToken)
   }
 
-  async updateSettings(codeInput: string, sessionToken: string, input: SettingsInput) {
+  async finishGame(codeInput: string, sessionToken: string) {
     const game = await this.authorizeOwner(codeInput, sessionToken)
-    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
-    const durationSeconds = this.optionalInteger(input.durationSeconds, game.durationSeconds, 60, 86400)
-    const requiredQuestCount = this.optionalInteger(input.requiredQuestCount, game.requiredQuestCount, 0, 100)
-    await this.prisma.game.update({ where: { id: game.id }, data: { durationSeconds, requiredQuestCount } })
+
+    if (game.status !== GameStatus.RUNNING) {
+      throw new ConflictException('GAME_NOT_RUNNING')
+    }
+
+    await this.prisma.game.update({
+      where: { id: game.id },
+      data: {
+        status: GameStatus.FINISHED,
+        finishedAt: new Date(),
+      },
+    })
+
     return this.getState(game.code, sessionToken)
   }
 
-  async sendChat(codeInput: string, sessionToken: string, input: ChatInput) {
-    const code = this.requiredText(codeInput, 'Game code').toUpperCase()
-    const player = await this.prisma.player.findUnique({ where: { sessionToken } })
-    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
-    if (player.role !== PlayerRole.SURVIVOR || player.status !== 'ALIVE') throw new ForbiddenException('SURVIVOR_CHAT_RESTRICTED')
-    const game = await this.prisma.game.findUnique({ where: { code } })
-    if (!game || game.id !== player.gameId) throw new NotFoundException('GAME_NOT_FOUND')
-    if (game.status !== 'RUNNING') throw new ConflictException('GAME_NOT_RUNNING')
-    const text = this.requiredText(input.text, 'Message')
-    await this.prisma.chatMessage.create({ data: { gameId: game.id, playerId: player.id, text: text.slice(0, 500) } })
-    return this.getState(code, sessionToken)
-  }
+  async updateSettings(
+    codeInput: string,
+    sessionToken: string,
+    durationSeconds: number,
+    requiredQuestCount: number,
+  ) {
+    const game = await this.authorizeOwner(codeInput, sessionToken)
 
-  async damagePlayer(codeInput: string, targetPlayerId: string, sessionToken: string) {
-    const code = this.requiredText(codeInput, 'Game code').toUpperCase()
-    const source = await this.prisma.player.findUnique({ where: { sessionToken } })
-    if (!source) throw new NotFoundException('PLAYER_NOT_FOUND')
-    if (source.role !== PlayerRole.KILLER) throw new ConflictException('ONLY_KILLERS_CAN_ATTACK')
-    const game = await this.prisma.game.findUnique({ where: { code } })
-    if (!game || game.id !== source.gameId) throw new NotFoundException('GAME_NOT_FOUND')
-    if (game.status !== 'RUNNING') throw new ConflictException('GAME_NOT_RUNNING')
-    const target = await this.prisma.player.findFirst({ where: { id: targetPlayerId, gameId: game.id } })
-    if (!target) throw new NotFoundException('PLAYER_NOT_FOUND')
-    if (target.role !== PlayerRole.SURVIVOR) throw new ConflictException('KILLERS_CANNOT_DAMAGE_KILLERS')
-    if (target.status !== 'ALIVE') throw new ConflictException('PLAYER_NOT_ACTIVE')
-    const health = Math.max(0, target.health - 1)
-    await this.prisma.player.update({
-      where: { id: target.id },
-      data: { health, status: health === 0 ? 'DEAD' : 'ALIVE' },
+    if (game.status !== GameStatus.LOBBY) {
+      throw new ConflictException('GAME_NOT_IN_LOBBY')
+    }
+
+    await this.prisma.game.update({
+      where: { id: game.id },
+      data: {
+        durationSeconds,
+        requiredQuestCount,
+      },
     })
-    return this.getState(code, sessionToken)
+
+    return this.getState(game.code, sessionToken)
   }
 
-  async useEffect(codeInput: string, effectId: string, targetPlayerId: string | undefined, sessionToken: string) {
-    const code = this.requiredText(codeInput, 'Game code').toUpperCase()
-    const source = await this.prisma.player.findUnique({ where: { sessionToken }, include: { effects: { include: { effect: true } } } })
-    if (!source) throw new NotFoundException('PLAYER_NOT_FOUND')
-    const game = await this.prisma.game.findUnique({ where: { code } })
-    if (!game || game.id !== source.gameId || game.status !== 'RUNNING') throw new ConflictException('GAME_NOT_RUNNING')
-    const owned = source.effects.find((entry) => entry.effectId === effectId)
-    if (!owned) throw new NotFoundException('EFFECT_NOT_AVAILABLE')
-    if (owned.charges !== null && owned.charges <= 0) throw new ConflictException('NO_EFFECT_CHARGES')
-    const targetId = targetPlayerId ?? source.id
-    const target = await this.prisma.player.findFirst({ where: { id: targetId, gameId: game.id } })
-    if (!target) throw new NotFoundException('TARGET_NOT_FOUND')
-    const effect = owned.effect
-    if (effect.action === 'HEAL') await this.prisma.player.update({ where: { id: target.id }, data: { health: Math.min(target.maxHealth, target.health + effect.quantity) } })
-    if (effect.action === 'DAMAGE') await this.prisma.player.update({ where: { id: target.id }, data: { health: Math.max(0, target.health - effect.quantity), status: target.health - effect.quantity <= 0 ? 'DEAD' : target.status } })
-    const expiresAt = effect.duration ? new Date(Date.now() + effect.duration * 1000) : null
-    await this.prisma.playerEffect.update({ where: { id: owned.id }, data: { charges: owned.charges === null ? null : owned.charges - 1, lastUsedAt: new Date(), appliedAt: new Date(), expiresAt, instruction: effect.action === 'TEXT' ? effect.description : null } })
-    return this.getState(code, sessionToken)
-  }
-
-  async getState(codeInput: string, sessionToken?: string): Promise<LobbyState & { currentPlayerId?: string }> {
+  async getState(
+    codeInput: string,
+    sessionToken?: string,
+  ): Promise<LobbyState> {
     const code = codeInput.toUpperCase()
+
     const game = await this.prisma.game.findUnique({
       where: { code },
       include: {
-        players: { include: { characterType: true }, orderBy: { createdAt: 'asc' } },
-        quests: { include: { questDefinition: true }, orderBy: { number: 'asc' } },
-        chatMessages: { include: { player: true }, orderBy: { createdAt: 'asc' }, take: 100 },
+        players: {
+          include: { characterType: true },
+          orderBy: { createdAt: 'asc' },
+        },
+        quests: {
+          include: { questDefinition: true },
+          orderBy: { number: 'asc' },
+        },
+        chatMessages: {
+          include: { player: true },
+          orderBy: { createdAt: 'asc' },
+          take: 100,
+        },
       },
     })
-    if (!game) throw new NotFoundException('GAME_NOT_FOUND')
-    const { players, quests, chatMessages, ...gameState } = game
-    const viewer = sessionToken ? players.find((player) => player.sessionToken === sessionToken) : undefined
-    const canSeeQuests = game.status !== 'LOBBY' || viewer?.role === PlayerRole.KILLER || viewer?.id === game.ownerPlayerId
-    return {
-      ...gameState,
-      players: players.map(({ id, name, role, characterTypeId, health, maxHealth, status, characterType }) => ({
-        id,
-        name,
-        role,
-        characterTypeId,
-        health,
-        maxHealth,
-        status,
+
+    if (!game) {
+      throw new NotFoundException('GAME_NOT_FOUND')
+    }
+
+    await this.finishIfExpired(game)
+
+    const viewer = game.players.find(
+      (player) => player.sessionToken === sessionToken,
+    )
+
+    const players: LobbyPlayer[] = []
+
+    for (const player of game.players) {
+      let characterType: LobbyPlayer['characterType'] = null
+
+      if (player.characterType) {
+        characterType = {
+          id: player.characterType.id,
+          role: player.characterType.role,
+          name: player.characterType.name,
+          description: player.characterType.description,
+          maxHealth: player.characterType.maxHealth,
+        }
+      }
+
+      players.push({
+        id: player.id,
+        name: player.name,
+        role: player.role,
+        characterTypeId: player.characterTypeId,
+        health: player.health,
+        status: player.status,
         characterType,
-      })),
-      quests: canSeeQuests ? this.filterQuests(quests) : [],
-      exitsUnlocked: quests.filter((quest) => quest.status === QuestStatus.COMPLETED).length >= game.requiredQuestCount,
-      chatMessages: viewer?.role === PlayerRole.SURVIVOR ? chatMessages.map((message) => ({ id: message.id, text: message.text, createdAt: message.createdAt, playerId: message.playerId, playerName: message.player.name, playerStatus: message.player.status })) : [],
-      effects: viewer ? await this.getPlayerEffects(viewer.id) : [],
-      ...(sessionToken ? { currentPlayerId: players.find((player) => player.sessionToken === sessionToken)?.id } : {}),
+      })
+    }
+
+    let quests: GameQuestView[] = []
+
+    const canSeeQuests =
+      game.status !== GameStatus.LOBBY ||
+      viewer?.role === PlayerRole.KILLER ||
+      viewer?.id === game.ownerPlayerId
+
+    if (canSeeQuests) {
+      quests = this.filterQuests(game.quests, viewer)
+    }
+
+    const completedQuestCount = game.quests.filter(
+      (quest) => quest.status === QuestStatus.COMPLETED,
+    ).length
+
+    const exitsUnlocked =
+      completedQuestCount >= game.requiredQuestCount
+
+    let remainingSeconds: number | null = null
+
+    if (game.status === GameStatus.RUNNING && game.startedAt) {
+      const end =
+        game.startedAt.getTime() +
+        game.durationSeconds * 1000
+
+      remainingSeconds = Math.max(
+        0,
+        Math.floor((end - Date.now()) / 1000),
+      )
+    }
+
+    const chatMessages = []
+
+    if (viewer?.role === PlayerRole.SURVIVOR) {
+      for (const message of game.chatMessages) {
+        chatMessages.push({
+          id: message.id,
+          text: message.text,
+          createdAt: message.createdAt,
+          playerId: message.playerId,
+          playerName: message.player.name,
+          playerStatus: message.player.status,
+        })
+      }
+    }
+
+    let effects: PlayerEffectView[] = []
+
+    if (viewer) {
+      effects = await this.effects.getPlayerEffects(viewer.id)
+    }
+
+    return {
+      id: game.id,
+      code: game.code,
+      name: game.name,
+      status: game.status,
+      ownerPlayerId: game.ownerPlayerId,
+      createdAt: game.createdAt,
+      startedAt: game.startedAt,
+      finishedAt: game.finishedAt,
+      durationSeconds: game.durationSeconds,
+      remainingSeconds,
+      requiredQuestCount: game.requiredQuestCount,
+      exitsUnlocked,
+      players,
+      quests,
+      chatMessages,
+      effects,
     }
   }
 
-  async getRealtimeSession(sessionToken: string) {
+  async getSession(sessionToken: string) {
     const player = await this.prisma.player.findUnique({
       where: { sessionToken },
       include: { game: true },
     })
-    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
-    return player
-  }
 
-  async getStateById(gameId: string, sessionToken?: string): Promise<LobbyState & { currentPlayerId?: string }> {
-    const game = await this.prisma.game.findUnique({ where: { id: gameId } })
-    if (!game) throw new NotFoundException('GAME_NOT_FOUND')
-    return this.getState(game.code, sessionToken)
-  }
-
-  async markConnected(sessionToken: string) {
-    const player = await this.getRealtimeSession(sessionToken)
-    if (player.status === 'DISCONNECTED') {
-      await this.prisma.player.update({
-        where: { id: player.id },
-        data: { status: 'ALIVE' },
-      })
+    if (!player) {
+      throw new NotFoundException('PLAYER_NOT_FOUND')
     }
+
     return player
   }
 
-  async markDisconnected(sessionToken: string) {
-    const player = await this.getRealtimeSession(sessionToken)
-    if (player.status === 'ALIVE') {
-      await this.prisma.player.update({
-        where: { id: player.id },
-        data: { status: 'DISCONNECTED' },
-      })
-    }
-    return player
-  }
+ async markConnected(sessionToken: string) {
+  const player =
+    await this.getSession(sessionToken)
 
-  async assignRole(codeInput: string, targetPlayerId: string, sessionToken: string, roleInput: unknown) {
-    const game = await this.authorizeOwner(codeInput, sessionToken)
-    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
-    const role = this.parseRole(roleInput)
-    const player = await this.prisma.player.findFirst({ where: { id: targetPlayerId, gameId: game.id } })
-    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
-    await this.prisma.player.update({
+  if (player.status === PlayerStatus.DISCONNECTED) {
+    return this.prisma.player.update({
       where: { id: player.id },
-      data: { role, characterTypeId: null, maxHealth: 1, health: 1 },
+      data: {
+        status: PlayerStatus.ALIVE,
+      },
     })
-    return this.getState(game.code, sessionToken)
   }
 
-  async assignCharacter(codeInput: string, targetPlayerId: string, sessionToken: string, characterTypeId: unknown) {
-    const game = await this.authorizeOwner(codeInput, sessionToken)
-    if (game.status !== 'LOBBY') throw new ConflictException('GAME_NOT_IN_LOBBY')
-    const player = await this.prisma.player.findFirst({ where: { id: targetPlayerId, gameId: game.id } })
-    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
-    const characterId = this.requiredText(characterTypeId, 'Character type')
-    const character = await this.prisma.characterType.findUnique({ where: { id: characterId } })
-    if (!character || character.role !== player.role) throw new BadRequestException('INVALID_CHARACTER_TYPE')
-    await this.prisma.player.update({
+  return player
+}
+
+async markDisconnected(sessionToken: string) {
+  const player =
+    await this.getSession(sessionToken)
+
+  if (player.status === PlayerStatus.ALIVE) {
+    return this.prisma.player.update({
       where: { id: player.id },
-      data: { characterTypeId: character.id, maxHealth: character.maxHealth, health: character.maxHealth },
+      data: {
+        status: PlayerStatus.DISCONNECTED,
+      },
     })
-    return this.getState(game.code, sessionToken)
   }
 
-  private async authorizeOwner(codeInput: string, sessionToken: string) {
+  return player
+}
+
+async getStateById(
+  gameId: string,
+  sessionToken?: string,
+) {
+  const game = await this.prisma.game.findUnique({
+    where: { id: gameId },
+    select: { code: true },
+  })
+
+  if (!game) {
+    throw new NotFoundException('GAME_NOT_FOUND')
+  }
+
+  return this.getState(game.code, sessionToken)
+}
+
+  private async authorizeOwner(
+    codeInput: string,
+    sessionToken: string,
+  ) {
     const code = codeInput.toUpperCase()
-    const player = await this.prisma.player.findUnique({ where: { sessionToken } })
-    if (!player) throw new NotFoundException('PLAYER_NOT_FOUND')
-    const game = await this.prisma.game.findUnique({ where: { code } })
-    if (!game) throw new NotFoundException('GAME_NOT_FOUND')
-    if (game.id !== player.gameId || game.ownerPlayerId !== player.id) throw new ConflictException('NOT_GAME_OWNER')
+
+    const player = await this.prisma.player.findUnique({
+      where: { sessionToken },
+    })
+
+    if (!player) {
+      throw new NotFoundException('PLAYER_NOT_FOUND')
+    }
+
+    const game = await this.prisma.game.findUnique({
+      where: { code },
+    })
+
+    if (!game) {
+      throw new NotFoundException('GAME_NOT_FOUND')
+    }
+
+    if (
+      game.id !== player.gameId ||
+      game.ownerPlayerId !== player.id
+    ) {
+      throw new ConflictException('NOT_GAME_OWNER')
+    }
+
     return game
   }
 
-  private filterQuests(quests: PersistedQuest[]): GameQuestView[] {
-    return quests
-      .map(({ questDefinition, ...quest }) => ({
-        ...quest,
-        definition: questDefinition,
-      }))
-  }
+  private async finishIfExpired(game: {
+    id: string
+    status: GameStatus
+    startedAt: Date | null
+    durationSeconds: number
+  }) {
+    if (game.status !== GameStatus.RUNNING) {
+      return
+    }
 
-  private async upsertQuestDefinition(definition: QuestConfig) {
-    return this.prisma.questDefinition.upsert({
-      where: { id: definition.id },
-      create: { ...definition, settings: JSON.stringify(definition.settings) },
-      update: { ...definition, settings: JSON.stringify(definition.settings) },
+    if (!game.startedAt) {
+      return
+    }
+
+    const end =
+      game.startedAt.getTime() +
+      game.durationSeconds * 1000
+
+    if (Date.now() < end) {
+      return
+    }
+
+    await this.prisma.game.update({
+      where: { id: game.id },
+      data: {
+        status: GameStatus.FINISHED,
+        finishedAt: new Date(end),
+      },
     })
   }
 
-  private async getPlayerEffects(playerId: string) {
-    const effects = await this.prisma.playerEffect.findMany({ where: { playerId }, include: { effect: true } })
-    return effects.map((entry) => ({ id: entry.id, playerId, effectId: entry.effectId, name: entry.effect.name, description: entry.effect.description, charges: entry.charges, duration: entry.effect.duration, expiresAt: entry.expiresAt, instruction: entry.instruction }))
-  }
+  private filterQuests(
+    quests: typeof Array.prototype,
+    viewer: {
+      role: PlayerRole
+      characterTypeId: string | null
+    } | undefined,
+  ): GameQuestView[] {
+    const result: GameQuestView[] = []
 
-  async syncQuestDefinitions() {
-    const definitions = this.readQuestConfig()
-    await Promise.all(definitions.map((definition) => this.upsertQuestDefinition(definition)))
-  }
+    for (const quest of quests as any[]) {
+      if (viewer?.role === PlayerRole.KILLER) {
+        const killerType = quest.questDefinition.killerCharacterTypeId
 
+        if (
+          killerType !== null &&
+          killerType !== viewer.characterTypeId
+        ) {
+          continue
+        }
+      }
 
-  
-
-  private readQuestConfig(): QuestConfig[] {
-    const candidates = [
-      resolve(process.cwd(), 'config/quests.json'),
-      resolve(process.cwd(), '../../config/quests.json'),
-      resolve(dirname(__dirname), '../../config/quests.json'),
-    ]
-    const filePath = candidates.find((candidate) => existsSync(candidate))
-    if (!filePath) throw new NotFoundException('QUEST_CONFIG_NOT_FOUND')
-    const parsed: unknown = JSON.parse(readFileSync(filePath, 'utf8'))
-    if (!Array.isArray(parsed)) throw new BadRequestException('INVALID_QUEST_CONFIG')
-    return parsed as QuestConfig[]
-  }
-
-  private async ensureCharacterTypes() {
-    await Promise.all(
-      characterDefinitions.map((definition) =>
-        this.prisma.characterType.upsert({ where: { id: definition.id }, create: definition, update: definition }),
-      ),
-    )
-  }
-
-  private requiredText(value: unknown, label: string) {
-    if (typeof value !== 'string' || value.trim().length === 0 || value.trim().length > 80) {
-      throw new BadRequestException(`${label} is required`)
+      result.push({
+        id: quest.id,
+        number: quest.number,
+        status: quest.status,
+        completedBy: quest.completedById,
+        completedAt: quest.completedAt,
+        definition: {
+          id: quest.questDefinition.id,
+          name: quest.questDefinition.name,
+          description: quest.questDefinition.description,
+          type: quest.questDefinition.type,
+          radius: quest.questDefinition.radius,
+          killerCharacterTypeId:
+            quest.questDefinition.killerCharacterTypeId,
+        },
+      })
     }
-    return value.trim()
-  }
 
-  private optionalInteger(value: unknown, fallback: number, minimum: number, maximum: number) {
-    if (value === undefined) return fallback
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum || value > maximum) throw new BadRequestException('INVALID_GAME_SETTING')
-    return value
-  }
-
-  private parseRole(value: unknown): PlayerRole {
-    if (value !== PlayerRole.SURVIVOR && value !== PlayerRole.KILLER) throw new BadRequestException('INVALID_ROLE')
-    return value
+    return result
   }
 
   private createCode() {

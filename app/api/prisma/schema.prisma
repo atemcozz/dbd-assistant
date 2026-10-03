@@ -34,9 +34,11 @@ model Game {
   code          String     @unique
   name          String
   status        GameStatus @default(LOBBY)
-  ownerPlayerId String
+  ownerPlayerId String?
+  ownerPlayer   Player? @relation("GameOwner", fields: [ownerPlayerId], references: [id])
   createdAt     DateTime   @default(now())
   startedAt     DateTime?
+  finishedAt DateTime?
   durationSeconds Int       @default(3600)
   requiredQuestCount Int    @default(0)
   players       Player[]
@@ -50,8 +52,8 @@ model QuestDefinition {
   description           String
   type                  String
   radius                Int?
-  settings              String
   killerCharacterTypeId String?
+  killerCharacterType   CharacterType? @relation(fields: [killerCharacterTypeId], references: [id])
   gameQuests            GameQuest[]
 }
 
@@ -63,7 +65,8 @@ model GameQuest {
   questDefinition   QuestDefinition @relation(fields: [questDefinitionId], references: [id])
   number            Int
   status            QuestStatus    @default(AVAILABLE)
-  completedBy       String?
+  completedById String?
+  completedBy   Player? @relation("QuestCompletedBy", fields: [completedById], references: [id])
   completedAt       DateTime?
 
   @@unique([gameId, number])
@@ -80,12 +83,15 @@ model Player {
   role            PlayerRole    @default(SURVIVOR)
   characterTypeId String?
   characterType   CharacterType? @relation(fields: [characterTypeId], references: [id])
-  health          Int           @default(1)
-  maxHealth       Int           @default(1)
+  health          Int?
   status          PlayerStatus  @default(ALIVE)
   createdAt       DateTime      @default(now())
   chatMessages    ChatMessage[]
-  effects         PlayerEffect[]
+  effects        PlayerEffect[]
+  effectsGiven   ActiveEffect[] @relation("EffectSource")
+  effectsReceived ActiveEffect[] @relation("EffectTarget")
+  ownedGames Game[] @relation("GameOwner")
+  completedQuests GameQuest[] @relation("QuestCompletedBy")
 
   @@index([gameId])
 }
@@ -107,8 +113,21 @@ model CharacterType {
   role          PlayerRole
   name          String
   description   String
-  maxHealth     Int
+  maxHealth     Int?
   players       Player[]
+  killerQuests  QuestDefinition[]
+  characterEffects CharacterEffect[]
+}
+
+model CharacterEffect {
+  id            String        @id @default(cuid())
+  characterTypeId String
+  characterType CharacterType @relation(fields: [characterTypeId], references: [id], onDelete: Cascade)
+  effectId      String
+  effect        EffectDefinition @relation(fields: [effectId], references: [id])
+  charges       Int?
+
+  @@unique([characterTypeId, effectId])
 }
 
 model EffectDefinition {
@@ -120,7 +139,23 @@ model EffectDefinition {
   duration       Int?
   cooldown       Int
   allowedTargets String
-  playerEffects  PlayerEffect[]
+  playerEffects PlayerEffect[]
+  activeEffects ActiveEffect[]
+  characterEffects CharacterEffect[]
+}
+
+model ActiveEffect {
+  id             String   @id @default(cuid())
+  effectId       String
+  effect        EffectDefinition @relation(fields: [effectId], references: [id])
+  sourcePlayerId String?
+  sourcePlayer   Player?  @relation("EffectSource", fields: [sourcePlayerId], references: [id])
+  targetPlayerId String
+  targetPlayer   Player   @relation("EffectTarget", fields: [targetPlayerId], references: [id])
+  appliedAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  @@index([targetPlayerId, expiresAt])
 }
 
 model PlayerEffect {
@@ -131,8 +166,6 @@ model PlayerEffect {
   effect      EffectDefinition @relation(fields: [effectId], references: [id])
   charges     Int?
   lastUsedAt  DateTime?
-  appliedAt   DateTime?
-  expiresAt   DateTime?
-  instruction String?
+
   @@unique([playerId, effectId])
 }
