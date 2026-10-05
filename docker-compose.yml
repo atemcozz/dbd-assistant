@@ -13,6 +13,7 @@ services:
     volumes:
       - ${DATA_DIR:-./data}:/data
       - ./config:/app/config
+    image: ghcr.io/atemcozz/dbd-assistant-api:latest
 
   web:
     build:
@@ -25,3 +26,4 @@ services:
       - "${WEB_PORT:-3333}:80"
     depends_on:
       - api
+    image: ghcr.io/atemcozz/dbd-assistant-web:latest
