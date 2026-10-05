@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./app/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: ${DATABASE_URL:-file:/data/game.db}
+    ports:
+      - "${API_PORT:-4444}:3000"
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+      - ./config:/app/config
+
+  web:
+    build:
+      context: .
+      dockerfile: ./app/web/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3333}:80"
+    depends_on:
+      - api

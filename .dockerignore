@@ -1,0 +1,22 @@
+# Dependencies and build outputs are recreated inside the image.
+**/node_modules
+**/dist
+
+# Repo metadata.
+.git
+
+# Runtime data — mounted from the host, never baked into images.
+data
+**/data
+**/*.db
+**/*.db-journal
+**/*.db-shm
+**/*.db-wal
+
+# Secrets/local env — compose passes environment explicitly.
+**/.env
+!**/.env.example
+
+# Tests are not part of the runtime images.
+app/api/test
+**/*.spec.ts

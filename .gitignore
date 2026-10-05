@@ -8,5 +8,7 @@ coverage/
 !.env.example
 app/api/data/
 app/api/prisma/data/
-app/api/prisma/*.db
-app/api/prisma/*.db-journal
+*.db
+*.db-journal
+# Docker compose bind-mounted SQLite (see .env.example DATA_DIR).
+/data/

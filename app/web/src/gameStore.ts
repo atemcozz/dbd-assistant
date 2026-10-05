@@ -1,7 +1,12 @@
 import { create } from 'zustand'
 import { io, type Socket } from 'socket.io-client'
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+// API base URL — VITE_API_URL when set (e.g. .env file or docker build
+// arg), otherwise the same host as the opened page on the default API
+// port. The hostname fallback makes LAN/docker usage work without a
+// rebuild (players open the site via the server's IP).
+const API_URL =
+  import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000`
 const SESSION_KEY = 'dbd-assistant-session'
 
 export type Role = 'SURVIVOR' | 'KILLER'
