@@ -149,7 +149,8 @@ config/
   characters/
     survivors.json
     killers.json
-  effects.json
+  abilities.json
+  buffs.json
   quests.json
 ```
 
@@ -167,7 +168,7 @@ npm run config:sync
 
 should validate configuration and upsert definitions into SQLite.
 
-Changing quests, effects, or character definitions should not require a Prisma migration.
+Changing quests, abilities, buffs, or character definitions should not require a Prisma migration.
 
 Prisma migrations are for database schema changes.
 
@@ -235,7 +236,8 @@ A character type roughly contains:
 * `name`
 * `description`
 * `maxHealth`
-* `startingEffects`
+* `abilities`
+* `startingBuffs`
 
 Example:
 
@@ -246,11 +248,11 @@ Example:
   "name": "Medic",
   "description": "Can heal allies.",
   "maxHealth": 3,
-  "startingEffects": [
-    {
-      "effectId": "heal",
-      "charges": 3
-    }
+  "abilities": [
+    { "abilityId": "field-dressing" }
+  ],
+  "startingBuffs": [
+    { "buffId": "free-run", "duration": null }
   ]
 }
 ```
@@ -356,61 +358,91 @@ type = EXIT
 
 Do not create a separate Exit subsystem.
 
-## Effects
+## Abilities and buffs
 
-Effect definitions roughly contain:
+The system is split into two concepts:
+
+* an **ability** is an activatable action a player owns (button, cooldown, targets);
+* a **buff** is a state applied to a character (what happens to the target).
+
+An ability inflicts one or more buffs when used. Buffs can also exist without
+an ability (permanent starting buffs, and later possibly manually applied
+buffs).
+
+Ability definitions roughly contain:
+
+* `id`
+* `name`
+* `description`
+* `cooldown`
+* `allowedTargets`
+* `buffs` — list of `{ buffId, duration }`
+
+Buff definitions roughly contain:
 
 * `id`
 * `name`
 * `description`
 * `action`
-* `quantity`
-* `duration`
-* `cooldown`
-* `allowedTargets`
+* `params` — free-form JSON object
+* `defaultDuration`
 
-Initial action enum:
+Buff action enum:
 
-* `HEAL`
-* `DAMAGE`
-* `ADD_EFFECT`
-* `REMOVE_EFFECT`
+* `HEAL` — instantly restores HP; strength comes from `params.quantity`
+* `HURT` — instantly removes HP; strength comes from `params.quantity`
+* `INFO` — a physical-game instruction applied to the target as a timed
+  (or permanent) buff row
+
+`params` is arbitrary JSON interpreted individually by server code per
+action. `HEAL`/`HURT` read `quantity` from it; a future action can carry
+its own params without schema changes. Do not describe params in the DB
+schema — a plain string column is enough.
+
+Duration resolution: `applied duration = ability.buffs[].duration ?? buff.defaultDuration`.
+Either null means the buff is permanent. Permanent-ness is a property of
+the buff — an ability can override the length, not force permanence.
 
 Do not create a generic scripting engine.
 
-Effect semantics should remain explicit in server code.
+Buff semantics should remain explicit in server code.
 
-`quantity` means the strength/amount of one use.
-
-`charges` means how many times the player may use the effect.
-
-Example:
+Example ability:
 
 ```json
 {
-  "id": "heal",
-  "name": "Аптечка",
-  "description": "Восстанавливает 1 HP.",
-  "action": "HEAL",
-  "quantity": 1,
-  "duration": null,
+  "id": "field-dressing",
+  "name": "Перевязка",
+  "description": "Выбери себя или другого выжившего и восстанови 1 HP.",
   "cooldown": 30,
-  "allowedTargets": [
-    "SELF",
-    "SURVIVOR"
-  ]
+  "allowedTargets": ["SELF", "SURVIVOR"],
+  "buffs": [{ "buffId": "field-dressing", "duration": null }]
 }
 ```
 
-Healing is an effect. Do not create a separate medkit subsystem.
+Example buff:
 
-Player-specific effect availability can be represented by something like:
-
-```text
-PlayerEffect(playerId, effectId, charges)
+```json
+{
+  "id": "field-dressing",
+  "name": "Перевязка",
+  "description": "Тебе оказывают первую помощь. Ты восстанавливаешь 1 HP.",
+  "action": "HEAL",
+  "params": { "quantity": 1 },
+  "defaultDuration": null
+}
 ```
 
-`charges = null` may represent unlimited uses if needed.
+Healing is a `HEAL` buff. Do not create a separate medkit subsystem.
+
+Runtime rows are copied from the kit on character assignment:
+
+```text
+PlayerAbility(playerId, abilityId, lastUsedAt)
+ActiveBuff(buffId, sourcePlayerId, targetPlayerId, appliedAt, expiresAt)
+```
+
+`expiresAt = null` means the buff is permanent (starting buffs).
 
 Initial target types:
 
@@ -423,48 +455,51 @@ The server must validate target permissions.
 
 Frontend visibility is only a usability feature, not authorization.
 
-### Effect usage
+### Ability usage
 
-When an effect is used, the server should validate:
+When an ability is used, the server should validate:
 
-* source player has the effect;
-* source has charges remaining;
+* source player has the ability;
 * target is valid;
 * game state allows the action;
 * source role/character allows the action;
 * cooldown has expired if applicable.
 
+Then it applies every inflicted buff to every resolved target:
+`HEAL`/`HURT` update health instantly (clamped to `[0, maxHealth]`, 0 → DEAD),
+`INFO` creates an `ActiveBuff` row.
+
 Persist the result before broadcasting the resulting realtime event.
 
-### Timed effects
+### Timed buffs
 
-Do not use one `setTimeout` per active effect.
+Do not use one `setTimeout` per active buff.
 
 Use timestamps.
 
-An active timed effect can roughly contain:
+An active timed buff can roughly contain:
 
-* `effectId`
+* `buffId`
 * `sourcePlayerId`
 * `targetPlayerId`
 * `appliedAt`
 * `expiresAt`
 
-An effect is active while:
+A buff is active while:
 
 ```text
-now < expiresAt
+expiresAt IS NULL OR now < expiresAt
 ```
 
 Cleanup can be lazy or periodic.
 
 Do not build a complex scheduler.
 
-For MVP, effects should usually represent a short, clear game-state change rather than requiring players to constantly interact with the app.
+For MVP, buffs should usually represent a short, clear game-state change rather than requiring players to constantly interact with the app.
 
 ## Physical-game-first interaction principle
 
-When designing new quests or effects, prefer mechanics that can be resolved primarily through real-world movement and observation.
+When designing new quests, abilities, or buffs, prefer mechanics that can be resolved primarily through real-world movement and observation.
 
 Good:
 
@@ -492,9 +527,9 @@ A killer can:
 
 * view relevant survivors;
 * see survivor health/status as allowed by the game;
-* see their own effects;
+* see their own buffs;
 * attack survivors;
-* use allowed effects;
+* use allowed abilities;
 * see quests relevant to their killer type plus universal quests.
 
 Attack removes `1 HP`.
@@ -552,8 +587,8 @@ Possible events:
 * `player:disconnected`
 * `player:reconnected`
 * `quest:completed`
-* `effect:applied`
-* `effect:removed`
+* `buff:applied`
+* `buff:removed`
 * `chat:message`
 
 The server is authoritative.
@@ -605,7 +640,7 @@ Owner controls may be integrated into the lobby/game rather than creating a sepa
 Should contain roughly:
 
 * own HP;
-* own effects;
+* own buffs;
 * other survivors;
 * quests;
 * completed quests;
@@ -618,7 +653,7 @@ Should contain roughly:
 
 * survivors;
 * HP/status;
-* own effects;
+* own buffs;
 * attack controls;
 * relevant quests;
 * connection status.
@@ -638,9 +673,9 @@ Important tests include:
 * death occurs at 0 HP;
 * dead survivor cannot perform normal actions;
 * heal cannot exceed maxHealth;
-* effect requires charges;
-* effect consumes a charge;
 * invalid target is rejected;
+* an ability applies all of its buffs;
+* permanent starting buff is listed (expiresAt null);
 * killer cannot perform survivor-only actions;
 * completed quest cannot be completed twice;
 * killer-specific quest visibility/filtering works;
@@ -726,7 +761,7 @@ Prefer existing libraries over handwritten infrastructure.
 
 Avoid "enterprise" architecture.
 
-When creating examples for characters, quests, and effects, keep them consistent with the small physical venue, cheap props, limited budget, and physical-game-first interaction model described above.
+When creating examples for characters, quests, abilities, and buffs, keep them consistent with the small physical venue, cheap props, limited budget, and physical-game-first interaction model described above.
 
 Do not automatically turn every example into a new system or database abstraction.
 
@@ -779,16 +814,15 @@ Do not automatically turn every example into a new system or database abstractio
 * death
 * role-specific UI
 
-### Step 6 — Effects
+### Step 6 — Abilities and buffs
 
-* definitions
-* player effects
-* charges
-* HEAL
-* DAMAGE
+* ability/buff definitions in JSON
+* player abilities
+* HEAL/HURT/INFO actions
 * targets
-* cooldown if needed
-* timed effects
+* cooldown
+* timed buffs
+* starting buffs
 
 ### Step 7 — Chat
 
@@ -822,10 +856,10 @@ Do not automatically turn every example into a new system or database abstractio
 * killer attack works;
 * health persists;
 * death occurs at 0 HP;
-* effects work;
-* charges work;
-* basic timed effects work;
+* abilities work and apply their buffs;
+* cooldowns work;
+* starting buffs apply to characters;
 * survivor chat works;
 * reconnect restores state;
 * LAN works;
-* code remains understandable and manually repairable.# dbd-assistant — Agent Instructions## 1. Project goal`dbd-assistant` is a small web application for running a local multiplayer game inspired by Dead by Daylight.The project is intentionally small.The current goal is to build a working MVP that proves the core game loop:1. Create a game room.2. Join the room.3. Assign player roles and character types.4. Select quests.5. Start the game.6. Synchronize game state in realtime.7. Complete quests.8. Use effects.9. Let the killer attack survivors.10. Change health and eliminate survivors at 0 HP.11. Provide a chat visible only to alive survivors.12. Reconnect after temporary network loss and restore current state.13. Persist runtime state in SQLite.14. Run without Docker and without external infrastructure.The project is primarily intended for a small private group of players.Priorities:1. Simplicity.2. Correctness of core game rules.3. Easy debugging during a live game.4. Easy manual recovery.5. Fast development.6. Maintainable code.7. Performance.Do not optimize for hypothetical large scale.---## 2. Technology stackUse the following stack unless there is a concrete technical reason not to:### Frontend* React* TypeScri
+* code remains understandable and manually repairable.# dbd-assistant — Agent Instructions## 1. Project goal`dbd-assistant` is a small web application for running a local multiplayer game inspired by Dead by Daylight.The project is intentionally small.The current goal is to build a working MVP that proves the core game loop:1. Create a game room.2. Join the room.3. Assign player roles and character types.4. Select quests.5. Start the game.6. Synchronize game state in realtime.7. Complete quests.8. Use abilities.9. Let the killer attack survivors.10. Change health and eliminate survivors at 0 HP.11. Provide a chat visible only to alive survivors.12. Reconnect after temporary network loss and restore current state.13. Persist runtime state in SQLite.14. Run without Docker and without external infrastructure.The project is primarily intended for a small private group of players.Priorities:1. Simplicity.2. Correctness of core game rules.3. Easy debugging during a live game.4. Easy manual recovery.5. Fast development.6. Maintainable code.7. Performance.Do not optimize for hypothetical large scale.---## 2. Technology stackUse the following stack unless there is a concrete technical reason not to:### Frontend* React* TypeScri

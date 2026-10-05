@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { HealthDisplay } from '@/components/shared/HealthDisplay'
-import type { CharacterEffectInfo, LobbyPlayer } from '@/gameStore'
+import type { CharacterAbilityInfo, CharacterStartBuffInfo, LobbyPlayer } from '@/gameStore'
 
 // Game status tab — shows the player's own role and HP.
 // Survivors see killer intel; killers see survivor intel.
@@ -120,7 +120,8 @@ function CharacterIntelCard({
   variant: 'killer' | 'survivor'
 }) {
   const character = target.characterType
-  const effects: CharacterEffectInfo[] = character?.characterEffects ?? []
+  const abilities: CharacterAbilityInfo[] = character?.abilities ?? []
+  const startingBuffs: CharacterStartBuffInfo[] = character?.startingBuffs ?? []
 
   return (
     <div
@@ -162,35 +163,47 @@ function CharacterIntelCard({
         </div>
       </div>
 
-      {/* Read-only list of the character's starting abilities. */}
-      {effects.length > 0 && (
+      {/* Read-only list of the character's abilities and permanent buffs. */}
+      {(abilities.length > 0 || startingBuffs.length > 0) && (
         <div className="mt-3">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
             Абилки персонажа
           </p>
           <ul className="mt-2 grid gap-2">
-            {effects.map((effect) => (
+            {abilities.map((ability) => (
               <li
-                key={effect.effectId}
+                key={ability.abilityId}
                 className="rounded-md border border-border bg-background/50 p-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{effect.name}</p>
+                  <p className="text-sm font-medium">{ability.name}</p>
                   <div className="flex shrink-0 gap-1">
-                    {effect.duration !== null && (
+                    {ability.duration !== null && (
                       <Badge variant="outline" className="text-xs">
-                        {effect.duration}с
+                        {ability.duration}с
                       </Badge>
                     )}
-                    {effect.cooldown > 0 && (
+                    {ability.cooldown > 0 && (
                       <Badge variant="outline" className="text-xs">
-                        К/д {effect.cooldown}с
+                        К/д {ability.cooldown}с
                       </Badge>
                     )}
                   </div>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {effect.description}
+                  {ability.description}
+                </p>
+              </li>
+            ))}
+            {/* Permanent starting buffs — name + description only. */}
+            {startingBuffs.map((buff) => (
+              <li
+                key={buff.buffId}
+                className="rounded-md border border-border bg-background/50 p-2"
+              >
+                <p className="text-sm font-medium">{buff.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {buff.description}
                 </p>
               </li>
             ))}

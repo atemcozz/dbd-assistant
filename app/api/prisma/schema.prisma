@@ -121,9 +121,9 @@ model Player {
   escapedAt       DateTime?
   createdAt       DateTime      @default(now())
   chatMessages    ChatMessage[]
-  effects        PlayerEffect[]
-  effectsGiven   ActiveEffect[] @relation("EffectSource")
-  effectsReceived ActiveEffect[] @relation("EffectTarget")
+  abilities       PlayerAbility[]
+  buffsGiven      ActiveBuff[] @relation("BuffSource")
+  buffsReceived   ActiveBuff[] @relation("BuffTarget")
   ownedGames Game[] @relation("GameOwner")
   completedQuests GameQuest[] @relation("QuestCompletedBy")
 
@@ -150,59 +150,105 @@ model CharacterType {
   maxHealth     Int?
   players       Player[]
   killerQuests  QuestDefinition[]
-  characterEffects CharacterEffect[]
+  characterAbilities   CharacterAbility[]
+  characterStartBuffs  CharacterStartBuff[]
 }
 
-model CharacterEffect {
-  id            String        @id @default(cuid())
+// Character kit entry — an ability the character starts with.
+model CharacterAbility {
+  id              String           @id @default(cuid())
   characterTypeId String
-  characterType CharacterType @relation(fields: [characterTypeId], references: [id], onDelete: Cascade)
-  effectId      String
-  effect        EffectDefinition @relation(fields: [effectId], references: [id])
-  charges       Int?
+  characterType   CharacterType    @relation(fields: [characterTypeId], references: [id], onDelete: Cascade)
+  abilityId       String
+  ability         AbilityDefinition @relation(fields: [abilityId], references: [id])
 
-  @@unique([characterTypeId, effectId])
+  @@unique([characterTypeId, abilityId])
 }
 
-model EffectDefinition {
-  id                String @id
-  name              String
-  description       String
-  // What the TARGET sees when this effect is applied to them.
-  // Falls back to `description` when null.
-  targetDescription String?
-  action            String
-  quantity          Int
-  duration          Int?
-  cooldown          Int
-  allowedTargets    String
-  playerEffects     PlayerEffect[]
-  activeEffects     ActiveEffect[]
-  characterEffects  CharacterEffect[]
+// Permanent (or timed) buff a character starts with — replaces the old
+// PASSIVE effect hack. Applied to the player on character assignment.
+model CharacterStartBuff {
+  id              String           @id @default(cuid())
+  characterTypeId String
+  characterType   CharacterType    @relation(fields: [characterTypeId], references: [id], onDelete: Cascade)
+  buffId          String
+  buff            BuffDefinition   @relation(fields: [buffId], references: [id])
+  // Seconds; null = inherit BuffDefinition.defaultDuration.
+  duration        Int?
+
+  @@unique([characterTypeId, buffId])
 }
 
-model ActiveEffect {
-  id             String   @id @default(cuid())
-  effectId       String
-  effect        EffectDefinition @relation(fields: [effectId], references: [id])
+// Reusable buff definition — a state that can be applied to a player.
+// Config source of truth: config/buffs.json.
+model BuffDefinition {
+  id          String @id
+  name        String
+  description String
+  // What the buff does: HEAL | HURT | INFO.
+  // HEAL/HURT resolve instantly; INFO creates a timed ActiveBuff row.
+  action      String
+  // Arbitrary JSON interpreted per action, e.g. {"quantity":1} for HEAL/HURT.
+  params      String @default("{}")
+  // Default duration in seconds for INFO buffs; null = permanent.
+  defaultDuration Int?
+  abilityBuffs        AbilityBuff[]
+  characterStartBuffs CharacterStartBuff[]
+  activeBuffs         ActiveBuff[]
+}
+
+// Reusable ability definition — an activatable action a player can use.
+// Config source of truth: config/abilities.json.
+model AbilityDefinition {
+  id             String @id
+  name           String
+  description    String
+  // Cooldown in seconds between uses.
+  cooldown       Int
+  // JSON array of allowed target types: SELF | SURVIVOR | KILLER | ALL_SURVIVORS.
+  allowedTargets String
+  buffs             AbilityBuff[]
+  characterAbilities CharacterAbility[]
+  playerAbilities    PlayerAbility[]
+}
+
+// Which buffs an ability inflicts when used.
+model AbilityBuff {
+  id        String            @id @default(cuid())
+  abilityId String
+  ability   AbilityDefinition @relation(fields: [abilityId], references: [id], onDelete: Cascade)
+  buffId    String
+  buff      BuffDefinition    @relation(fields: [buffId], references: [id])
+  // Duration override in seconds; null = inherit BuffDefinition.defaultDuration.
+  duration  Int?
+
+  @@unique([abilityId, buffId])
+}
+
+// An ability owned by a specific player (copied from the character kit).
+model PlayerAbility {
+  id         String            @id @default(cuid())
+  playerId   String
+  player     Player            @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  abilityId  String
+  ability    AbilityDefinition @relation(fields: [abilityId], references: [id])
+  lastUsedAt DateTime?
+
+  @@unique([playerId, abilityId])
+}
+
+// A buff currently applied to a player (timed or permanent).
+model ActiveBuff {
+  id             String         @id @default(cuid())
+  buffId         String
+  buff           BuffDefinition @relation(fields: [buffId], references: [id])
   sourcePlayerId String?
-  sourcePlayer   Player?  @relation("EffectSource", fields: [sourcePlayerId], references: [id])
+  sourcePlayer   Player?        @relation("BuffSource", fields: [sourcePlayerId], references: [id])
   targetPlayerId String
-  targetPlayer   Player   @relation("EffectTarget", fields: [targetPlayerId], references: [id])
-  appliedAt      DateTime @default(now())
-  expiresAt      DateTime
+  targetPlayer   Player         @relation("BuffTarget", fields: [targetPlayerId], references: [id])
+  appliedAt      DateTime       @default(now())
+  // null = permanent buff.
+  expiresAt      DateTime?
 
   @@index([targetPlayerId, expiresAt])
-}
-
-model PlayerEffect {
-  id          String @id @default(cuid())
-  playerId    String
-  player      Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  effectId    String
-  effect      EffectDefinition @relation(fields: [effectId], references: [id])
-  charges     Int?
-  lastUsedAt  DateTime?
-
-  @@unique([playerId, effectId])
 }

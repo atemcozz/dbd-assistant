@@ -5,14 +5,22 @@ import type {
   QuestStatus,
 } from '@prisma/client'
 
-// Read-only effect summary for character type display (e.g. killer info for survivors).
-export type CharacterEffectInfo = {
-  effectId: string
+// Read-only ability summary for character type display (e.g. killer info for survivors).
+export type CharacterAbilityInfo = {
+  abilityId: string
   name: string
   description: string
-  charges: number | null
+  // Effective buff duration in seconds (ability override ?? buff default).
+  // null for instantaneous (HEAL/HURT) or permanent buffs.
   duration: number | null
   cooldown: number
+}
+
+// Read-only permanent starting buff attached to a character type.
+export type CharacterStartBuffInfo = {
+  buffId: string
+  name: string
+  description: string
 }
 
 // Player view without credentials (sessionToken)
@@ -29,9 +37,11 @@ export type LobbyPlayer = {
     name: string
     description: string
     maxHealth: number | null
-    // Effects this character type starts with (from CharacterEffect + EffectDefinition).
+    // Abilities and permanent starting buffs this character type has
+    // (from CharacterAbility + AbilityDefinition, CharacterStartBuff + BuffDefinition).
     // Used to show killers their abilities in the survivor's game status view.
-    characterEffects: CharacterEffectInfo[]
+    abilities: CharacterAbilityInfo[]
+    startingBuffs: CharacterStartBuffInfo[]
   } | null
 }
 
@@ -70,41 +80,38 @@ export type ExitDefinitionView = {
   name: string
   description: string
 }
-// UI specific view
-export type PlayerEffectView = {
+// UI specific view — an ability the viewer owns (from PlayerAbility).
+export type PlayerAbilityView = {
   id: string
-  playerId: string
-  effectId: string
+  abilityId: string
   name: string
   description: string
-  // What the target sees when this effect is applied to them.
-  // Falls back to `description` when null.
-  targetDescription: string | null
-  charges: number | null
-  duration: number | null
-  expiresAt: Date | null
-  instruction: string | null
-  // Cooldown in seconds before this effect can be used again.
+  // Cooldown in seconds before this ability can be used again.
   cooldown: number
-  // When the source last used this effect (null if never).
+  // When the player last used this ability (null if never).
   // Used by the frontend to compute remaining cooldown.
   lastUsedAt: Date | null
-  // true when this is an ability the player owns (from PlayerEffect table).
-  // false when it's an active effect applied TO the player by someone else.
-  owned: boolean
-  // Name of the player who applied this effect (null for self-owned abilities).
-  sourcePlayerName: string | null
-  // Effect action: HEAL | DAMAGE | TEXT | ADD_EFFECT | PASSIVE.
-  // PASSIVE effects are permanent character stats — they are never
-  // activated, so the frontend shows no use button and no charges.
-  action: string
-  // Allowed target types for this effect (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
+  // Allowed target types for this ability (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
   // The frontend uses this to decide whether to show a target picker / "All survivors" option.
   allowedTargets: string[]
 }
 
+// UI specific view — a buff currently applied to the viewer (from ActiveBuff).
+export type PlayerBuffView = {
+  // ActiveBuff row id — used by the frontend to dedupe apply modals.
+  id: string
+  buffId: string
+  name: string
+  // What the affected player sees (the physical-game instruction).
+  description: string
+  // Expiry timestamp; null = permanent buff.
+  expiresAt: Date | null
+  // Name of the player who applied this buff (null for starting/manual buffs).
+  sourcePlayerName: string | null
+}
+
 // Game state with computional fields for frontend convenience,\
-// eg remainingSeconds, exitsUnlocked, effects, chatMessages and etc
+// eg remainingSeconds, exitsUnlocked, abilities, buffs, chatMessages and etc
 export type LobbyState = {
   id: string
   code: string
@@ -129,7 +136,10 @@ export type LobbyState = {
   players: LobbyPlayer[]
   quests: GameQuestView[]
   chatMessages: ChatMessageView[]
-  effects: PlayerEffectView[]
+  // Abilities the viewer owns (usable, with cooldown).
+  abilities: PlayerAbilityView[]
+  // Buffs currently applied to the viewer (timed and permanent).
+  buffs: PlayerBuffView[]
 }
 
 export type ChatMessageView = {

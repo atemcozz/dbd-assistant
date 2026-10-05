@@ -5,20 +5,12 @@
     "name": "Медик",
     "description": "Помогает команде восстанавливать здоровье.",
     "maxHealth": 4,
-    "effects": [
-      {
-        "effectId": "field-dressing",
-        "charges": null
-      },
-      {
-        "effectId": "self-attack",
-        "charges": null
-      },
-      {
-        "effectId": "stun-killer",
-        "charges": null
-      }
-    ]
+    "abilities": [
+      { "abilityId": "field-dressing" },
+      { "abilityId": "self-attack" },
+      { "abilityId": "stun-killer" }
+    ],
+    "startingBuffs": []
   },
   {
     "id": "scout",
@@ -26,20 +18,12 @@
     "name": "Разведчик",
     "description": "Хорошо ориентируется в здании и умеет мешать маньяку.",
     "maxHealth": 3,
-    "effects": [
-      {
-        "effectId": "self-attack",
-        "charges": null
-      },
-      {
-        "effectId": "stun-killer",
-        "charges": null
-      },
-      {
-        "effectId": "killer-breath",
-        "charges": null
-      }
-    ]
+    "abilities": [
+      { "abilityId": "self-attack" },
+      { "abilityId": "stun-killer" },
+      { "abilityId": "killer-breath" }
+    ],
+    "startingBuffs": []
   },
   {
     "id": "technician",
@@ -47,16 +31,11 @@
     "name": "Техник",
     "description": "Лучше других разбирается в физических объектах и головоломках.",
     "maxHealth": 3,
-    "effects": [
-      {
-        "effectId": "self-attack",
-        "charges": null
-      },
-      {
-        "effectId": "field-dressing",
-        "charges": null
-      }
-    ]
+    "abilities": [
+      { "abilityId": "self-attack" },
+      { "abilityId": "field-dressing" }
+    ],
+    "startingBuffs": []
   },
   {
     "id": "runner",
@@ -64,19 +43,12 @@
     "name": "Бегун",
     "description": "Специализируется на быстрых перемещениях между этажами и комнатами.",
     "maxHealth": 3,
-    "effects": [
-      {
-        "effectId": "self-attack",
-        "charges": null
-      },
-      {
-        "effectId": "killer-breath",
-        "charges": null
-      },
-      {
-        "effectId": "free-run",
-        "charges": null
-      }
+    "abilities": [
+      { "abilityId": "self-attack" },
+      { "abilityId": "killer-breath" }
+    ],
+    "startingBuffs": [
+      { "buffId": "free-run", "duration": null }
     ]
   }
 ]

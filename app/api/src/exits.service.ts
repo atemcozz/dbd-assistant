@@ -132,7 +132,7 @@ export class ExitsService {
       throw new ConflictException('EXITS_LOCKED')
     }
 
-    // Mark the player as escaped. Killer and effects already reject non-ALIVE
+    // Mark the player as escaped. Killer and abilities already reject non-ALIVE
     // targets, so they become untouchable automatically.
     await this.prisma.player.update({
       where: { id: player.id },

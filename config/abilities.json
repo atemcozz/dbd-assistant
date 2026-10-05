@@ -3,230 +3,160 @@
     "id": "field-dressing",
     "name": "Перевязка",
     "description": "Выбери себя или другого выжившего и восстанови 1 HP.",
-    "targetDescription": "Тебе оказывают первую помощь. Ты восстанавливаешь 1 HP.",
-    "action": "HEAL",
-    "quantity": 1,
-    "duration": null,
     "cooldown": 30,
-    "allowedTargets": ["SELF", "SURVIVOR"]
+    "allowedTargets": ["SELF", "SURVIVOR"],
+    "buffs": [{ "buffId": "field-dressing", "duration": null }]
   },
   {
     "id": "self-attack",
     "name": "Ударить себя",
     "description": "Ударь себя. Ты теряешь 1 HP.",
-    "targetDescription": "Ты ударил себя и потерял 1 HP.",
-    "action": "DAMAGE",
-    "quantity": 1,
-    "duration": null,
     "cooldown": 0,
-    "allowedTargets": ["SELF"]
+    "allowedTargets": ["SELF"],
+    "buffs": [{ "buffId": "self-attack", "duration": null }]
   },
   {
     "id": "stun-killer",
     "name": "Оглушение маньяка",
     "description": "Выбери маньяка. Он не должен двигаться 15 секунд.",
-    "targetDescription": "Ты оглушён. Не двигайся 15 секунд.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 15,
     "cooldown": 60,
-    "allowedTargets": ["KILLER"]
+    "allowedTargets": ["KILLER"],
+    "buffs": [{ "buffId": "stun-killer", "duration": null }]
   },
   {
     "id": "force-shout",
     "name": "Крик",
     "description": "Выбери выжившего и заставь его громко назвать свою текущую комнату.",
-    "targetDescription": "Громко назови комнату, в которой ты сейчас находишься.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": null,
     "cooldown": 25,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "force-shout", "duration": null }]
   },
   {
     "id": "forced-room",
     "name": "Приказ: комната",
     "description": "Выбери выжившего и отправь его в комнату 3. Он должен прибыть туда в течение минуты.",
-    "targetDescription": "Ты должен прийти в комнату 3 в течение одной минуты.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 60,
     "cooldown": 45,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "forced-room", "duration": null }]
   },
   {
     "id": "stay-still",
     "name": "Замри",
     "description": "Все выжившие должны остановиться на месте и не двигаться 20 секунд.",
-    "targetDescription": "Замри на месте. Не двигайся 20 секунд.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 20,
     "cooldown": 45,
-    "allowedTargets": ["ALL_SURVIVORS"]
+    "allowedTargets": ["ALL_SURVIVORS"],
+    "buffs": [{ "buffId": "stay-still", "duration": null }]
   },
   {
     "id": "hands-up",
     "name": "Руки вверх",
     "description": "Выбери выжившего. Он должен поднять обе руки и стоять так 10 секунд.",
-    "targetDescription": "Подними обе руки и стой так 10 секунд.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 10,
     "cooldown": 20,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "hands-up", "duration": null }]
   },
   {
     "id": "silent-step",
     "name": "Тихий шаг",
     "description": "Выбери выжившего. В течение 30 секунд он не должен разговаривать.",
-    "targetDescription": "Не разговаривай 30 секунд.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 30,
     "cooldown": 35,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "silent-step", "duration": null }]
   },
   {
     "id": "group-command",
     "name": "Общий приказ",
     "description": "Все выжившие должны одновременно коснуться стены ближайшей комнаты в течение 20 секунд.",
-    "targetDescription": "Найди ближайшую комнату и коснись стены в течение 20 секунд.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 20,
     "cooldown": 60,
-    "allowedTargets": ["ALL_SURVIVORS"]
+    "allowedTargets": ["ALL_SURVIVORS"],
+    "buffs": [{ "buffId": "group-command", "duration": null }]
   },
   {
     "id": "marked",
     "name": "Метка",
     "description": "Наложи на выбранного выжившего метку на одну минуту.",
-    "targetDescription": "На тебе метка. Следующую минуту следи за всеми ограничениями, указанными системой.",
-    "action": "ADD_EFFECT",
-    "quantity": 1,
-    "duration": 60,
     "cooldown": 45,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "marked", "duration": null }]
   },
   {
     "id": "no-turning",
     "name": "Не оборачивайся",
     "description": "Выбери выжившего. Следующие 20 секунд он не должен оборачиваться назад.",
-    "targetDescription": "Следующие 20 секунд не оборачивайся назад.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 20,
     "cooldown": 30,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "no-turning", "duration": null }]
   },
   {
     "id": "look-at-me",
     "name": "Смотри на меня",
     "description": "Выбери выжившего. Он должен смотреть в сторону маньяка 10 секунд.",
-    "targetDescription": "Смотри на маньяка 10 секунд.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 10,
     "cooldown": 30,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "look-at-me", "duration": null }]
   },
   {
     "id": "call-the-room",
     "name": "Назови комнату",
     "description": "Выбери выжившего и заставь его трижды громко назвать номер своей комнаты.",
-    "targetDescription": "Трижды громко назови номер своей комнаты.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": null,
     "cooldown": 40,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "call-the-room", "duration": null }]
   },
   {
     "id": "killer-breath",
     "name": "Сдержать маньяка",
     "description": "Выбери маньяка. Он должен остановиться и не двигаться 10 секунд.",
-    "targetDescription": "Остановись. Не двигайся 10 секунд.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 10,
     "cooldown": 75,
-    "allowedTargets": ["KILLER"]
+    "allowedTargets": ["KILLER"],
+    "buffs": [{ "buffId": "killer-breath", "duration": null }]
   },
   {
     "id": "swap-places",
     "name": "Обмен местами",
     "description": "Выбери выжившего. В течение 60 секунд он должен физически поменяться текущей комнатой с другим живым выжившим. Оба должны реально переместиться.",
-    "targetDescription": "Поменяйся комнатой с другим живым выжившим в течение 60 секунд. Оба должны реально переместиться.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 60,
     "cooldown": 50,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "swap-places", "duration": null }]
   },
   {
     "id": "pair-up",
     "name": "Пара",
     "description": "Выбери выжившего. Следующие 45 секунд он должен идти в паре с другим живым выжившим — рядом или за руки. Если разойдутся раньше времени, каждый обязан ударить себя.",
-    "targetDescription": "Следующие 45 секунд иди в паре с другим живым выжившим. Если разойдётесь — каждый должен ударить себя.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 45,
     "cooldown": 55,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "pair-up", "duration": null }]
   },
   {
     "id": "decoy",
     "name": "Приманка",
     "description": "Выбери выжившего. Он должен громко назвать номер комнаты, в которой НЕ находится, и 20 секунд вести себя так, будто он там.",
-    "targetDescription": "Громко назови номер комнаты, в которой ты НЕ находишься, и 20 секунд веди себя так, будто ты там.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 20,
     "cooldown": 45,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "decoy", "duration": null }]
   },
   {
     "id": "courier",
     "name": "Курьер",
     "description": "Выбери выжившего. Он должен подойти к другому живому выжившему, шёпотом передать ему номер своей текущей комнаты и вернуться на место в течение 90 секунд.",
-    "targetDescription": "Подойди к другому живому выжившему, шёпотом передай ему номер своей комнаты и вернись на место в течение 90 секунд.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 90,
     "cooldown": 50,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "courier", "duration": null }]
   },
   {
     "id": "lockdown",
     "name": "Карантин",
     "description": "Выбери выжившего. У него 30 секунд, чтобы дойти до ближайшей двери или арки и стоять там до конца приказа. Если не успеет — он обязан ударить себя.",
-    "targetDescription": "У тебя 30 секунд, чтобы дойти до ближайшей двери или арки и стоять там. Если не успеешь — ударь себя.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": 30,
     "cooldown": 45,
-    "allowedTargets": ["SURVIVOR"]
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "lockdown", "duration": null }]
   },
   {
     "id": "toll",
     "name": "Пошлина",
     "description": "Выбери выжившего. Чтобы снять с себя ограничения маньяка, он должен ударить себя и вслух назвать номер своей текущей комнаты.",
-    "targetDescription": "Ударь себя и вслух назови номер своей текущей комнаты.",
-    "action": "TEXT",
-    "quantity": 1,
-    "duration": null,
     "cooldown": 40,
-    "allowedTargets": ["SURVIVOR"]
-  },
-  {
-    "id": "free-run",
-    "name": "Свободный бег",
-    "description": "Тебе разрешено бегать без ограничений.",
-    "action": "PASSIVE",
-    "quantity": 0,
-    "duration": null,
-    "cooldown": 0,
-    "allowedTargets": []
+    "allowedTargets": ["SURVIVOR"],
+    "buffs": [{ "buffId": "toll", "duration": null }]
   }
 ]

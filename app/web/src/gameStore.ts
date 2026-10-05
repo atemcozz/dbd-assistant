@@ -7,14 +7,22 @@ const SESSION_KEY = 'dbd-assistant-session'
 export type Role = 'SURVIVOR' | 'KILLER'
 export type PlayerStatus = 'ALIVE' | 'DEAD' | 'DISCONNECTED' | 'ESCAPED'
 
-// Read-only effect summary attached to a character type (e.g. killer abilities).
-export type CharacterEffectInfo = {
-  effectId: string
+// Read-only ability summary attached to a character type (e.g. killer abilities).
+export type CharacterAbilityInfo = {
+  abilityId: string
   name: string
   description: string
-  charges: number | null
+  // Effective buff duration in seconds (ability override ?? buff default).
+  // null for instantaneous (HEAL/HURT) or permanent buffs.
   duration: number | null
   cooldown: number
+}
+
+// Read-only permanent starting buff attached to a character type.
+export type CharacterStartBuffInfo = {
+  buffId: string
+  name: string
+  description: string
 }
 
 export type CharacterType = {
@@ -23,10 +31,11 @@ export type CharacterType = {
   name: string
   description: string
   maxHealth: number | null
-  // Effects this character type starts with.
+  // Abilities and permanent starting buffs this character type has.
   // Only present in game state (getState), not in the lobby character-types list.
   // Used to show killers their abilities in the survivor's game status view.
-  characterEffects?: CharacterEffectInfo[]
+  abilities?: CharacterAbilityInfo[]
+  startingBuffs?: CharacterStartBuffInfo[]
 }
 
 export type LobbyPlayer = {
@@ -60,39 +69,39 @@ export type LobbyState = {
   // DRAW = time out with survivors still alive and not escaped (both lose).
   winner: string | null
   chatMessages: ChatMessage[]
-  effects: PlayerEffect[]
+  // Abilities the current player owns (usable, with cooldown).
+  abilities: PlayerAbility[]
+  // Buffs currently applied to the current player (timed and permanent).
+  buffs: PlayerBuff[]
   players: LobbyPlayer[]
   quests: GameQuest[]
   currentPlayerId?: string
 }
-export type PlayerEffect = {
+// An ability owned by the player (from their character kit).
+export type PlayerAbility = {
   id: string
-  playerId: string
-  effectId: string
+  abilityId: string
   name: string
   description: string
-  // What the target sees when this effect is applied to them.
-  // Falls back to `description` when null.
-  targetDescription: string | null
-  charges: number | null
-  duration: number | null
-  expiresAt: string | null
-  instruction: string | null
-  // Cooldown in seconds before this effect can be used again.
+  // Cooldown in seconds before this ability can be used again.
   cooldown: number
-  // When the source last used this effect (null if never).
+  // When the player last used this ability (null if never).
   // Used to compute remaining cooldown on the frontend.
   lastUsedAt: string | null
-  // true when the player owns this ability; false when applied to them by someone else.
-  owned: boolean
-  // Name of the player who applied this effect (null for self-owned abilities).
-  sourcePlayerName: string | null
-  // Effect action: HEAL | DAMAGE | TEXT | ADD_EFFECT | PASSIVE.
-  // PASSIVE effects are permanent character stats — never activated,
-  // so the UI shows no use button and no charges.
-  action: string
   // Allowed target types (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
   allowedTargets: string[]
+}
+// A buff currently applied to the player (timed or permanent).
+export type PlayerBuff = {
+  id: string
+  buffId: string
+  name: string
+  // What the affected player sees (the physical-game instruction).
+  description: string
+  // Expiry timestamp; null = permanent buff.
+  expiresAt: string | null
+  // Name of the player who applied this buff (null for starting/manual buffs).
+  sourcePlayerName: string | null
 }
 export type ChatMessage = { id: string; text: string; createdAt: string; playerId: string; playerName: string; playerStatus: PlayerStatus }
 
@@ -153,7 +162,7 @@ type GameStore = {
   attackPlayer: (playerId: string) => Promise<void>
   completeQuest: (questId: string) => Promise<void>
   escapeThroughExit: (exitDefinitionId: string) => Promise<void>
-  useEffect: (effectId: string, targetPlayerId?: string) => Promise<void>
+  useAbility: (abilityId: string, targetPlayerId?: string) => Promise<void>
   updateSettings: (durationSeconds: number, requiredQuestPoints: number) => Promise<void>
   sendChat: (text: string) => Promise<void>
   connectRealtime: () => void
@@ -396,10 +405,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  useEffect: async (effectId, targetPlayerId) => {
+  useAbility: async (abilityId, targetPlayerId) => {
     const { session } = get()
     if (!session) return
-    const state = await request<LobbyState>(`/games/${session.gameCode}/effects/${effectId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId }) }, session.sessionToken)
+    const state = await request<LobbyState>(`/games/${session.gameCode}/abilities/${abilityId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId }) }, session.sessionToken)
     set({ state })
   },
 

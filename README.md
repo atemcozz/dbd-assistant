@@ -4,13 +4,13 @@ A small local multiplayer game assistant inspired by Dead by Daylight.
 
 ## What this is
 
-A lightweight web app to support a physical game played in a real building. Players move around in real life; the app tracks game state, quests, health, effects, and survivor chat.
+A lightweight web app to support a physical game played in a real building. Players move around in real life; the app tracks game state, quests, health, abilities, buffs, and survivor chat.
 
 ## Stack
 
 - **Frontend** (`app/web`): React 19, Vite, TypeScript, Tailwind CSS, shadcn/ui components, Zustand, Socket.IO client
 - **Backend** (`app/api`): NestJS, Prisma, SQLite, Socket.IO
-- **Config** (`config/`): JSON files for quests, characters, effects — synced to SQLite via `npm run config:sync`
+- **Config** (`config/`): JSON files for quests, characters, abilities, buffs — synced to SQLite via `npm run config:sync`
 
 ## Setup
 
@@ -56,7 +56,7 @@ The database file can be inspected/edited with any SQLite tool.
 3. **Join** — other players enter the code and pick a name
 4. **Configure** (owner): assign roles (Survivor/Killer), pick characters, select quests, set game duration and required quest count
 5. **Start** — game enters RUNNING status
-6. **Play** — complete quests, use effects, killer attacks survivors, survivor chat
+6. **Play** — complete quests, use abilities, killer attacks survivors, survivor chat
 7. **Finish** — owner can end the game, or it ends when the timer expires
 
 ## API health check

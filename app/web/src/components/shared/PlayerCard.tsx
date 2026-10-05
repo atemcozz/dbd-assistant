@@ -41,7 +41,8 @@ export function PlayerCard({
   )
 
   const character = player.characterType
-  const effects = character?.characterEffects ?? []
+  const abilities = character?.abilities ?? []
+  const startingBuffs = character?.startingBuffs ?? []
 
   return (
     <Card>
@@ -115,34 +116,46 @@ export function PlayerCard({
             <p className="text-sm leading-6 text-muted-foreground">
               {character.description}
             </p>
-            {effects.length > 0 && (
+            {(abilities.length > 0 || startingBuffs.length > 0) && (
               <div>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">
                   Абилки
                 </p>
                 <ul className="mt-2 grid gap-2">
-                  {effects.map((effect) => (
+                  {abilities.map((ability) => (
                     <li
-                      key={effect.effectId}
+                      key={ability.abilityId}
                       className="rounded-md border border-border bg-background/50 p-2"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium">{effect.name}</p>
+                        <p className="text-sm font-medium">{ability.name}</p>
                         <div className="flex shrink-0 gap-1">
-                          {effect.duration !== null && (
+                          {ability.duration !== null && (
                             <Badge variant="outline" className="text-xs">
-                              {effect.duration}с.
+                              {ability.duration}с.
                             </Badge>
                           )}
-                          {effect.cooldown > 0 && (
+                          {ability.cooldown > 0 && (
                             <Badge variant="outline" className="text-xs">
-                              К/д {effect.cooldown}с.
+                              К/д {ability.cooldown}с.
                             </Badge>
                           )}
                         </div>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {effect.description}
+                        {ability.description}
+                      </p>
+                    </li>
+                  ))}
+                  {/* Permanent starting buffs — name + description only. */}
+                  {startingBuffs.map((buff) => (
+                    <li
+                      key={buff.buffId}
+                      className="rounded-md border border-border bg-background/50 p-2"
+                    >
+                      <p className="text-sm font-medium">{buff.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {buff.description}
                       </p>
                     </li>
                   ))}

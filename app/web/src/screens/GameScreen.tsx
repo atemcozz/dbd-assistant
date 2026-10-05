@@ -70,7 +70,7 @@ export function GameScreen() {
   const completeQuest = useGameStore((store) => store.completeQuest)
   const escapeThroughExit = useGameStore((store) => store.escapeThroughExit)
   const sendChat = useGameStore((store) => store.sendChat)
-  const triggerEffect = useGameStore((store) => store.useEffect)
+  const triggerAbility = useGameStore((store) => store.useAbility)
   const clearSession = useGameStore((store) => store.clearSession)
   const refreshState = useGameStore((store) => store.refreshState)
 
@@ -79,9 +79,9 @@ export function GameScreen() {
   )!
 
   const previousHealth = useRef(currentPlayer.health)
-  // Track which active effect IDs we've already shown a modal for,
-  // so we don't re-show the same effect every state broadcast.
-  const shownEffectModals = useRef<Set<string>>(new Set())
+  // Track which timed buff IDs we've already shown a modal for,
+  // so we don't re-show the same buff every state broadcast.
+  const shownBuffModals = useRef<Set<string>>(new Set())
   // End-game modal is shown once per finish (not on every state broadcast).
   const endModalShownFor = useRef<string | null>(null)
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
@@ -143,34 +143,30 @@ export function GameScreen() {
     previousHealth.current = currentHealth
   }, [currentPlayer.health, currentPlayer.status])
 
-  // Detect new active effects applied to this player and show a timed modal.
+  // Detect new timed buffs applied to this player and show a timed modal.
+  // Permanent buffs (expiresAt null) never pop — they are just character stats.
   useEffect(() => {
-    const activeEffects = state.effects.filter(
-      (effect) => effect.expiresAt !== null && !effect.owned,
+    const timedBuffs = state.buffs.filter(
+      (buff) => buff.expiresAt !== null,
     )
 
-    for (const effect of activeEffects) {
-      // Only show modal once per active effect instance.
-      if (shownEffectModals.current.has(effect.id)) continue
-      shownEffectModals.current.add(effect.id)
+    for (const buff of timedBuffs) {
+      // Only show modal once per buff instance.
+      if (shownBuffModals.current.has(buff.id)) continue
+      shownBuffModals.current.add(buff.id)
 
-      const sourceText = effect.sourcePlayerName
-        ? ` от ${effect.sourcePlayerName}`
+      const sourceText = buff.sourcePlayerName
+        ? ` (от ${buff.sourcePlayerName})`
         : ''
-      // Show targetDescription — what THIS player sees — falling back to description.
-      const displayText = effect.targetDescription ?? effect.description
-      const body = effect.instruction
-        ? `${displayText}${sourceText ? ` (${effect.sourcePlayerName})` : ''}`
-        : `${displayText}${sourceText}`
 
       setModal({
         kind: 'timed',
-        title: `Нанесён эффект: ${effect.name}`,
-        body,
+        title: `Нанесён эффект: ${buff.name}`,
+        body: `${buff.description}${sourceText}`,
         seconds: 5,
       })
     }
-  }, [state.effects])
+  }, [state.buffs])
 
   // Escaped players see a dedicated victory screen — they already won.
   if (currentPlayer.status === 'ESCAPED') {
@@ -199,10 +195,10 @@ export function GameScreen() {
   const isKiller = currentPlayer.role === 'KILLER'
   const survivors = state.players.filter((player) => player.role === 'SURVIVOR')
 
-  // Count active (non-expired) effects on this player — used to flash the Effects tab.
-  const activeEffectCount = state.effects.filter((effect) => {
-    if (effect.owned || effect.expiresAt === null) return false
-    const remainingMs = new Date(effect.expiresAt).getTime() - Date.now()
+  // Count active (non-expired) timed buffs — used to flash the Effects tab.
+  const activeBuffCount = state.buffs.filter((buff) => {
+    if (buff.expiresAt === null) return false
+    const remainingMs = new Date(buff.expiresAt).getTime() - Date.now()
     return remainingMs > 0
   }).length
 
@@ -219,7 +215,7 @@ export function GameScreen() {
     })
   }
 
-  function confirmEffectUse(effectId: string, targetPlayerId?: string) {
+  function confirmAbilityUse(abilityId: string, targetPlayerId?: string) {
     setModal({
       kind: 'confirm',
       title: 'Применить абилку?',
@@ -227,7 +223,7 @@ export function GameScreen() {
       confirmLabel: 'Использовать',
       onConfirm: () => {
         setModal(null)
-        void triggerEffect(effectId, targetPlayerId)
+        void triggerAbility(abilityId, targetPlayerId)
       },
     })
   }
@@ -334,9 +330,9 @@ export function GameScreen() {
 <TabsTrigger value="status">[ Игра ]</TabsTrigger>
              <TabsTrigger value="effects" className="relative">
               [ Эффекты ]
-              {activeEffectCount > 0 && (
+              {activeBuffCount > 0 && (
                 <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[10px] font-bold text-warning-foreground animate-pulse sm:ml-1 sm:h-5 sm:min-w-5 sm:text-xs">
-                  {activeEffectCount}
+                  {activeBuffCount}
                 </span>
               )}
             </TabsTrigger>
@@ -393,10 +389,11 @@ export function GameScreen() {
           )}
           <TabsContent value="effects" className="mt-5">
             <EffectsSection
-              effects={state.effects}
+              abilities={state.abilities}
+              buffs={state.buffs}
               players={state.players}
               currentPlayerId={session.playerId}
-              onUse={confirmEffectUse}
+              onUse={confirmAbilityUse}
             />
           </TabsContent>
         </Tabs>

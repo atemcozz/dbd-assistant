@@ -11,13 +11,16 @@ import {
 } from '@prisma/client'
 import { randomBytes } from 'node:crypto'
 import { PrismaService } from './prisma.service'
-import { EffectsService } from './effects.service'
+import { AbilitiesService } from './abilities.service'
 import type {
+  CharacterAbilityInfo,
+  CharacterStartBuffInfo,
   GameExitView,
   GameQuestView,
   LobbyPlayer,
   LobbyState,
-  PlayerEffectView,
+  PlayerAbilityView,
+  PlayerBuffView,
 } from './game.types'
 
 // Result of create/join: the session token + player id + full lobby state.
@@ -50,7 +53,7 @@ type QuestWithDefinition = {
 export class GamesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly effects: EffectsService,
+    private readonly abilitiesService: AbilitiesService,
   ) {}
 
   async createGame(
@@ -253,8 +256,15 @@ export class GamesService {
           include: {
             characterType: {
               include: {
-                characterEffects: {
-                  include: { effect: true },
+                characterAbilities: {
+                  include: {
+                    ability: {
+                      include: { buffs: { include: { buff: true } } },
+                    },
+                  },
+                },
+                characterStartBuffs: {
+                  include: { buff: true },
                 },
               },
             },
@@ -308,15 +318,28 @@ export class GamesService {
           name: player.characterType.name,
           description: player.characterType.description,
           maxHealth: player.characterType.maxHealth,
-          // Flatten character effects into a read-only summary for the frontend.
-          characterEffects: player.characterType.characterEffects.map(
-            (ce) => ({
-              effectId: ce.effectId,
-              name: ce.effect.name,
-              description: ce.effect.description,
-              charges: ce.charges,
-              duration: ce.effect.duration,
-              cooldown: ce.effect.cooldown,
+          // Flatten abilities and starting buffs into read-only summaries.
+          // duration = effective first-buff length (ability override ?? default)
+          // so the frontend can show the same badges as before.
+          abilities: player.characterType.characterAbilities.map(
+            (ca): CharacterAbilityInfo => {
+              const link = ca.ability.buffs[0]
+              return {
+                abilityId: ca.abilityId,
+                name: ca.ability.name,
+                description: ca.ability.description,
+                duration: link
+                  ? (link.duration ?? link.buff.defaultDuration)
+                  : null,
+                cooldown: ca.ability.cooldown,
+              }
+            },
+          ),
+          startingBuffs: player.characterType.characterStartBuffs.map(
+            (cs): CharacterStartBuffInfo => ({
+              buffId: cs.buffId,
+              name: cs.buff.name,
+              description: cs.buff.description,
             }),
           ),
         }
@@ -400,10 +423,12 @@ export class GamesService {
       }
     }
 
-    let effects: PlayerEffectView[] = []
+    let abilities: PlayerAbilityView[] = []
+    let buffs: PlayerBuffView[] = []
 
     if (viewer) {
-      effects = await this.effects.getPlayerEffects(viewer.id)
+      abilities = await this.abilitiesService.getAbilities(viewer.id)
+      buffs = await this.abilitiesService.getBuffs(viewer.id)
     }
 
     return {
@@ -425,7 +450,8 @@ export class GamesService {
       players,
       quests,
       chatMessages,
-      effects,
+      abilities,
+      buffs,
     }
   }
 

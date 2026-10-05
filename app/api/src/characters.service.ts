@@ -20,28 +20,42 @@ export class CharactersService {
     const characters = await this.prisma.characterType.findMany({
       where: role ? { role } : undefined,
       include: {
-        characterEffects: {
-          include: { effect: true },
+        characterAbilities: {
+          include: {
+            ability: { include: { buffs: { include: { buff: true } } } },
+          },
+        },
+        characterStartBuffs: {
+          include: { buff: true },
         },
       },
       orderBy: [{ role: 'asc' }, { name: 'asc' }],
     })
 
-    // Flatten characterEffects into the same CharacterEffectInfo shape
-    // used by getState, so the frontend can consume both sources uniformly.
+    // Flatten into the same shapes used by getState, so the frontend
+    // can consume both sources uniformly.
     return characters.map((character) => ({
       id: character.id,
       role: character.role,
       name: character.name,
       description: character.description,
       maxHealth: character.maxHealth,
-      characterEffects: character.characterEffects.map((ce) => ({
-        effectId: ce.effectId,
-        name: ce.effect.name,
-        description: ce.effect.description,
-        charges: ce.charges,
-        duration: ce.effect.duration,
-        cooldown: ce.effect.cooldown,
+      abilities: character.characterAbilities.map((ca) => {
+        const link = ca.ability.buffs[0]
+        return {
+          abilityId: ca.abilityId,
+          name: ca.ability.name,
+          description: ca.ability.description,
+          duration: link
+            ? (link.duration ?? link.buff.defaultDuration)
+            : null,
+          cooldown: ca.ability.cooldown,
+        }
+      }),
+      startingBuffs: character.characterStartBuffs.map((cs) => ({
+        buffId: cs.buffId,
+        name: cs.buff.name,
+        description: cs.buff.description,
       })),
     }))
   }
@@ -65,7 +79,7 @@ export class CharactersService {
       throw new NotFoundException('PLAYER_NOT_FOUND')
     }
 
-    // Remove character type and effects when changing role.
+    // Remove character type, abilities and buffs when changing role.
     // Also drop selected killer-specific quests that no longer apply
     // (this player was the last killer of that type).
     await this.prisma.$transaction(async (tx) => {
@@ -78,8 +92,12 @@ export class CharactersService {
         },
       })
 
-      await tx.playerEffect.deleteMany({
+      await tx.playerAbility.deleteMany({
         where: { playerId: player.id },
+      })
+
+      await tx.activeBuff.deleteMany({
+        where: { targetPlayerId: player.id },
       })
 
       await this.removeOrphanKillerQuests(tx, game.id)
@@ -109,15 +127,19 @@ export class CharactersService {
 
     const character = await this.prisma.characterType.findUnique({
       where: { id: characterTypeId },
-      include: { characterEffects: true },
+      include: {
+        characterAbilities: true,
+        characterStartBuffs: { include: { buff: true } },
+      },
     })
 
     if (!character || character.role !== player.role) {
       throw new BadRequestException('INVALID_CHARACTER_TYPE')
     }
 
-    // Copy character effects to player effects, set health from maxHealth,
-    // and drop selected killer quests whose type this player no longer plays.
+    // Copy abilities and starting buffs to the player, set health from
+    // maxHealth, and drop selected killer quests whose type this player
+    // no longer plays.
     await this.prisma.$transaction(async (tx) => {
       let health: number | null = null
 
@@ -134,17 +156,45 @@ export class CharactersService {
         },
       })
 
-      await tx.playerEffect.deleteMany({
+      await tx.playerAbility.deleteMany({
         where: { playerId: player.id },
       })
 
-      if (character.characterEffects.length > 0) {
-        await tx.playerEffect.createMany({
-          data: character.characterEffects.map((item) => ({
+      // Reassigning also clears buffs — in practice this only runs in the
+      // lobby where no in-game buffs exist yet.
+      await tx.activeBuff.deleteMany({
+        where: { targetPlayerId: player.id },
+      })
+
+      if (character.characterAbilities.length > 0) {
+        await tx.playerAbility.createMany({
+          data: character.characterAbilities.map((item) => ({
             playerId: player.id,
-            effectId: item.effectId,
-            charges: item.charges,
+            abilityId: item.abilityId,
           })),
+        })
+      }
+
+      // Materialize starting buffs on the player (permanent or timed).
+      // Only permanent starting buffs are used in config today.
+      const now = new Date()
+
+      if (character.characterStartBuffs.length > 0) {
+        await tx.activeBuff.createMany({
+          data: character.characterStartBuffs.map((item) => {
+            const seconds = item.duration ?? item.buff.defaultDuration
+
+            return {
+              buffId: item.buffId,
+              sourcePlayerId: null,
+              targetPlayerId: player.id,
+              appliedAt: now,
+              expiresAt:
+                seconds === null
+                  ? null
+                  : new Date(now.getTime() + seconds * 1000),
+            }
+          }),
         })
       }
 

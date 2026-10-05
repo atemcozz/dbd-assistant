@@ -11,43 +11,36 @@ import {
 } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import type { LobbyPlayer, PlayerEffect } from '@/gameStore'
+import type { LobbyPlayer, PlayerAbility, PlayerBuff } from '@/gameStore'
 
-// Effects panel — shows the viewer's owned abilities and active effects
-// applied to them (e.g. stun from the killer) with time remaining.
+// Effects tab panel — shows the viewer's abilities (usable, with cooldown),
+// active buffs with time remaining, and permanent character buffs.
 export function EffectsSection({
-  effects,
+  abilities,
+  buffs,
   players,
   currentPlayerId,
   onUse,
 }: {
-  effects: PlayerEffect[]
+  abilities: PlayerAbility[]
+  buffs: PlayerBuff[]
   players: LobbyPlayer[]
   currentPlayerId: string
-  onUse: (effectId: string, targetPlayerId?: string) => void
+  onUse: (abilityId: string, targetPlayerId?: string) => void
 }) {
-  // Split into owned abilities and incoming active effects.
-  const ownedEffects = effects.filter((effect) => effect.owned)
-  // Passive effects are always-on character stats: no use button,
-  // no charges, no cooldown — just name + description.
-  const passiveEffects = ownedEffects.filter(
-    (effect) => effect.action === 'PASSIVE',
+  // Timed buffs currently affecting the player (with live countdowns).
+  const timedBuffs = buffs.filter(
+    (buff) =>
+      buff.expiresAt !== null &&
+      getRemainingSeconds(buff.expiresAt) > 0,
   )
-  const usableEffects = ownedEffects.filter(
-    (effect) => effect.action !== 'PASSIVE',
-  )
-  // Only show active effects that haven't expired yet (remaining > 0).
-  const activeEffects = effects.filter(
-    (effect) =>
-      !effect.owned &&
-      effect.expiresAt !== null &&
-      getRemainingSeconds(effect.expiresAt) > 0,
-  )
+  // Permanent buffs — always-on character stats (e.g. free-run).
+  const permanentBuffs = buffs.filter((buff) => buff.expiresAt === null)
 
   return (
     <div className="grid gap-4">
-      {/* Active effects currently affecting this player. */}
-      {activeEffects.length > 0 && (
+      {/* Timed buffs currently affecting this player. */}
+      {timedBuffs.length > 0 && (
         <Card className="border-warning/40">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-warning">
@@ -59,14 +52,14 @@ export function EffectsSection({
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {activeEffects.map((effect) => (
-              <ActiveEffectCard key={effect.id} effect={effect} />
+            {timedBuffs.map((buff) => (
+              <ActiveBuffCard key={buff.id} buff={buff} />
             ))}
           </CardContent>
         </Card>
       )}
 
-      {/* Owned abilities the player can use. */}
+      {/* Abilities the player can use. */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -74,19 +67,19 @@ export function EffectsSection({
             Твои абилки
           </CardTitle>
           <CardDescription>
-            У абилок ограниченые заряды и время перезарядки. Некоторые требуют выбора цели.
+            У абилок время перезарядки. Некоторые требуют выбора цели.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          {usableEffects.length === 0 ? (
+          {abilities.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Абилки не назначены
             </p>
           ) : (
-            usableEffects.map((effect) => (
-              <EffectCard
-                key={effect.id}
-                effect={effect}
+            abilities.map((ability) => (
+              <AbilityCard
+                key={ability.id}
+                ability={ability}
                 players={players}
                 currentPlayerId={currentPlayerId}
                 onUse={onUse}
@@ -96,8 +89,8 @@ export function EffectsSection({
         </CardContent>
       </Card>
 
-      {/* Passive character stats — always on, never activated. */}
-      {passiveEffects.length > 0 && (
+      {/* Permanent buffs — always on, never activated. */}
+      {permanentBuffs.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -109,14 +102,14 @@ export function EffectsSection({
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {passiveEffects.map((effect) => (
+            {permanentBuffs.map((buff) => (
               <div
-                key={effect.id}
+                key={buff.id}
                 className="rounded-md border border-border p-3"
               >
-                <p className="text-sm font-medium">{effect.name}</p>
+                <p className="text-sm font-medium">{buff.name}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {effect.description}
+                  {buff.description}
                 </p>
               </div>
             ))}
@@ -134,16 +127,15 @@ function getRemainingSeconds(expiresAt: string | Date): number {
 }
 
 // Helper: seconds until cooldown ends, or 0 if not on cooldown.
-function getCooldownRemaining(effect: PlayerEffect): number {
-  if (!effect.lastUsedAt || effect.cooldown <= 0) return 0
+function getCooldownRemaining(ability: PlayerAbility): number {
+  if (!ability.lastUsedAt || ability.cooldown <= 0) return 0
   const cooldownEnds =
-    new Date(effect.lastUsedAt).getTime() + effect.cooldown * 1000
+    new Date(ability.lastUsedAt).getTime() + ability.cooldown * 1000
   return Math.max(0, Math.ceil((cooldownEnds - Date.now()) / 1000))
 }
 
-// Card showing an active effect applied to the player with a live countdown.
-// Uses targetDescription when available — what THIS player sees.
-function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
+// Card showing a timed buff applied to the player with a live countdown.
+function ActiveBuffCard({ buff }: { buff: PlayerBuff }) {
   const [now, setNow] = useState(() => Date.now())
 
   // Tick every second so the countdown stays accurate.
@@ -152,15 +144,11 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
     return () => window.clearInterval(timer)
   }, [])
 
-  const expiresAtMs = effect.expiresAt ? new Date(effect.expiresAt).getTime() : 0
+  const expiresAtMs = buff.expiresAt ? new Date(buff.expiresAt).getTime() : 0
   const remainingSeconds = Math.max(0, Math.ceil((expiresAtMs - now) / 1000))
 
-  // Hide when countdown reaches 0 — effect has expired.
+  // Hide when countdown reaches 0 — buff has expired.
   if (remainingSeconds <= 0) return null
-
-  // For incoming effects, show targetDescription — the target's perspective.
-  const displayText =
-    effect.targetDescription ?? effect.description
 
   return (
     <div className="rounded-md border border-warning/30 bg-warning/5 p-3">
@@ -168,23 +156,18 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-warning">
-              {effect.name}
+              {buff.name}
             </p>
-            {effect.sourcePlayerName && (
+            {buff.sourcePlayerName && (
               <Badge variant="secondary" className="text-xs">
                 <User className="mr-1 size-3" />
-                {effect.sourcePlayerName}
+                {buff.sourcePlayerName}
               </Badge>
             )}
           </div>
-          {/* <p className="mt-1 text-sm text-muted-foreground">
-            {effect.description}
-          </p> */}
-          {effect.instruction && (
-            <p className="mt-1 text-sm italic text-primary">
-              {displayText}
-            </p>
-          )}
+          <p className="mt-1 text-sm italic text-primary">
+            {buff.description}
+          </p>
         </div>
         <div className="shrink-0 text-right">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -204,36 +187,32 @@ function ActiveEffectCard({ effect }: { effect: PlayerEffect }) {
   )
 }
 
-// Individual owned-effect row with optional target selector.
-function EffectCard({
-  effect,
+// Individual ability row with optional target selector.
+function AbilityCard({
+  ability,
   players,
   currentPlayerId,
   onUse,
 }: {
-  effect: PlayerEffect
+  ability: PlayerAbility
   players: LobbyPlayer[]
   currentPlayerId: string
-  onUse: (effectId: string, targetPlayerId?: string) => void
+  onUse: (abilityId: string, targetPlayerId?: string) => void
 }) {
   // Compute cooldown state.
-  const cooldownRemaining = getCooldownRemaining(effect)
-  const onCooldown = cooldownRemaining > 0
+  const cooldownRemaining = getCooldownRemaining(ability)
+  const disabled = cooldownRemaining > 0
 
-  // Disable Use when charges are exhausted OR on cooldown.
-  const outOfCharges = effect.charges !== null && effect.charges <= 0
-  const disabled = outOfCharges || onCooldown
-
-  // Decide whether this effect needs a target picker.
+  // Decide whether this ability needs a target picker.
   const selfOnly =
-    effect.allowedTargets.length === 1 &&
-    effect.allowedTargets[0] === 'SELF'
-  const supportsAllSurvivors = effect.allowedTargets.includes('ALL_SURVIVORS')
+    ability.allowedTargets.length === 1 &&
+    ability.allowedTargets[0] === 'SELF'
+  const supportsAllSurvivors = ability.allowedTargets.includes('ALL_SURVIVORS')
 
   // Build the list of valid targets based on allowedTargets roles.
   // Filter alive players whose role matches an allowed target category.
   const validTargets = buildValidTargets(
-    effect.allowedTargets,
+    ability.allowedTargets,
     players,
     currentPlayerId,
   )
@@ -242,22 +221,22 @@ function EffectCard({
 
   if (selfOnly) {
     return (
-      <EffectRowLayout effect={effect} cooldownRemaining={cooldownRemaining}>
+      <AbilityRowLayout ability={ability} cooldownRemaining={cooldownRemaining}>
         <Button
           size="sm"
           disabled={disabled}
-          onClick={() => onUse(effect.effectId)}
+          onClick={() => onUse(ability.abilityId)}
         >
           Использовать
         </Button>
-      </EffectRowLayout>
+      </AbilityRowLayout>
     )
   }
 
   if (supportsAllSurvivors) {
     return (
-      <AllSurvivorsEffectRow
-        effect={effect}
+      <AllSurvivorsAbilityRow
+        ability={ability}
         disabled={disabled}
         cooldownRemaining={cooldownRemaining}
         onUse={onUse}
@@ -267,21 +246,21 @@ function EffectCard({
 
   if (!needsTargetPicker) {
     return (
-      <EffectRowLayout effect={effect} cooldownRemaining={cooldownRemaining}>
+      <AbilityRowLayout ability={ability} cooldownRemaining={cooldownRemaining}>
         <Button
           size="sm"
           disabled={disabled}
-          onClick={() => onUse(effect.effectId)}
+          onClick={() => onUse(ability.abilityId)}
         >
           Использовать
         </Button>
-      </EffectRowLayout>
+      </AbilityRowLayout>
     )
   }
 
   return (
-    <TargetEffectRow
-      effect={effect}
+    <TargetAbilityRow
+      ability={ability}
       validTargets={validTargets}
       disabled={disabled}
       cooldownRemaining={cooldownRemaining}
@@ -321,25 +300,22 @@ function buildValidTargets(
   return result
 }
 
-// Shared layout for an owned-effect row.
-function EffectRowLayout({
-  effect,
+// Shared layout for an ability row.
+function AbilityRowLayout({
+  ability,
   cooldownRemaining,
   children,
 }: {
-  effect: PlayerEffect
+  ability: PlayerAbility
   cooldownRemaining: number
   children: React.ReactNode
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3">
       <div className="min-w-0 flex-1 basis-40">
-        <p className="text-sm font-medium">{effect.name}</p>
+        <p className="text-sm font-medium">{ability.name}</p>
         <p className="text-xs text-muted-foreground">
-          {effect.description}
-        </p>
-        <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-          Осталось: {effect.charges ?? '∞'}
+          {ability.description}
         </p>
         {cooldownRemaining > 0 && (
           <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
@@ -347,58 +323,30 @@ function EffectRowLayout({
             К/д · {cooldownRemaining}с.
           </Badge>
         )}
-        {effect.expiresAt && (
-          <ActiveBadge expiresAt={effect.expiresAt} />
-        )}
       </div>
       {children}
     </div>
   )
 }
 
-// Badge showing time remaining for an active effect on an owned ability.
-function ActiveBadge({ expiresAt }: { expiresAt: string }) {
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(timer)
-  }, [])
-
-  const expiresAtMs = new Date(expiresAt).getTime()
-  const remainingSeconds = Math.max(0, Math.ceil((expiresAtMs - now) / 1000))
-
-  if (remainingSeconds <= 0) return null
-
-  return (
-    <Badge variant="outline" className="mt-1 text-xs">
-      <Clock3 className="mr-1 size-3" />
-      Активно · {remainingSeconds}с осталось
-    </Badge>
-  )
-}
-
-// Effect row for group effects (ALL_SURVIVORS).
-function AllSurvivorsEffectRow({
-  effect,
+// Ability row for group abilities (ALL_SURVIVORS).
+function AllSurvivorsAbilityRow({
+  ability,
   disabled,
   cooldownRemaining,
   onUse,
 }: {
-  effect: PlayerEffect
+  ability: PlayerAbility
   disabled: boolean
   cooldownRemaining: number
-  onUse: (effectId: string, targetPlayerId?: string) => void
+  onUse: (abilityId: string, targetPlayerId?: string) => void
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3">
       <div className="min-w-0 flex-1 basis-40">
-        <p className="text-sm font-medium">{effect.name}</p>
+        <p className="text-sm font-medium">{ability.name}</p>
         <p className="text-xs text-muted-foreground">
-          {effect.description}
-        </p>
-        <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-          Осталось: {effect.charges ?? '∞'}
+          {ability.description}
         </p>
         {cooldownRemaining > 0 && (
           <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
@@ -410,7 +358,7 @@ function AllSurvivorsEffectRow({
       <Button
         size="sm"
         disabled={disabled}
-        onClick={() => onUse(effect.effectId)}
+        onClick={() => onUse(ability.abilityId)}
       >
         Использовать
       </Button>
@@ -418,32 +366,29 @@ function AllSurvivorsEffectRow({
   )
 }
 
-// Effect row that lets the player pick a target before using.
+// Ability row that lets the player pick a target before using.
 // validTargets is pre-filtered by allowedTargets roles.
-function TargetEffectRow({
-  effect,
+function TargetAbilityRow({
+  ability,
   validTargets,
   disabled,
   cooldownRemaining,
   onUse,
 }: {
-  effect: PlayerEffect
+  ability: PlayerAbility
   validTargets: { id: string; label: string }[]
   disabled: boolean
   cooldownRemaining: number
-  onUse: (effectId: string, targetPlayerId?: string) => void
+  onUse: (abilityId: string, targetPlayerId?: string) => void
 }) {
   const [selectedTarget, setSelectedTarget] = useState('')
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3">
       <div className="min-w-0 flex-1 basis-40">
-        <p className="text-sm font-medium">{effect.name}</p>
+        <p className="text-sm font-medium">{ability.name}</p>
         <p className="text-xs text-muted-foreground">
-          {effect.description}
-        </p>
-        <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-          Осталось: {effect.charges ?? '∞'}
+          {ability.description}
         </p>
         {cooldownRemaining > 0 && (
           <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
@@ -467,7 +412,7 @@ function TargetEffectRow({
       <Button
         size="sm"
         disabled={!selectedTarget || disabled}
-        onClick={() => onUse(effect.effectId, selectedTarget)}
+        onClick={() => onUse(ability.abilityId, selectedTarget)}
       >
         Использовать
       </Button>

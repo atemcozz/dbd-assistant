@@ -4,7 +4,7 @@ import { AppModule } from '../src/app.module'
 import { PrismaService } from '../src/prisma.service'
 import { GamesService } from '../src/games.service'
 import { CombatService } from '../src/combat.service'
-import { EffectsService } from '../src/effects.service'
+import { AbilitiesService } from '../src/abilities.service'
 import { QuestsService } from '../src/quests.service'
 import { ExitsService } from '../src/exits.service'
 import { CharactersService } from '../src/characters.service'
@@ -19,7 +19,7 @@ describe('Game logic', () => {
   let prisma: PrismaService
   let gamesService: GamesService
   let combatService: CombatService
-  let effectsService: EffectsService
+  let abilitiesService: AbilitiesService
   let questsService: QuestsService
   let exitsService: ExitsService
   let charactersService: CharactersService
@@ -35,7 +35,7 @@ describe('Game logic', () => {
     prisma = app.get(PrismaService)
     gamesService = app.get(GamesService)
     combatService = app.get(CombatService)
-    effectsService = app.get(EffectsService)
+    abilitiesService = app.get(AbilitiesService)
     questsService = app.get(QuestsService)
     exitsService = app.get(ExitsService)
     charactersService = app.get(CharactersService)
@@ -55,8 +55,8 @@ describe('Game logic', () => {
 
   beforeEach(async () => {
     // Clean runtime state between tests but keep config data.
-    await prisma.activeEffect.deleteMany()
-    await prisma.playerEffect.deleteMany()
+    await prisma.activeBuff.deleteMany()
+    await prisma.playerAbility.deleteMany()
     await prisma.chatMessage.deleteMany()
     await prisma.gameQuest.deleteMany()
     await prisma.gameExit.deleteMany()
@@ -104,135 +104,244 @@ describe('Game logic', () => {
       },
     })
 
-    // Create effect definitions — HEAL type.
-    await prisma.effectDefinition.upsert({
+    // Buff definitions — HEAL / HURT / INFO with free-form params.
+    await prisma.buffDefinition.upsert({
       where: { id: 'field-dressing' },
       update: {},
       create: {
         id: 'field-dressing',
         name: 'Field Dressing',
-        description: 'Restore 1 HP.',
-        targetDescription: 'Your wounds are being treated.',
+        description: 'Your wounds are being treated.',
         action: 'HEAL',
-        quantity: 1,
-        duration: null,
-        cooldown: 0,
-        allowedTargets: JSON.stringify(['SELF', 'SURVIVOR']),
+        params: JSON.stringify({ quantity: 1 }),
+        defaultDuration: null,
       },
     })
 
-    // DAMAGE effect — killer attack on a single survivor.
-    await prisma.effectDefinition.upsert({
+    // HURT buff — used by the attack ability.
+    await prisma.buffDefinition.upsert({
       where: { id: 'attack-survivor' },
       update: {},
       create: {
         id: 'attack-survivor',
         name: 'Attack Survivor',
-        description: 'Attack one survivor. Removes 1 HP.',
-        targetDescription: 'You were attacked! You lose 1 HP.',
-        action: 'DAMAGE',
-        quantity: 1,
-        duration: null,
-        cooldown: 5,
-        allowedTargets: JSON.stringify(['SURVIVOR']),
+        description: 'You were attacked! You lose 1 HP.',
+        action: 'HURT',
+        params: JSON.stringify({ quantity: 1 }),
+        defaultDuration: null,
       },
     })
 
-    // TEXT effect — simple physical-game instruction sent to a survivor.
-    await prisma.effectDefinition.upsert({
+    // INFO buff — physical-game instruction with a 30 second window.
+    await prisma.buffDefinition.upsert({
       where: { id: 'stay-still' },
       update: {},
       create: {
         id: 'stay-still',
         name: 'Stay Still',
-        description: "Don't move for 30 seconds.",
-        targetDescription: 'You are stunned! Don\'t move for 30 seconds.',
-        action: 'TEXT',
-        quantity: 1,
-        duration: 30,
-        cooldown: 20,
-        allowedTargets: JSON.stringify(['SURVIVOR']),
+        description: "You are stunned! Don't move for 30 seconds.",
+        action: 'INFO',
+        defaultDuration: 30,
       },
     })
 
-    // PASSIVE effect — an always-on character stat that is never activated.
-    await prisma.effectDefinition.upsert({
+    // Permanent INFO buff — a starting character stat with no ability.
+    await prisma.buffDefinition.upsert({
       where: { id: 'free-run' },
       update: {},
       create: {
         id: 'free-run',
         name: 'Free Run',
         description: 'You may run without restrictions.',
-        targetDescription: null,
-        action: 'PASSIVE',
-        quantity: 0,
-        duration: null,
+        action: 'INFO',
+        defaultDuration: null,
+      },
+    })
+
+    // Ability definitions — each inflicts one or more buffs when used.
+    // Heal ability — SELF or another survivor, no cooldown.
+    await prisma.abilityDefinition.upsert({
+      where: { id: 'field-dressing' },
+      update: {},
+      create: {
+        id: 'field-dressing',
+        name: 'Field Dressing',
+        description: 'Restore 1 HP.',
         cooldown: 0,
-        allowedTargets: JSON.stringify([]),
+        allowedTargets: JSON.stringify(['SELF', 'SURVIVOR']),
       },
     })
 
-    // Link medic → field-dressing effect with 3 charges.
-    await prisma.characterEffect.upsert({
+    // HURT ability — killer attacks a single survivor.
+    await prisma.abilityDefinition.upsert({
+      where: { id: 'attack-survivor' },
+      update: {},
+      create: {
+        id: 'attack-survivor',
+        name: 'Attack Survivor',
+        description: 'Attack one survivor. Removes 1 HP.',
+        cooldown: 5,
+        allowedTargets: JSON.stringify(['SURVIVOR']),
+      },
+    })
+
+    // INFO ability — simple physical-game instruction sent to a survivor.
+    await prisma.abilityDefinition.upsert({
+      where: { id: 'stay-still' },
+      update: {},
+      create: {
+        id: 'stay-still',
+        name: 'Stay Still',
+        description: "Don't move for 30 seconds.",
+        cooldown: 20,
+        allowedTargets: JSON.stringify(['SURVIVOR']),
+      },
+    })
+
+    // Same INFO buff, but with a 5-second duration override on the link.
+    await prisma.abilityDefinition.upsert({
+      where: { id: 'quick-stun' },
+      update: {},
+      create: {
+        id: 'quick-stun',
+        name: 'Quick Stun',
+        description: "Don't move for 5 seconds.",
+        cooldown: 0,
+        allowedTargets: JSON.stringify(['SURVIVOR']),
+      },
+    })
+
+    // Combo ability — inflicts two buffs (HEAL + INFO) in one use.
+    await prisma.abilityDefinition.upsert({
+      where: { id: 'field-stay' },
+      update: {},
+      create: {
+        id: 'field-stay',
+        name: 'Field Dressing + Stay Still',
+        description: 'Restore 1 HP and stun yourself briefly.',
+        cooldown: 0,
+        allowedTargets: JSON.stringify(['SELF', 'SURVIVOR']),
+      },
+    })
+
+    // Ability → buff links (duration null = inherit buff.defaultDuration).
+    await prisma.abilityBuff.upsert({
       where: {
-        characterTypeId_effectId: {
+        abilityId_buffId: {
+          abilityId: 'field-dressing',
+          buffId: 'field-dressing',
+        },
+      },
+      update: {},
+      create: { abilityId: 'field-dressing', buffId: 'field-dressing', duration: null },
+    })
+    await prisma.abilityBuff.upsert({
+      where: {
+        abilityId_buffId: {
+          abilityId: 'attack-survivor',
+          buffId: 'attack-survivor',
+        },
+      },
+      update: {},
+      create: { abilityId: 'attack-survivor', buffId: 'attack-survivor', duration: null },
+    })
+    await prisma.abilityBuff.upsert({
+      where: {
+        abilityId_buffId: { abilityId: 'stay-still', buffId: 'stay-still' },
+      },
+      update: {},
+      create: { abilityId: 'stay-still', buffId: 'stay-still', duration: null },
+    })
+    // Duration override: 5s instead of the buff's default 30s.
+    await prisma.abilityBuff.upsert({
+      where: {
+        abilityId_buffId: { abilityId: 'quick-stun', buffId: 'stay-still' },
+      },
+      update: {},
+      create: { abilityId: 'quick-stun', buffId: 'stay-still', duration: 5 },
+    })
+    await prisma.abilityBuff.upsert({
+      where: {
+        abilityId_buffId: { abilityId: 'field-stay', buffId: 'field-dressing' },
+      },
+      update: {},
+      create: { abilityId: 'field-stay', buffId: 'field-dressing', duration: null },
+    })
+    await prisma.abilityBuff.upsert({
+      where: {
+        abilityId_buffId: { abilityId: 'field-stay', buffId: 'stay-still' },
+      },
+      update: {},
+      create: { abilityId: 'field-stay', buffId: 'stay-still', duration: null },
+    })
+
+    // Link medic → field-dressing and the combo ability.
+    await prisma.characterAbility.upsert({
+      where: {
+        characterTypeId_abilityId: {
           characterTypeId: 'medic',
-          effectId: 'field-dressing',
+          abilityId: 'field-dressing',
         },
       },
       update: {},
-      create: {
-        characterTypeId: 'medic',
-        effectId: 'field-dressing',
-        charges: 3,
+      create: { characterTypeId: 'medic', abilityId: 'field-dressing' },
+    })
+    await prisma.characterAbility.upsert({
+      where: {
+        characterTypeId_abilityId: {
+          characterTypeId: 'medic',
+          abilityId: 'field-stay',
+        },
       },
+      update: {},
+      create: { characterTypeId: 'medic', abilityId: 'field-stay' },
     })
 
-    // Link stalker → attack-survivor effect with 5 charges.
-    await prisma.characterEffect.upsert({
+    // Link stalker → attack-survivor, stay-still and quick-stun.
+    await prisma.characterAbility.upsert({
       where: {
-        characterTypeId_effectId: {
+        characterTypeId_abilityId: {
           characterTypeId: 'stalker',
-          effectId: 'attack-survivor',
+          abilityId: 'attack-survivor',
+        },
+      },
+      update: {},
+      create: { characterTypeId: 'stalker', abilityId: 'attack-survivor' },
+    })
+    await prisma.characterAbility.upsert({
+      where: {
+        characterTypeId_abilityId: {
+          characterTypeId: 'stalker',
+          abilityId: 'stay-still',
+        },
+      },
+      update: {},
+      create: { characterTypeId: 'stalker', abilityId: 'stay-still' },
+    })
+    await prisma.characterAbility.upsert({
+      where: {
+        characterTypeId_abilityId: {
+          characterTypeId: 'stalker',
+          abilityId: 'quick-stun',
+        },
+      },
+      update: {},
+      create: { characterTypeId: 'stalker', abilityId: 'quick-stun' },
+    })
+
+    // Link stalker → free-run permanent starting buff.
+    await prisma.characterStartBuff.upsert({
+      where: {
+        characterTypeId_buffId: {
+          characterTypeId: 'stalker',
+          buffId: 'free-run',
         },
       },
       update: {},
       create: {
         characterTypeId: 'stalker',
-        effectId: 'attack-survivor',
-        charges: 5,
-      },
-    })
-
-    // Link stalker → stay-still TEXT effect with 2 charges.
-    await prisma.characterEffect.upsert({
-      where: {
-        characterTypeId_effectId: {
-          characterTypeId: 'stalker',
-          effectId: 'stay-still',
-        },
-      },
-      update: {},
-      create: {
-        characterTypeId: 'stalker',
-        effectId: 'stay-still',
-        charges: 2,
-      },
-    })
-
-    // Link stalker → free-run PASSIVE stat (no charges to manage).
-    await prisma.characterEffect.upsert({
-      where: {
-        characterTypeId_effectId: {
-          characterTypeId: 'stalker',
-          effectId: 'free-run',
-        },
-      },
-      update: {},
-      create: {
-        characterTypeId: 'stalker',
-        effectId: 'free-run',
-        charges: null,
+        buffId: 'free-run',
+        duration: null,
       },
     })
 
@@ -480,15 +589,15 @@ describe('Game logic', () => {
     })
   })
 
-  describe('Effects', () => {
+  describe('Abilities and buffs', () => {
     it('heal restores HP but cannot exceed maxHealth', async () => {
       const { owner, survivor } = await setupRunningGame()
 
       // Damage the owner to 2 HP.
       await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
 
-      // Use field-dressing (heal) effect on self.
-      await effectsService.use(
+      // Use field-dressing (HEAL buff) on self.
+      await abilitiesService.use(
         owner.state.code,
         'field-dressing',
         undefined,
@@ -507,7 +616,7 @@ describe('Game logic', () => {
       const { owner } = await setupRunningGame()
 
       // Owner is at full HP (3). Heal should cap at 3.
-      await effectsService.use(
+      await abilitiesService.use(
         owner.state.code,
         'field-dressing',
         undefined,
@@ -519,51 +628,11 @@ describe('Game logic', () => {
       expect(ownerPlayer.health).toBe(3) // still capped at max
     })
 
-    it('effect consumes a charge', async () => {
-      const { owner } = await setupRunningGame()
-
-      // Medic has 3 field-dressing charges.
-      const stateBefore = await gamesService.getState(
-        owner.state.code,
-        owner.sessionToken,
-      )
-      const healBefore = stateBefore.effects.find((e) => e.effectId === 'field-dressing')!
-      expect(healBefore.charges).toBe(3)
-
-      await effectsService.use(
-        owner.state.code,
-        'field-dressing',
-        undefined,
-        owner.sessionToken,
-      )
-
-      const stateAfter = await gamesService.getState(
-        owner.state.code,
-        owner.sessionToken,
-      )
-      const healAfter = stateAfter.effects.find((e) => e.effectId === 'field-dressing')!
-      expect(healAfter.charges).toBe(2)
-    })
-
-    it('effect with no charges is rejected', async () => {
-      const { owner } = await setupRunningGame()
-
-      // Use field-dressing 3 times to exhaust charges.
-      await effectsService.use(owner.state.code, 'field-dressing', undefined, owner.sessionToken)
-      await effectsService.use(owner.state.code, 'field-dressing', undefined, owner.sessionToken)
-      await effectsService.use(owner.state.code, 'field-dressing', undefined, owner.sessionToken)
-
-      // 4th use should fail — no charges left.
-      await expect(
-        effectsService.use(owner.state.code, 'field-dressing', undefined, owner.sessionToken),
-      ).rejects.toThrow('NO_EFFECT_CHARGES')
-    })
-
-    it('DAMAGE effect reduces target HP by 1', async () => {
+    it('HURT ability reduces target HP by 1', async () => {
       const { owner, survivor } = await setupRunningGame()
 
       // Killer (survivor player) uses attack-survivor on owner (medic).
-      await effectsService.use(
+      await abilitiesService.use(
         owner.state.code,
         'attack-survivor',
         owner.playerId,
@@ -579,44 +648,44 @@ describe('Game logic', () => {
       expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
     })
 
-    it('DAMAGE effect on self reduces own HP', async () => {
+    it('ability the player does not own is rejected', async () => {
       const { owner } = await setupRunningGame()
 
-      // Owner (medic, survivor) doesn't have self-attack in test seed —
-      // verify attack-survivor cannot target self (killer-only).
+      // Owner (survivor) doesn't own attack-survivor (killer ability).
       await expect(
-        effectsService.use(
+        abilitiesService.use(
           owner.state.code,
           'attack-survivor',
           undefined,
           owner.sessionToken,
         ),
-      ).rejects.toThrow('EFFECT_NOT_AVAILABLE')
+      ).rejects.toThrow('ABILITY_NOT_AVAILABLE')
     })
 
-    it('TEXT effect creates ActiveEffect on target', async () => {
+    it('INFO ability creates ActiveBuff on target', async () => {
       const { owner, survivor } = await setupRunningGame()
 
       // Killer uses stay-still on owner (survivor).
-      await effectsService.use(
+      await abilitiesService.use(
         owner.state.code,
         'stay-still',
         owner.playerId,
         survivor.sessionToken,
       )
 
-      // Verify an active effect was created on the owner.
-      const activeEffects = await prisma.activeEffect.findMany({
-        where: { targetPlayerId: owner.playerId },
+      // Verify a timed buff was created on the owner.
+      const activeBuffs = await prisma.activeBuff.findMany({
+        where: { targetPlayerId: owner.playerId, buffId: 'stay-still' },
       })
-      expect(activeEffects.length).toBeGreaterThan(0)
+      expect(activeBuffs.length).toBeGreaterThan(0)
+      expect(activeBuffs[0].expiresAt).not.toBeNull()
     })
 
-    it('effect on cooldown is rejected', async () => {
+    it('ability on cooldown is rejected', async () => {
       const { owner, survivor } = await setupRunningGame()
 
       // Killer uses attack-survivor (cooldown: 5s) on owner.
-      await effectsService.use(
+      await abilitiesService.use(
         owner.state.code,
         'attack-survivor',
         owner.playerId,
@@ -625,38 +694,39 @@ describe('Game logic', () => {
 
       // Immediate second use should fail — still on cooldown.
       await expect(
-        effectsService.use(
+        abilitiesService.use(
           owner.state.code,
           'attack-survivor',
           owner.playerId,
           survivor.sessionToken,
         ),
-      ).rejects.toThrow('EFFECT_ON_COOLDOWN')
+      ).rejects.toThrow('ABILITY_ON_COOLDOWN')
     })
 
-    it('targetDescription is returned for incoming effects', async () => {
+    it('incoming buff shows the buff description', async () => {
       const { owner, survivor } = await setupRunningGame()
 
       // Killer uses stay-still on owner.
-      await effectsService.use(
+      await abilitiesService.use(
         owner.state.code,
         'stay-still',
         owner.playerId,
         survivor.sessionToken,
       )
 
-      // Owner's state should include the incoming effect with targetDescription.
+      // Owner's state should include the incoming buff with its description.
       const state = await gamesService.getState(
         owner.state.code,
         owner.sessionToken,
       )
-      const incomingEffect = state.effects.find(
-        (e) => e.effectId === 'stay-still' && !e.owned,
+      const incomingBuff = state.buffs.find(
+        (b) => b.buffId === 'stay-still',
       )
-      expect(incomingEffect).toBeDefined()
-      expect(incomingEffect!.targetDescription).toBe(
+      expect(incomingBuff).toBeDefined()
+      expect(incomingBuff!.description).toBe(
         "You are stunned! Don't move for 30 seconds.",
       )
+      expect(incomingBuff!.expiresAt).not.toBeNull()
     })
 
     it('invalid target is rejected', async () => {
@@ -664,42 +734,93 @@ describe('Game logic', () => {
 
       // Killer tries to use attack-survivor on themselves (killer) — invalid.
       await expect(
-        effectsService.use(
+        abilitiesService.use(
           owner.state.code,
           'attack-survivor',
           survivor.playerId, // survivor is the killer — wrong role
           survivor.sessionToken,
         ),
-      ).rejects.toThrow('INVALID_EFFECT_TARGET')
+      ).rejects.toThrow('INVALID_ABILITY_TARGET')
     })
 
-    it('passive effect cannot be used', async () => {
+    it('dead survivor cannot use abilities', async () => {
       const { owner, survivor } = await setupRunningGame()
 
-      // Stalker owns the free-run passive — stats are never activatable.
+      // Kill the owner (medic has 3 HP).
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+
       await expect(
-        effectsService.use(
+        abilitiesService.use(
           owner.state.code,
-          'free-run',
+          'field-dressing',
           undefined,
-          survivor.sessionToken,
+          owner.sessionToken,
         ),
-      ).rejects.toThrow('EFFECT_NOT_USABLE')
+      ).rejects.toThrow('PLAYER_NOT_ACTIVE')
     })
 
-    it('passive effect is listed as owned with action PASSIVE', async () => {
+    it('permanent starting buff is listed with expiresAt null', async () => {
       const { owner, survivor } = await setupRunningGame()
 
+      // Stalker starts with the free-run permanent buff.
       const state = await gamesService.getState(
         owner.state.code,
         survivor.sessionToken,
       )
-      const passive = state.effects.find((e) => e.effectId === 'free-run')
+      const permanent = state.buffs.find((b) => b.buffId === 'free-run')
 
-      expect(passive).toBeDefined()
-      expect(passive!.owned).toBe(true)
-      expect(passive!.action).toBe('PASSIVE')
-      expect(passive!.allowedTargets).toEqual([])
+      expect(permanent).toBeDefined()
+      expect(permanent!.expiresAt).toBeNull()
+      expect(permanent!.sourcePlayerName).toBeNull()
+    })
+
+    it('ability duration override beats buff default duration', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // quick-stun inflicts stay-still with a 5s override (buff default 30s).
+      await abilitiesService.use(
+        owner.state.code,
+        'quick-stun',
+        owner.playerId,
+        survivor.sessionToken,
+      )
+
+      const active = await prisma.activeBuff.findFirst({
+        where: { targetPlayerId: owner.playerId, buffId: 'stay-still' },
+      })
+      expect(active).not.toBeNull()
+
+      const remainingMs = active!.expiresAt!.getTime() - Date.now()
+      expect(remainingMs).toBeGreaterThan(0)
+      expect(remainingMs).toBeLessThanOrEqual(5000) // 5s, not 30s
+    })
+
+    it('combo ability inflicts all its buffs', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Damage the owner to 2 HP, then use the combo (HEAL + INFO) on self.
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+
+      await abilitiesService.use(
+        owner.state.code,
+        'field-stay',
+        undefined,
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+      expect(ownerPlayer.health).toBe(3) // HEAL buff applied
+
+      // INFO buff was created as a timed row on the same target.
+      const infoBuff = state.buffs.find((b) => b.buffId === 'stay-still')
+      expect(infoBuff).toBeDefined()
+      expect(infoBuff!.expiresAt).not.toBeNull()
     })
   })
 
