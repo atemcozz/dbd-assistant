@@ -325,8 +325,9 @@ describe('Game logic', () => {
           abilityId: 'quick-stun',
         },
       },
-      update: {},
-      create: { characterTypeId: 'stalker', abilityId: 'quick-stun' },
+      // Limited ability: only one use per game (count: 1).
+      update: { count: 1 },
+      create: { characterTypeId: 'stalker', abilityId: 'quick-stun', count: 1 },
     })
 
     // Link stalker → free-run permanent starting buff.
@@ -821,6 +822,73 @@ describe('Game logic', () => {
       const infoBuff = state.buffs.find((b) => b.buffId === 'stay-still')
       expect(infoBuff).toBeDefined()
       expect(infoBuff!.expiresAt).not.toBeNull()
+    })
+
+    it('limited ability count is consumed and rejected when exhausted', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // quick-stun is seeded with count: 1 for the stalker.
+      let state = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+      expect(
+        state.abilities.find((a) => a.abilityId === 'quick-stun')!
+          .chargesRemaining,
+      ).toBe(1)
+
+      await abilitiesService.use(
+        owner.state.code,
+        'quick-stun',
+        owner.playerId,
+        survivor.sessionToken,
+      )
+
+      state = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+      expect(
+        state.abilities.find((a) => a.abilityId === 'quick-stun')!
+          .chargesRemaining,
+      ).toBe(0)
+
+      // quick-stun has no cooldown — the only blocker is the spent charge.
+      await expect(
+        abilitiesService.use(
+          owner.state.code,
+          'quick-stun',
+          owner.playerId,
+          survivor.sessionToken,
+        ),
+      ).rejects.toThrow('ABILITY_NO_CHARGES')
+    })
+
+    it('ability without count has unlimited uses', async () => {
+      const { owner } = await setupRunningGame()
+
+      // field-dressing has no count — used twice in a row (cooldown 0).
+      await abilitiesService.use(
+        owner.state.code,
+        'field-dressing',
+        undefined,
+        owner.sessionToken,
+      )
+      await abilitiesService.use(
+        owner.state.code,
+        'field-dressing',
+        undefined,
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const ability = state.abilities.find(
+        (a) => a.abilityId === 'field-dressing',
+      )!
+      expect(ability.chargesRemaining).toBeNull()
     })
   })
 

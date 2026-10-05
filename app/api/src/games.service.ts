@@ -332,6 +332,7 @@ export class GamesService {
                   ? (link.duration ?? link.buff.defaultDuration)
                   : null,
                 cooldown: ca.ability.cooldown,
+                count: ca.count,
               }
             },
           ),

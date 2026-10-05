@@ -6,7 +6,7 @@
     "description": "Помогает команде восстанавливать здоровье.",
     "maxHealth": 4,
     "abilities": [
-      { "abilityId": "field-dressing" },
+      { "abilityId": "field-dressing", "count": 3 },
       { "abilityId": "self-attack" },
       { "abilityId": "stun-killer" }
     ],
@@ -33,7 +33,7 @@
     "maxHealth": 3,
     "abilities": [
       { "abilityId": "self-attack" },
-      { "abilityId": "field-dressing" }
+      { "abilityId": "field-dressing", "count": 3 }
     ],
     "startingBuffs": []
   },

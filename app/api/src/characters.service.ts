@@ -50,6 +50,7 @@ export class CharactersService {
             ? (link.duration ?? link.buff.defaultDuration)
             : null,
           cooldown: ca.ability.cooldown,
+          count: ca.count,
         }
       }),
       startingBuffs: character.characterStartBuffs.map((cs) => ({
@@ -171,6 +172,8 @@ export class CharactersService {
           data: character.characterAbilities.map((item) => ({
             playerId: player.id,
             abilityId: item.abilityId,
+            // null count = unlimited uses.
+            chargesRemaining: item.count,
           })),
         })
       }

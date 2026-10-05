@@ -8,7 +8,9 @@ type CharacterConfig = {
   name: string
   description: string
   maxHealth: number | null
-  abilities: { abilityId: string }[]
+  // count is the optional starting use count for this ability
+  // (integer >= 1); absent = unlimited uses.
+  abilities: { abilityId: string; count?: number | null }[]
   startingBuffs?: { buffId: string; duration: number | null }[]
 }
 
@@ -169,6 +171,16 @@ async function main() {
         )
       }
 
+      if (
+        item.count !== undefined &&
+        item.count !== null &&
+        (!Number.isInteger(item.count) || item.count < 1)
+      ) {
+        throw new Error(
+          `Character ${character.id} ability ${item.abilityId} has invalid count: ${item.count}`,
+        )
+      }
+
       const ability = abilitiesJson.find((a) => a.id === item.abilityId)!
 
       // Killers must never own killer-targeting abilities (stun-killer,
@@ -311,6 +323,7 @@ async function main() {
             data: character.abilities.map((item) => ({
               characterTypeId: character.id,
               abilityId: item.abilityId,
+              count: item.count ?? null,
             })),
           })
         }

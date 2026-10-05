@@ -33,6 +33,7 @@ export class AbilitiesService {
       description: item.ability.description,
       cooldown: item.ability.cooldown,
       lastUsedAt: item.lastUsedAt,
+      chargesRemaining: item.chargesRemaining,
       allowedTargets: this.parseTargets(item.ability.allowedTargets),
     }))
   }
@@ -117,6 +118,11 @@ export class AbilitiesService {
       if (Date.now() < cooldownEnds) {
         throw new ConflictException('ABILITY_ON_COOLDOWN')
       }
+    }
+
+    // chargesRemaining null = unlimited uses.
+    if (owned.chargesRemaining !== null && owned.chargesRemaining <= 0) {
+      throw new ConflictException('ABILITY_NO_CHARGES')
     }
 
     const allowedTargets = this.parseTargets(
@@ -219,10 +225,24 @@ export class AbilitiesService {
         }
       }
 
-      await tx.playerAbility.update({
-        where: { id: owned.id },
-        data: { lastUsedAt: now },
+      // Consume one charge when the ability is limited. The where-guard
+      // keeps chargesRemaining from going below zero if two uses race.
+      const updated = await tx.playerAbility.updateMany({
+        where: {
+          id: owned.id,
+          OR: [{ chargesRemaining: null }, { chargesRemaining: { gt: 0 } }],
+        },
+        data: {
+          lastUsedAt: now,
+          ...(owned.chargesRemaining !== null
+            ? { chargesRemaining: { decrement: 1 } }
+            : {}),
+        },
       })
+
+      if (updated.count === 0) {
+        throw new ConflictException('ABILITY_NO_CHARGES')
+      }
     })
 
     return true

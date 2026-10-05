@@ -161,6 +161,8 @@ model CharacterAbility {
   characterType   CharacterType    @relation(fields: [characterTypeId], references: [id], onDelete: Cascade)
   abilityId       String
   ability         AbilityDefinition @relation(fields: [abilityId], references: [id])
+  // Optional starting use count for this character (null = unlimited).
+  count           Int?
 
   @@unique([characterTypeId, abilityId])
 }
@@ -232,6 +234,9 @@ model PlayerAbility {
   player     Player            @relation(fields: [playerId], references: [id], onDelete: Cascade)
   abilityId  String
   ability    AbilityDefinition @relation(fields: [abilityId], references: [id])
+  // Remaining uses (null = unlimited). Copied from CharacterAbility.count
+  // when the character is assigned; decremented on every use.
+  chargesRemaining Int?
   lastUsedAt DateTime?
 
   @@unique([playerId, abilityId])

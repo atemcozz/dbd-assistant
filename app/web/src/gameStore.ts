@@ -16,6 +16,8 @@ export type CharacterAbilityInfo = {
   // null for instantaneous (HEAL/HURT) or permanent buffs.
   duration: number | null
   cooldown: number
+  // Configured starting use count for this character (null = unlimited).
+  count: number | null
 }
 
 // Read-only permanent starting buff attached to a character type.
@@ -88,6 +90,8 @@ export type PlayerAbility = {
   // When the player last used this ability (null if never).
   // Used to compute remaining cooldown on the frontend.
   lastUsedAt: string | null
+  // Remaining uses (null = unlimited). Decremented on every use.
+  chargesRemaining: number | null
   // Allowed target types (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
   allowedTargets: string[]
 }
@@ -203,6 +207,21 @@ async function request<T>(path: string, init?: RequestInit, sessionToken?: strin
 
 function saveSession(session: Session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+// Player-facing messages for ability error codes returned by the backend.
+const ABILITY_ERROR_MESSAGES: Record<string, string> = {
+  ABILITY_NOT_AVAILABLE: 'Абилка недоступна',
+  ABILITY_ON_COOLDOWN: 'Абилка ещё перезаряжается',
+  ABILITY_NO_CHARGES: 'Закончились заряды абилки',
+  ABILITY_TARGET_REQUIRED: 'Выбери цель',
+  INVALID_ABILITY_TARGET: 'Недопустимая цель',
+  INVALID_ABILITY_TARGETS: 'Недопустимая цель',
+  TARGET_NOT_ACTIVE: 'Цель не может действовать',
+  TARGET_CANNOT_BE_HEALED: 'Эту цель нельзя вылечить',
+  TARGET_CANNOT_TAKE_DAMAGE: 'Эту цель нельзя ранить',
+  PLAYER_NOT_ACTIVE: 'Ты не можешь действовать',
+  GAME_NOT_RUNNING: 'Игра ещё не началась',
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -408,8 +427,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   useAbility: async (abilityId, targetPlayerId) => {
     const { session } = get()
     if (!session) return
-    const state = await request<LobbyState>(`/games/${session.gameCode}/abilities/${abilityId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId }) }, session.sessionToken)
-    set({ state })
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/abilities/${abilityId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId }) }, session.sessionToken)
+      set({ state, error: null })
+    } catch (error) {
+      // Backend returns error codes; show a player-facing message for the
+      // common ability failures instead of the raw code.
+      const message = error instanceof Error ? error.message : 'Не удалось использовать абилку'
+      set({ error: ABILITY_ERROR_MESSAGES[message] ?? message })
+    }
   },
 
   updateSettings: async (durationSeconds, requiredQuestPoints) => {

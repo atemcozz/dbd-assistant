@@ -201,7 +201,10 @@ function AbilityCard({
 }) {
   // Compute cooldown state.
   const cooldownRemaining = getCooldownRemaining(ability)
-  const disabled = cooldownRemaining > 0
+  // Limited ability with no charges left can no longer be used.
+  const exhausted =
+    ability.chargesRemaining !== null && ability.chargesRemaining <= 0
+  const disabled = cooldownRemaining > 0 || exhausted
 
   // Decide whether this ability needs a target picker.
   const selfOnly =
@@ -300,6 +303,52 @@ function buildValidTargets(
   return result
 }
 
+// Badges shown on an ability row: remaining charges when the ability is
+// limited, and cooldown (remaining time while on cooldown, otherwise the
+// configured duration).
+function AbilityBadges({
+  ability,
+  cooldownRemaining,
+}: {
+  ability: PlayerAbility
+  cooldownRemaining: number
+}) {
+  const exhausted =
+    ability.chargesRemaining !== null && ability.chargesRemaining <= 0
+
+  return (
+    <div className="mt-1 flex flex-wrap gap-1.5">
+      {ability.chargesRemaining !== null && (
+        <Badge
+          variant="secondary"
+          className={cn('text-xs', exhausted && 'text-destructive')}
+        >
+          Зарядов: {ability.chargesRemaining}
+        </Badge>
+      )}
+      {cooldownRemaining > 0 ? (
+        <Badge
+          variant="outline"
+          className="border-warning/40 text-xs text-warning"
+        >
+          <Clock3 className="mr-1 size-3" />
+          К/д · {cooldownRemaining}с.
+        </Badge>
+      ) : (
+        ability.cooldown > 0 && (
+          <Badge
+            variant="outline"
+            className="border-border text-xs text-muted-foreground"
+          >
+            <Clock3 className="mr-1 size-3" />
+            К/д {ability.cooldown}с.
+          </Badge>
+        )
+      )}
+    </div>
+  )
+}
+
 // Shared layout for an ability row.
 function AbilityRowLayout({
   ability,
@@ -317,12 +366,7 @@ function AbilityRowLayout({
         <p className="text-xs text-muted-foreground">
           {ability.description}
         </p>
-        {cooldownRemaining > 0 && (
-          <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
-            <Clock3 className="mr-1 size-3" />
-            К/д · {cooldownRemaining}с.
-          </Badge>
-        )}
+        <AbilityBadges ability={ability} cooldownRemaining={cooldownRemaining} />
       </div>
       {children}
     </div>
@@ -348,12 +392,7 @@ function AllSurvivorsAbilityRow({
         <p className="text-xs text-muted-foreground">
           {ability.description}
         </p>
-        {cooldownRemaining > 0 && (
-          <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
-            <Clock3 className="mr-1 size-3" />
-            К/д · {cooldownRemaining}с.
-          </Badge>
-        )}
+        <AbilityBadges ability={ability} cooldownRemaining={cooldownRemaining} />
       </div>
       <Button
         size="sm"
@@ -390,12 +429,7 @@ function TargetAbilityRow({
         <p className="text-xs text-muted-foreground">
           {ability.description}
         </p>
-        {cooldownRemaining > 0 && (
-          <Badge variant="outline" className="mt-1 text-xs text-warning border-warning/40">
-            <Clock3 className="mr-1 size-3" />
-            К/д · {cooldownRemaining}с.
-          </Badge>
-        )}
+        <AbilityBadges ability={ability} cooldownRemaining={cooldownRemaining} />
       </div>
       <Select value={selectedTarget} onValueChange={setSelectedTarget}>
         <SelectTrigger className="w-full sm:w-36">

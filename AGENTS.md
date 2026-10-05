@@ -249,7 +249,7 @@ Example:
   "description": "Can heal allies.",
   "maxHealth": 3,
   "abilities": [
-    { "abilityId": "field-dressing" }
+    { "abilityId": "field-dressing", "count": 3 }
   ],
   "startingBuffs": [
     { "buffId": "free-run", "duration": null }
@@ -369,6 +369,11 @@ An ability inflicts one or more buffs when used. Buffs can also exist without
 an ability (permanent starting buffs, and later possibly manually applied
 buffs).
 
+A character's entry in `abilities` may optionally include `count` — the
+number of times the player may use that ability (integer >= 1). If `count`
+is absent, the ability has unlimited uses. The optional count works for
+survivors and killers alike.
+
 Ability definitions roughly contain:
 
 * `id`
@@ -438,10 +443,12 @@ Healing is a `HEAL` buff. Do not create a separate medkit subsystem.
 Runtime rows are copied from the kit on character assignment:
 
 ```text
-PlayerAbility(playerId, abilityId, lastUsedAt)
+PlayerAbility(playerId, abilityId, chargesRemaining, lastUsedAt)
 ActiveBuff(buffId, sourcePlayerId, targetPlayerId, appliedAt, expiresAt)
 ```
 
+`chargesRemaining = null` means unlimited uses; a non-null value is
+decremented on every use and reaches 0 when the ability is exhausted.
 `expiresAt = null` means the buff is permanent (starting buffs).
 
 Initial target types:
@@ -460,6 +467,7 @@ Frontend visibility is only a usability feature, not authorization.
 When an ability is used, the server should validate:
 
 * source player has the ability;
+* source has charges remaining (when the ability is limited);
 * target is valid;
 * game state allows the action;
 * source role/character allows the action;
@@ -676,6 +684,7 @@ Important tests include:
 * invalid target is rejected;
 * an ability applies all of its buffs;
 * permanent starting buff is listed (expiresAt null);
+* limited ability count is consumed and rejected when exhausted;
 * killer cannot perform survivor-only actions;
 * completed quest cannot be completed twice;
 * killer-specific quest visibility/filtering works;
@@ -858,6 +867,7 @@ Do not automatically turn every example into a new system or database abstractio
 * death occurs at 0 HP;
 * abilities work and apply their buffs;
 * cooldowns work;
+* limited ability counts work;
 * starting buffs apply to characters;
 * survivor chat works;
 * reconnect restores state;

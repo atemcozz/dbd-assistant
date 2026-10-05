@@ -188,6 +188,11 @@ function CharacterIntelCard({
                         К/д {ability.cooldown}с
                       </Badge>
                     )}
+                    {ability.count !== null && (
+                      <Badge variant="outline" className="text-xs">
+                        Зарядов {ability.count}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">

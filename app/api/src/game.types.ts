@@ -14,6 +14,8 @@ export type CharacterAbilityInfo = {
   // null for instantaneous (HEAL/HURT) or permanent buffs.
   duration: number | null
   cooldown: number
+  // Configured starting use count for this character (null = unlimited).
+  count: number | null
 }
 
 // Read-only permanent starting buff attached to a character type.
@@ -91,6 +93,8 @@ export type PlayerAbilityView = {
   // When the player last used this ability (null if never).
   // Used by the frontend to compute remaining cooldown.
   lastUsedAt: Date | null
+  // Remaining uses (null = unlimited). Decremented on every use.
+  chargesRemaining: number | null
   // Allowed target types for this ability (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
   // The frontend uses this to decide whether to show a target picker / "All survivors" option.
   allowedTargets: string[]
