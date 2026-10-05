@@ -246,6 +246,19 @@ export function GameScreen() {
     })
   }
 
+  // Manual buff application — an unknown id pops a modal instead of the
+  // inline error line, echoing what the player typed (the input is cleared).
+  function handleApplyBuff(buffId: string) {
+    void applySelfBuff(buffId).then((code) => {
+      if (code !== 'BUFF_NOT_FOUND') return
+      setModal({
+        kind: 'info',
+        title: 'Эффект не найден',
+        body: `Не удалось найти эффект «${buffId}». Проверь id и попробуй ещё раз.`,
+      })
+    })
+  }
+
   function confirmQuestComplete(questId: string) {
     setModal({
       kind: 'confirm',
@@ -412,7 +425,7 @@ export function GameScreen() {
               players={state.players}
               currentPlayerId={session.playerId}
               onUse={confirmAbilityUse}
-              onApplyBuff={(buffId) => void applySelfBuff(buffId)}
+              onApplyBuff={handleApplyBuff}
             />
           </TabsContent>
         </Tabs>

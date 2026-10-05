@@ -167,7 +167,7 @@ type GameStore = {
   completeQuest: (questId: string) => Promise<void>
   escapeThroughExit: (exitDefinitionId: string) => Promise<void>
   useAbility: (abilityId: string, targetPlayerId?: string) => Promise<void>
-  applySelfBuff: (buffId: string) => Promise<void>
+  applySelfBuff: (buffId: string) => Promise<string | null>
   updateSettings: (durationSeconds: number, requiredQuestPoints: number) => Promise<void>
   sendChat: (text: string) => Promise<void>
   connectRealtime: () => void
@@ -224,7 +224,6 @@ const ACTION_ERROR_MESSAGES: Record<string, string> = {
   PLAYER_NOT_ACTIVE: 'Ты не можешь действовать',
   GAME_NOT_RUNNING: 'Игра ещё не началась',
   BUFF_ID_REQUIRED: 'Введи id баффа',
-  BUFF_NOT_FOUND: 'Бафф не найден',
   INVALID_BUFF_ACTION: 'Этот бафф нельзя применить вручную',
 }
 
@@ -442,15 +441,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  // Returns the backend error code, or null on success. BUFF_NOT_FOUND is
+  // returned without the inline error line — the caller shows it as a modal.
   applySelfBuff: async (buffId) => {
     const { session } = get()
-    if (!session) return
+    if (!session) {
+      set({ error: ACTION_ERROR_MESSAGES.GAME_NOT_RUNNING })
+      return 'GAME_NOT_RUNNING'
+    }
     try {
       const state = await request<LobbyState>(`/games/${session.gameCode}/buffs/self`, { method: 'POST', body: JSON.stringify({ buffId }) }, session.sessionToken)
       set({ state, error: null })
+      return null
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Не удалось применить бафф'
-      set({ error: ACTION_ERROR_MESSAGES[message] ?? message })
+      const code = error instanceof Error ? error.message : 'UNKNOWN'
+      if (code !== 'BUFF_NOT_FOUND') {
+        set({ error: ACTION_ERROR_MESSAGES[code] ?? code })
+      }
+      return code
     }
   },
 
