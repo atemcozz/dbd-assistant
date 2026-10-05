@@ -63,6 +63,7 @@ export class EffectsService {
         lastUsedAt: item.lastUsedAt,
         owned: true,
         sourcePlayerName: null,
+        action: item.effect.action,
         allowedTargets: this.parseTargets(item.effect.allowedTargets),
       })
     }
@@ -116,6 +117,7 @@ export class EffectsService {
         lastUsedAt: null,
         owned: false,
         sourcePlayerName: active.sourcePlayer?.name ?? null,
+        action: active.effect.action,
         allowedTargets: this.parseTargets(active.effect.allowedTargets),
       })
     }
@@ -163,6 +165,12 @@ export class EffectsService {
 
     if (!owned) {
       throw new NotFoundException('EFFECT_NOT_AVAILABLE')
+    }
+
+    // Passive effects are character stats, not abilities — they can
+    // never be activated (no charges, no targets, no cooldown).
+    if (owned.effect.action === 'PASSIVE') {
+      throw new ForbiddenException('EFFECT_NOT_USABLE')
     }
 
     if (owned.charges !== null && owned.charges <= 0) {

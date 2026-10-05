@@ -87,6 +87,10 @@ export type PlayerEffect = {
   owned: boolean
   // Name of the player who applied this effect (null for self-owned abilities).
   sourcePlayerName: string | null
+  // Effect action: HEAL | DAMAGE | TEXT | ADD_EFFECT | PASSIVE.
+  // PASSIVE effects are permanent character stats — never activated,
+  // so the UI shows no use button and no charges.
+  action: string
   // Allowed target types (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
   allowedTargets: string[]
 }

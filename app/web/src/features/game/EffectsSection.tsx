@@ -1,4 +1,4 @@
-import { Clock3, Sparkles, User } from 'lucide-react'
+import { Clock3, Info, Sparkles, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,14 @@ export function EffectsSection({
 }) {
   // Split into owned abilities and incoming active effects.
   const ownedEffects = effects.filter((effect) => effect.owned)
+  // Passive effects are always-on character stats: no use button,
+  // no charges, no cooldown — just name + description.
+  const passiveEffects = ownedEffects.filter(
+    (effect) => effect.action === 'PASSIVE',
+  )
+  const usableEffects = ownedEffects.filter(
+    (effect) => effect.action !== 'PASSIVE',
+  )
   // Only show active effects that haven't expired yet (remaining > 0).
   const activeEffects = effects.filter(
     (effect) =>
@@ -70,12 +78,12 @@ export function EffectsSection({
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          {ownedEffects.length === 0 ? (
+          {usableEffects.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Абилки не назначены
             </p>
           ) : (
-            ownedEffects.map((effect) => (
+            usableEffects.map((effect) => (
               <EffectCard
                 key={effect.id}
                 effect={effect}
@@ -87,6 +95,34 @@ export function EffectsSection({
           )}
         </CardContent>
       </Card>
+
+      {/* Passive character stats — always on, never activated. */}
+      {passiveEffects.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="size-5" />
+              Пассивные
+            </CardTitle>
+            <CardDescription>
+              Постоянные характеристики персонажа
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {passiveEffects.map((effect) => (
+              <div
+                key={effect.id}
+                className="rounded-md border border-border p-3"
+              >
+                <p className="text-sm font-medium">{effect.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {effect.description}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

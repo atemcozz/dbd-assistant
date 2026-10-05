@@ -94,6 +94,10 @@ export type PlayerEffectView = {
   owned: boolean
   // Name of the player who applied this effect (null for self-owned abilities).
   sourcePlayerName: string | null
+  // Effect action: HEAL | DAMAGE | TEXT | ADD_EFFECT | PASSIVE.
+  // PASSIVE effects are permanent character stats — they are never
+  // activated, so the frontend shows no use button and no charges.
+  action: string
   // Allowed target types for this effect (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
   // The frontend uses this to decide whether to show a target picker / "All survivors" option.
   allowedTargets: string[]

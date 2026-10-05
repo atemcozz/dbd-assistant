@@ -218,5 +218,15 @@
     "duration": null,
     "cooldown": 40,
     "allowedTargets": ["SURVIVOR"]
+  },
+  {
+    "id": "free-run",
+    "name": "Свободный бег",
+    "description": "Тебе разрешено бегать без ограничений.",
+    "action": "PASSIVE",
+    "quantity": 0,
+    "duration": null,
+    "cooldown": 0,
+    "allowedTargets": []
   }
 ]

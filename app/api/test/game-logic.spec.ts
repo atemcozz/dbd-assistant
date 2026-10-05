@@ -155,6 +155,23 @@ describe('Game logic', () => {
       },
     })
 
+    // PASSIVE effect — an always-on character stat that is never activated.
+    await prisma.effectDefinition.upsert({
+      where: { id: 'free-run' },
+      update: {},
+      create: {
+        id: 'free-run',
+        name: 'Free Run',
+        description: 'You may run without restrictions.',
+        targetDescription: null,
+        action: 'PASSIVE',
+        quantity: 0,
+        duration: null,
+        cooldown: 0,
+        allowedTargets: JSON.stringify([]),
+      },
+    })
+
     // Link medic → field-dressing effect with 3 charges.
     await prisma.characterEffect.upsert({
       where: {
@@ -200,6 +217,22 @@ describe('Game logic', () => {
         characterTypeId: 'stalker',
         effectId: 'stay-still',
         charges: 2,
+      },
+    })
+
+    // Link stalker → free-run PASSIVE stat (no charges to manage).
+    await prisma.characterEffect.upsert({
+      where: {
+        characterTypeId_effectId: {
+          characterTypeId: 'stalker',
+          effectId: 'free-run',
+        },
+      },
+      update: {},
+      create: {
+        characterTypeId: 'stalker',
+        effectId: 'free-run',
+        charges: null,
       },
     })
 
@@ -638,6 +671,35 @@ describe('Game logic', () => {
           survivor.sessionToken,
         ),
       ).rejects.toThrow('INVALID_EFFECT_TARGET')
+    })
+
+    it('passive effect cannot be used', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Stalker owns the free-run passive — stats are never activatable.
+      await expect(
+        effectsService.use(
+          owner.state.code,
+          'free-run',
+          undefined,
+          survivor.sessionToken,
+        ),
+      ).rejects.toThrow('EFFECT_NOT_USABLE')
+    })
+
+    it('passive effect is listed as owned with action PASSIVE', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+      const passive = state.effects.find((e) => e.effectId === 'free-run')
+
+      expect(passive).toBeDefined()
+      expect(passive!.owned).toBe(true)
+      expect(passive!.action).toBe('PASSIVE')
+      expect(passive!.allowedTargets).toEqual([])
     })
   })
 

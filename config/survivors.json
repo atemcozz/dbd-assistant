@@ -72,6 +72,10 @@
       {
         "effectId": "killer-breath",
         "charges": null
+      },
+      {
+        "effectId": "free-run",
+        "charges": null
       }
     ]
   }

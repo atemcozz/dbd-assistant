@@ -75,7 +75,19 @@ async function main() {
     if (!effect.id || !effect.name || !effect.action) {
       throw new Error(`Effect missing required fields: ${JSON.stringify(effect)}`)
     }
-    if (!Array.isArray(effect.allowedTargets) || effect.allowedTargets.length === 0) {
+    if (!Array.isArray(effect.allowedTargets)) {
+      throw new Error(`Effect ${effect.id} has invalid allowedTargets`)
+    }
+
+    // PASSIVE effects are always-on character stats: nobody is targeted,
+    // so the target list must be empty. Active effects need at least one.
+    if (effect.action === 'PASSIVE') {
+      if (effect.allowedTargets.length > 0) {
+        throw new Error(
+          `Passive effect ${effect.id} must have empty allowedTargets`,
+        )
+      }
+    } else if (effect.allowedTargets.length === 0) {
       throw new Error(`Effect ${effect.id} has invalid allowedTargets`)
     }
   }
