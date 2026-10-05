@@ -186,6 +186,36 @@ export function GameScreen() {
     }
   }, [state.buffs, currentPlayer.name])
 
+  // Chat unread tracking — messages from other players that arrive while
+  // the chat tab is not open. History present at mount counts as read.
+  const [unreadChatCount, setUnreadChatCount] = useState(0)
+  const knownChatIdsRef = useRef<Set<string>>(
+    new Set(state.chatMessages.map((message) => message.id)),
+  )
+
+  useEffect(() => {
+    const known = knownChatIdsRef.current
+    const fresh = state.chatMessages.filter(
+      (message) => !known.has(message.id),
+    )
+    if (fresh.length === 0) return
+
+    for (const message of fresh) known.add(message.id)
+
+    const fromOthers = fresh.filter(
+      (message) => message.playerId !== session.playerId,
+    ).length
+
+    if (fromOthers > 0 && activeTab !== 'chat') {
+      setUnreadChatCount((count) => count + fromOthers)
+    }
+  }, [state.chatMessages, activeTab, session.playerId])
+
+  // Visiting the chat tab clears the unread count.
+  useEffect(() => {
+    if (activeTab === 'chat') setUnreadChatCount(0)
+  }, [activeTab])
+
   // Escaped players see a dedicated victory screen — they already won.
   if (currentPlayer.status === 'ESCAPED') {
     return (
@@ -369,7 +399,16 @@ export function GameScreen() {
             </TabsTrigger>
             <TabsTrigger value="quests">[ Квесты ]</TabsTrigger>
             <TabsTrigger value="players">[ Игроки ]</TabsTrigger>
-            {!isKiller && <TabsTrigger value="chat">[ Чат ]</TabsTrigger>}
+            {!isKiller && (
+              <TabsTrigger value="chat" className="relative">
+                [ Чат ]
+                {unreadChatCount > 0 && (
+                  <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse sm:ml-1 sm:h-5 sm:min-w-5 sm:text-xs">
+                    {unreadChatCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
 
             <TabsTrigger value="exits">[ Выходы ]</TabsTrigger>
           </TabsList>
