@@ -5,6 +5,8 @@ import path from 'node:path'
 
 const sourceDirectory = fileURLToPath(new URL('./src', import.meta.url))
 
+
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -14,5 +16,6 @@ export default defineConfig({
   },
   server: {
     host: true,
-  }
+  },
+  base: process.env.VITE_BASE_URL || '/dbdassistant/',
 })

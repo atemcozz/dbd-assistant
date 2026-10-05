@@ -486,7 +486,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!session || realtimeSocket?.connected) return
     realtimeSocket?.disconnect()
     set({ connectionStatus: 'connecting' })
-    realtimeSocket = io(API_URL, {
+    realtimeSocket = io(window.location.origin, {
+      path: '/dbdassistant/api/socket.io',
       auth: { sessionToken: session.sessionToken },
       transports: ['websocket', 'polling'],
     })

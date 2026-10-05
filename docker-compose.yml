@@ -21,6 +21,7 @@ services:
       dockerfile: ./app/web/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-}
+        VITE_BASE_URL: ${VITE_BASE_URL:-/dbdassistant/}
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-3333}:80"
