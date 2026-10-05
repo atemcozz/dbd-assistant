@@ -479,6 +479,25 @@ Then it applies every inflicted buff to every resolved target:
 
 Persist the result before broadcasting the resulting realtime event.
 
+### Manual buff application
+
+A player may apply a buff to themselves by typing a buff id into the input
+on the effects screen. This exists for physical-game instructions given
+during play ("apply buff X to yourself").
+
+The server normalizes the typed value (trim, lowercase, whitespace to
+dashes), looks up the buff, and applies it to the entering player:
+
+* `INFO` — creates an `ActiveBuff` row using the standard duration rule
+  (`buff.defaultDuration`, `null` = permanent), shown in a modal
+  (countdown for timed buffs);
+* `HEAL` / `HURT` — change health instantly with the usual rules.
+
+The game must be running and the player alive. Re-applying an already
+active `INFO` buff refreshes it (restarts the timer) instead of
+duplicating the row. The UI must clearly state that this section is only
+for use when instructed during the game.
+
 ### Timed buffs
 
 Do not use one `setTimeout` per active buff.
@@ -685,6 +704,7 @@ Important tests include:
 * an ability applies all of its buffs;
 * permanent starting buff is listed (expiresAt null);
 * limited ability count is consumed and rejected when exhausted;
+* manual self-application normalizes the buff id and respects the buff's default duration (null = permanent);
 * killer cannot perform survivor-only actions;
 * completed quest cannot be completed twice;
 * killer-specific quest visibility/filtering works;

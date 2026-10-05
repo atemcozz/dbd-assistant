@@ -22,7 +22,7 @@ import { GameStatusPanel } from '@/features/game/GameStatusPanel'
 import { describeGameEnd, getRemainingSeconds } from '@/lib/format'
 import { useGameStore, type LobbyState } from '@/gameStore'
 
-// Modal state — either a regular confirm modal or a timed modal.
+// Modal state — a confirm modal, a timed modal, or a non-timed info modal.
 type ModalState =
   | {
       kind: 'confirm'
@@ -36,6 +36,11 @@ type ModalState =
       title: string
       body: string
       seconds?: number
+    }
+  | {
+      kind: 'info'
+      title: string
+      body: string
     }
   | null
 
@@ -71,6 +76,7 @@ export function GameScreen() {
   const escapeThroughExit = useGameStore((store) => store.escapeThroughExit)
   const sendChat = useGameStore((store) => store.sendChat)
   const triggerAbility = useGameStore((store) => store.useAbility)
+  const applySelfBuff = useGameStore((store) => store.applySelfBuff)
   const clearSession = useGameStore((store) => store.clearSession)
   const refreshState = useGameStore((store) => store.refreshState)
 
@@ -143,30 +149,42 @@ export function GameScreen() {
     previousHealth.current = currentHealth
   }, [currentPlayer.health, currentPlayer.status])
 
-  // Detect new timed buffs applied to this player and show a timed modal.
-  // Permanent buffs (expiresAt null) never pop — they are just character stats.
+  // Detect new buffs applied to this player and show a modal.
+  // Timed buffs get the countdown modal; permanent buffs received from a
+  // player (e.g. manual self-application) get a non-timed info modal.
+  // Starting buffs (no source) never pop — they are just character stats.
   useEffect(() => {
-    const timedBuffs = state.buffs.filter(
-      (buff) => buff.expiresAt !== null,
-    )
-
-    for (const buff of timedBuffs) {
+    for (const buff of state.buffs) {
       // Only show modal once per buff instance.
       if (shownBuffModals.current.has(buff.id)) continue
+
+      const isTimed = buff.expiresAt !== null
+      const fromPlayer = buff.sourcePlayerName !== null
+      if (!isTimed && !fromPlayer) continue
+
       shownBuffModals.current.add(buff.id)
 
-      const sourceText = buff.sourcePlayerName
-        ? ` (от ${buff.sourcePlayerName})`
-        : ''
+      const sourceText =
+        buff.sourcePlayerName && buff.sourcePlayerName !== currentPlayer.name
+          ? ` (от ${buff.sourcePlayerName})`
+          : ''
 
-      setModal({
-        kind: 'timed',
-        title: `Нанесён эффект: ${buff.name}`,
-        body: `${buff.description}${sourceText}`,
-        seconds: 5,
-      })
+      if (isTimed) {
+        setModal({
+          kind: 'timed',
+          title: `Нанесён эффект: ${buff.name}`,
+          body: `${buff.description}${sourceText}`,
+          seconds: 5,
+        })
+      } else {
+        setModal({
+          kind: 'info',
+          title: `Нанесён эффект: ${buff.name}`,
+          body: `${buff.description}${sourceText}`,
+        })
+      }
     }
-  }, [state.buffs])
+  }, [state.buffs, currentPlayer.name])
 
   // Escaped players see a dedicated victory screen — they already won.
   if (currentPlayer.status === 'ESCAPED') {
@@ -394,6 +412,7 @@ export function GameScreen() {
               players={state.players}
               currentPlayerId={session.playerId}
               onUse={confirmAbilityUse}
+              onApplyBuff={(buffId) => void applySelfBuff(buffId)}
             />
           </TabsContent>
         </Tabs>
@@ -415,6 +434,14 @@ export function GameScreen() {
           title={modal.title}
           body={modal.body}
           seconds={modal.seconds}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.kind === 'info' && (
+        <Modal
+          info
+          title={modal.title}
+          body={modal.body}
           onClose={() => setModal(null)}
         />
       )}

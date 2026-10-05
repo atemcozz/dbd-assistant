@@ -248,6 +248,138 @@ export class AbilitiesService {
     return true
   }
 
+  // Manual self-application: the player enters a buff id (as instructed
+  // during the physical game). The input is normalized before lookup and
+  // the buff is applied to the entering player themselves.
+  // INFO buffs use the buff's own defaultDuration (null = permanent);
+  // HEAL/HURT resolve instantly with the same rules as ability use.
+  async applyBuffToSelf(
+    codeInput: string,
+    buffIdInput: string,
+    sessionToken: string,
+  ) {
+    const code = codeInput.toUpperCase()
+    const buffId = this.normalizeBuffId(buffIdInput)
+
+    if (!buffId) {
+      throw new BadRequestException('BUFF_ID_REQUIRED')
+    }
+
+    const source = await this.prisma.player.findUnique({
+      where: { sessionToken },
+      include: { game: true },
+    })
+
+    if (!source) {
+      throw new NotFoundException('PLAYER_NOT_FOUND')
+    }
+
+    if (source.game.code !== code) {
+      throw new NotFoundException('GAME_NOT_FOUND')
+    }
+
+    if (source.game.status === 'LOBBY') {
+      throw new ConflictException('GAME_NOT_RUNNING')
+    }
+
+    if (source.status !== PlayerStatus.ALIVE) {
+      throw new ConflictException('PLAYER_NOT_ACTIVE')
+    }
+
+    const buff = await this.prisma.buffDefinition.findUnique({
+      where: { id: buffId },
+    })
+
+    if (!buff) {
+      throw new NotFoundException('BUFF_NOT_FOUND')
+    }
+
+    if (buff.action === 'INFO') {
+      const now = new Date()
+
+      // Standard duration rule: manual application has no ability link,
+      // so the duration comes from the buff itself (null = permanent).
+      const expiresAt =
+        buff.defaultDuration === null
+          ? null
+          : new Date(now.getTime() + buff.defaultDuration * 1000)
+
+      // Re-applying an already-active buff refreshes it (restarts the
+      // timer) instead of creating a duplicate row.
+      const existing = await this.prisma.activeBuff.findFirst({
+        where: {
+          buffId: buff.id,
+          targetPlayerId: source.id,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+      })
+
+      if (existing) {
+        await this.prisma.activeBuff.update({
+          where: { id: existing.id },
+          data: { appliedAt: now, expiresAt },
+        })
+        return true
+      }
+
+      await this.prisma.activeBuff.create({
+        data: {
+          buffId: buff.id,
+          sourcePlayerId: source.id,
+          targetPlayerId: source.id,
+          appliedAt: now,
+          expiresAt,
+        },
+      })
+      return true
+    }
+
+    if (buff.action === 'HEAL') {
+      if (source.role !== PlayerRole.SURVIVOR || source.health === null) {
+        throw new ConflictException('TARGET_CANNOT_BE_HEALED')
+      }
+
+      const maxHealth = await this.getMaxHealth(
+        this.prisma,
+        source.characterTypeId,
+      )
+
+      if (maxHealth === null) {
+        throw new ConflictException('TARGET_CANNOT_BE_HEALED')
+      }
+
+      const health = Math.min(
+        maxHealth,
+        source.health + this.getQuantity(buff.params),
+      )
+
+      await this.prisma.player.update({
+        where: { id: source.id },
+        data: { health },
+      })
+      return true
+    }
+
+    if (buff.action === 'HURT') {
+      if (source.role !== PlayerRole.SURVIVOR || source.health === null) {
+        throw new ConflictException('TARGET_CANNOT_TAKE_DAMAGE')
+      }
+
+      const health = Math.max(0, source.health - this.getQuantity(buff.params))
+
+      await this.prisma.player.update({
+        where: { id: source.id },
+        data: {
+          health,
+          ...(health === 0 ? { status: PlayerStatus.DEAD } : {}),
+        },
+      })
+      return true
+    }
+
+    throw new ConflictException('INVALID_BUFF_ACTION')
+  }
+
   private async findTargets(
     sourcePlayerId: string,
     sourceRole: PlayerRole,
@@ -335,6 +467,12 @@ export class AbilitiesService {
     }
 
     return parsed as string[]
+  }
+
+  // Player-typed buff id: trim, lowercase, collapse whitespace to dashes
+  // so "  Stay Still " matches the config id "stay-still".
+  private normalizeBuffId(value: string): string {
+    return value.trim().toLowerCase().replace(/\s+/g, '-')
   }
 
   // HEAL/HURT strength comes from the buff's free-form params JSON,

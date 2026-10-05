@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { LobbyPlayer, PlayerAbility, PlayerBuff } from '@/gameStore'
@@ -21,13 +22,17 @@ export function EffectsSection({
   players,
   currentPlayerId,
   onUse,
+  onApplyBuff,
 }: {
   abilities: PlayerAbility[]
   buffs: PlayerBuff[]
   players: LobbyPlayer[]
   currentPlayerId: string
   onUse: (abilityId: string, targetPlayerId?: string) => void
+  onApplyBuff: (buffId: string) => void
 }) {
+  // Typed buff id for manual self-application (instructed during play).
+  const [buffIdInput, setBuffIdInput] = useState('')
   // Timed buffs currently affecting the player (with live countdowns).
   const timedBuffs = buffs.filter(
     (buff) =>
@@ -86,6 +91,44 @@ export function EffectsSection({
               />
             ))
           )}
+        </CardContent>
+      </Card>
+
+      {/* Manual self-application by buff id — instructed use only. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="size-5" />
+            Ручное применение
+          </CardTitle>
+          <CardDescription>
+            Используйте этот раздел только когда вас инструктируют в ходе
+            игры. Введи id баффа — он будет применён на тебя.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="flex flex-wrap gap-2"
+            onSubmit={(event) => {
+              event.preventDefault()
+              const value = buffIdInput.trim()
+              if (!value) return
+              onApplyBuff(value)
+              setBuffIdInput('')
+            }}
+          >
+            <Input
+              value={buffIdInput}
+              onChange={(event) => setBuffIdInput(event.target.value)}
+              placeholder="id баффа, напр. stay-still"
+              className="flex-1"
+              autoCapitalize="none"
+              autoCorrect="off"
+            />
+            <Button type="submit" disabled={!buffIdInput.trim()}>
+              Применить
+            </Button>
+          </form>
         </CardContent>
       </Card>
 

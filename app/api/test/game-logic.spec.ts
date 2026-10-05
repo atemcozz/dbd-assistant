@@ -890,6 +890,141 @@ describe('Game logic', () => {
       )!
       expect(ability.chargesRemaining).toBeNull()
     })
+
+    it('manual self-application creates a permanent buff with a normalized id', async () => {
+      const { owner } = await setupRunningGame()
+
+      // Typed with spaces and mixed case — normalized to "free-run".
+      await abilitiesService.applyBuffToSelf(
+        owner.state.code,
+        '  Free Run  ',
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const buff = state.buffs.find((b) => b.buffId === 'free-run')
+      expect(buff).toBeDefined()
+      expect(buff!.expiresAt).toBeNull() // non-timed
+      expect(buff!.sourcePlayerName).not.toBeNull() // source = self
+
+      // Re-applying refreshes instead of duplicating the row.
+      await abilitiesService.applyBuffToSelf(
+        owner.state.code,
+        'free-run',
+        owner.sessionToken,
+      )
+      const rows = await prisma.activeBuff.findMany({
+        where: { targetPlayerId: owner.playerId, buffId: 'free-run' },
+      })
+      expect(rows.length).toBe(1)
+    })
+
+    it('manual application respects the buff default duration', async () => {
+      const { owner } = await setupRunningGame()
+
+      // stay-still has defaultDuration 30 — manual application is timed.
+      await abilitiesService.applyBuffToSelf(
+        owner.state.code,
+        'stay-still',
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const buff = state.buffs.find((b) => b.buffId === 'stay-still')
+      expect(buff).toBeDefined()
+      expect(buff!.expiresAt).not.toBeNull()
+
+      const remainingMs = new Date(buff!.expiresAt!).getTime() - Date.now()
+      expect(remainingMs).toBeGreaterThan(0)
+      expect(remainingMs).toBeLessThanOrEqual(30000) // 30s from defaultDuration
+    })
+
+    it('manual HEAL buff restores HP without creating a buff row', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Damage the owner to 2 HP, then self-apply the HEAL buff.
+      await combatService.attack(
+        owner.state.code,
+        owner.playerId,
+        survivor.sessionToken,
+      )
+      await abilitiesService.applyBuffToSelf(
+        owner.state.code,
+        'field-dressing',
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+      expect(ownerPlayer.health).toBe(3)
+      expect(
+        state.buffs.find((b) => b.buffId === 'field-dressing'),
+      ).toBeUndefined()
+    })
+
+    it('manual HURT buff reduces own HP', async () => {
+      const { owner } = await setupRunningGame()
+
+      await abilitiesService.applyBuffToSelf(
+        owner.state.code,
+        'attack-survivor',
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+      expect(ownerPlayer.health).toBe(2)
+      expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
+    })
+
+    it('unknown or empty manual buff id is rejected', async () => {
+      const { owner } = await setupRunningGame()
+
+      await expect(
+        abilitiesService.applyBuffToSelf(
+          owner.state.code,
+          'no-such-buff',
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('BUFF_NOT_FOUND')
+
+      await expect(
+        abilitiesService.applyBuffToSelf(
+          owner.state.code,
+          '   ',
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('BUFF_ID_REQUIRED')
+    })
+
+    it('dead survivor cannot apply a buff manually', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Kill the owner (medic has 3 HP).
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+
+      await expect(
+        abilitiesService.applyBuffToSelf(
+          owner.state.code,
+          'free-run',
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('PLAYER_NOT_ACTIVE')
+    })
   })
 
   describe('Quests', () => {

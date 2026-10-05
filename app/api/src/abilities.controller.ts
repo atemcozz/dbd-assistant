@@ -40,4 +40,27 @@ export class AbilitiesController {
 
     return state
   }
+
+  // Manual self-application by typed buff id (instructed during play).
+  @Post('games/:code/buffs/self')
+  async applySelfBuff(
+    @Param('code') code: string,
+    @Headers('x-session-token') sessionToken: string,
+    @Body('buffId') buffId?: string,
+  ) {
+    await this.abilitiesService.applyBuffToSelf(
+      code,
+      buffId ?? '',
+      sessionToken,
+    )
+
+    const state = await this.gamesService.getState(
+      code,
+      sessionToken,
+    )
+
+    await this.gameGateway.broadcastGameState(state.id)
+
+    return state
+  }
 }

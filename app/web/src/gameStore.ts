@@ -167,6 +167,7 @@ type GameStore = {
   completeQuest: (questId: string) => Promise<void>
   escapeThroughExit: (exitDefinitionId: string) => Promise<void>
   useAbility: (abilityId: string, targetPlayerId?: string) => Promise<void>
+  applySelfBuff: (buffId: string) => Promise<void>
   updateSettings: (durationSeconds: number, requiredQuestPoints: number) => Promise<void>
   sendChat: (text: string) => Promise<void>
   connectRealtime: () => void
@@ -209,8 +210,8 @@ function saveSession(session: Session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 }
 
-// Player-facing messages for ability error codes returned by the backend.
-const ABILITY_ERROR_MESSAGES: Record<string, string> = {
+// Player-facing messages for error codes returned by the backend.
+const ACTION_ERROR_MESSAGES: Record<string, string> = {
   ABILITY_NOT_AVAILABLE: 'Абилка недоступна',
   ABILITY_ON_COOLDOWN: 'Абилка ещё перезаряжается',
   ABILITY_NO_CHARGES: 'Закончились заряды абилки',
@@ -222,6 +223,9 @@ const ABILITY_ERROR_MESSAGES: Record<string, string> = {
   TARGET_CANNOT_TAKE_DAMAGE: 'Эту цель нельзя ранить',
   PLAYER_NOT_ACTIVE: 'Ты не можешь действовать',
   GAME_NOT_RUNNING: 'Игра ещё не началась',
+  BUFF_ID_REQUIRED: 'Введи id баффа',
+  BUFF_NOT_FOUND: 'Бафф не найден',
+  INVALID_BUFF_ACTION: 'Этот бафф нельзя применить вручную',
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -434,7 +438,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Backend returns error codes; show a player-facing message for the
       // common ability failures instead of the raw code.
       const message = error instanceof Error ? error.message : 'Не удалось использовать абилку'
-      set({ error: ABILITY_ERROR_MESSAGES[message] ?? message })
+      set({ error: ACTION_ERROR_MESSAGES[message] ?? message })
+    }
+  },
+
+  applySelfBuff: async (buffId) => {
+    const { session } = get()
+    if (!session) return
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/buffs/self`, { method: 'POST', body: JSON.stringify({ buffId }) }, session.sessionToken)
+      set({ state, error: null })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось применить бафф'
+      set({ error: ACTION_ERROR_MESSAGES[message] ?? message })
     }
   },
 
