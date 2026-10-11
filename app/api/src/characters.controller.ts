@@ -5,6 +5,7 @@ import {
   Headers,
   Param,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common'
 import { PlayerRole } from '@prisma/client'
@@ -61,6 +62,26 @@ export class CharactersController {
       playerId,
       sessionToken,
       characterTypeId,
+    )
+
+    const state = await this.gamesService.getState(
+      game.code,
+      sessionToken,
+    )
+
+    await this.gameGateway.broadcastGameState(game.id)
+
+    return state
+  }
+
+  @Post('games/:code/roll-survivors')
+  async rollSurvivors(
+    @Param('code') code: string,
+    @Headers('x-session-token') sessionToken: string,
+  ) {
+    const game = await this.charactersService.rollSurvivors(
+      code,
+      sessionToken,
     )
 
     const state = await this.gamesService.getState(

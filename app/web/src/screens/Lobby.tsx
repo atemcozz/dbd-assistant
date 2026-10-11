@@ -1,4 +1,4 @@
-import { Copy, LogOut, Settings, Swords, Users } from 'lucide-react'
+import { Copy, Dices, LogOut, Settings, Swords, Users } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -39,6 +39,7 @@ export function Lobby() {
   const selectQuests = useGameStore((store) => store.selectQuests)
   const selectExits = useGameStore((store) => store.selectExits)
   const startGame = useGameStore((store) => store.startGame)
+  const rollSurvivors = useGameStore((store) => store.rollSurvivors)
   const updateSettings = useGameStore((store) => store.updateSettings)
 
   const [copyLabel, setCopyLabel] = useState('Скопировать код')
@@ -293,6 +294,20 @@ export function Lobby() {
             )}
           </TabsList>
           <TabsContent value="players" className="mt-5">
+            {isOwner && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Случайные выжившие для всех, кроме тебя. Типы не повторяются, пока хватает.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => void rollSurvivors()}
+                >
+                  <Dices className="size-4" />
+                  Ролл выживших
+                </Button>
+              </div>
+            )}
             <section className="flex flex-col gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {state.players.map((player) => (
                 <PlayerCard

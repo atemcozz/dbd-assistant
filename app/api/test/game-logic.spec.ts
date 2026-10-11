@@ -746,6 +746,74 @@ describe('Game logic', () => {
     })
   })
 
+  describe('Roll survivors', () => {
+    it('assigns random survivors to everyone except the owner', async () => {
+      // Second survivor type so the no-repeat rule can be observed.
+      await prisma.characterType.upsert({
+        where: { id: 'scout-test' },
+        update: {},
+        create: {
+          id: 'scout-test',
+          role: PlayerRole.SURVIVOR,
+          name: 'Scout',
+          description: 'Test scout.',
+          maxHealth: 3,
+        },
+      })
+
+      const owner = await createGameWithOwner()
+      await joinSurvivor(owner.state.code, 'A')
+      const b = await joinSurvivor(owner.state.code, 'B')
+
+      // B starts as a killer — the roll must convert them too.
+      await charactersService.assignRole(
+        owner.state.code,
+        b.playerId,
+        owner.sessionToken,
+        PlayerRole.KILLER,
+      )
+
+      await charactersService.rollSurvivors(
+        owner.state.code,
+        owner.sessionToken,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const others = state.players.filter((p) => p.id !== owner.playerId)
+      expect(others).toHaveLength(2)
+
+      for (const player of others) {
+        expect(player.role).toBe(PlayerRole.SURVIVOR)
+        expect(player.characterTypeId).not.toBeNull()
+        expect(player.health).not.toBeNull()
+        expect(player.status).toBe(PlayerStatus.ALIVE)
+      }
+
+      // Two players, two types — no repeats while supply lasts.
+      const types = others.map((p) => p.characterTypeId)
+      expect(new Set(types).size).toBe(2)
+
+      // Owner is untouched.
+      const me = state.players.find((p) => p.id === owner.playerId)!
+      expect(me.characterTypeId).toBeNull()
+    })
+
+    it('non-owner cannot roll survivors', async () => {
+      const owner = await createGameWithOwner()
+      const other = await joinSurvivor(owner.state.code, 'Other')
+
+      await expect(
+        charactersService.rollSurvivors(
+          owner.state.code,
+          other.sessionToken,
+        ),
+      ).rejects.toThrow('NOT_GAME_OWNER')
+    })
+  })
+
   describe('Abilities and buffs', () => {
     it('heal restores HP but cannot exceed maxHealth', async () => {
       const { owner, survivor } = await setupRunningGame()
@@ -2560,10 +2628,44 @@ describe('Game logic', () => {
       expect(joiner.state.code).toBe(owner.state.code)
     })
 
+    it('join auto-assigns a random free survivor character', async () => {
+      const owner = await createGameWithOwner()
+      const first = await joinSurvivor(owner.state.code, 'First')
+      const second = await joinSurvivor(owner.state.code, 'Second')
+
+      // Test DB has two survivor types (medic, scout-test).
+      const firstPlayer = first.state.players.find((p) => p.id === first.playerId)!
+      const secondPlayer = second.state.players.find((p) => p.id === second.playerId)!
+
+      expect(firstPlayer.role).toBe(PlayerRole.SURVIVOR)
+      expect(firstPlayer.characterTypeId).not.toBeNull()
+      expect(firstPlayer.health).not.toBeNull()
+
+      // Second joiner gets the other free type — no repeats while supply lasts.
+      expect(secondPlayer.characterTypeId).not.toBeNull()
+      expect(secondPlayer.characterTypeId).not.toBe(firstPlayer.characterTypeId)
+
+      // Owner is untouched.
+      const me = first.state.players.find((p) => p.id === owner.playerId)!
+      expect(me.characterTypeId).toBeNull()
+    })
+
+    it('join repeats a character when every survivor type is taken', async () => {
+      const owner = await createGameWithOwner()
+      await joinSurvivor(owner.state.code, 'First')
+      await joinSurvivor(owner.state.code, 'Second')
+
+      // Only two survivor types exist — the third joiner must repeat one.
+      const third = await joinSurvivor(owner.state.code, 'Third')
+      const thirdPlayer = third.state.players.find((p) => p.id === third.playerId)!
+      expect(thirdPlayer.role).toBe(PlayerRole.SURVIVOR)
+      expect(thirdPlayer.characterTypeId).not.toBeNull()
+    })
+
     it('game requires all players to have characters before starting', async () => {
       const owner = await createGameWithOwner()
-      // Second player joins but is never assigned a character.
-      await joinSurvivor(owner.state.code, 'Player2')
+      // Second player joins (auto-assigned a character on join)...
+      const player2 = await joinSurvivor(owner.state.code, 'Player2')
 
       // Assign owner a character but not the other player.
       await charactersService.assignRole(
@@ -2577,6 +2679,15 @@ describe('Game logic', () => {
         owner.playerId,
         owner.sessionToken,
         'medic',
+      )
+
+      // ...then the auto-assigned character is cleared to simulate
+      // an unassigned player (assignRole wipes character and abilities).
+      await charactersService.assignRole(
+        owner.state.code,
+        player2.playerId,
+        owner.sessionToken,
+        PlayerRole.SURVIVOR,
       )
 
       // Starting should fail — the other player has no character.

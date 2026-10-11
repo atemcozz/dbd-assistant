@@ -12,6 +12,7 @@ import {
 import { randomBytes } from 'node:crypto'
 import { PrismaService } from './prisma.service'
 import { AbilitiesService } from './abilities.service'
+import { CharactersService } from './characters.service'
 import { INVINCIBILITY_BUFF_ID } from './combat.service'
 import type {
   CharacterAbilityInfo,
@@ -56,6 +57,7 @@ export class GamesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly abilitiesService: AbilitiesService,
+    private readonly charactersService: CharactersService,
   ) {}
 
   async createGame(
@@ -136,6 +138,11 @@ export class GamesService {
         health: null,
       },
     })
+
+    // New joiners start with a random free survivor character, so the
+    // lobby is playable with zero setup. Skipped silently when no
+    // survivor types exist (the owner then assigns manually).
+    await this.charactersService.assignRandomSurvivor(game.id, player.id)
 
     const state = await this.getState(code, sessionToken)
 

@@ -204,6 +204,7 @@ type GameStore = {
   refreshState: () => Promise<void>
   assignRole: (playerId: string, role: Role) => Promise<void>
   assignCharacter: (playerId: string, characterTypeId: string) => Promise<void>
+  rollSurvivors: () => Promise<void>
   selectQuests: (questDefinitionIds: string[]) => Promise<void>
   selectExits: (exitDefinitionIds: string[]) => Promise<void>
   startGame: () => Promise<void>
@@ -266,6 +267,7 @@ const ACTION_ERROR_MESSAGES: Record<string, string> = {
   QUEST_BLOCKED: 'Квест заблокирован маньяком — дождись окончания блокировки',
   ONLY_KILLERS_CAN_BLOCK_QUESTS: 'Только маньяк может блокировать квесты',
   INVALID_ABILITY_CONFIG: 'Недопустимая настройка абилки',
+  NO_SURVIVOR_CHARACTERS: 'Нет персонажей выживших',
   ABILITY_TARGET_REQUIRED: 'Выбери цель',
   INVALID_ABILITY_TARGET: 'Недопустимая цель',
   INVALID_ABILITY_TARGETS: 'Недопустимая цель',
@@ -372,6 +374,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ state })
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Could not assign character' })
+    }
+  },
+
+  rollSurvivors: async () => {
+    const { session } = get()
+    if (!session) return
+    set({ error: null })
+    try {
+      const state = await request<LobbyState>(`/games/${session.gameCode}/roll-survivors`, {
+        method: 'POST',
+      }, session.sessionToken)
+      set({ state })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not roll survivors'
+      set({ error: ACTION_ERROR_MESSAGES[message] ?? message })
     }
   },
 
