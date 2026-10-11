@@ -31,6 +31,7 @@ export class AbilitiesService {
       abilityId: item.abilityId,
       name: item.ability.name,
       description: item.ability.description,
+      type: item.ability.type,
       cooldown: item.ability.cooldown,
       lastUsedAt: item.lastUsedAt,
       chargesRemaining: item.chargesRemaining,
@@ -109,6 +110,12 @@ export class AbilitiesService {
 
     if (!owned) {
       throw new NotFoundException('ABILITY_NOT_AVAILABLE')
+    }
+
+    // Passive abilities are display-only traits — they cannot be applied
+    // to anyone, not even the owner.
+    if (owned.ability.type === 'PASSIVE') {
+      throw new ConflictException('ABILITY_IS_PASSIVE')
     }
 
     if (owned.lastUsedAt) {

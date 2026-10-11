@@ -17,8 +17,10 @@ export type CharacterAbilityInfo = {
   abilityId: string
   name: string
   description: string
+  // ACTIVE = usable action, PASSIVE = display-only trait.
+  type: 'ACTIVE' | 'PASSIVE'
   // Effective buff duration in seconds (ability override ?? buff default).
-  // null for instantaneous (HEAL/HURT) or permanent buffs.
+  // null for instantaneous (HEAL/HURT), permanent buffs, and passives.
   duration: number | null
   cooldown: number
   // Configured starting use count for this character (null = unlimited).
@@ -90,6 +92,8 @@ export type PlayerAbility = {
   abilityId: string
   name: string
   description: string
+  // ACTIVE = usable action, PASSIVE = display-only trait (never usable).
+  type: 'ACTIVE' | 'PASSIVE'
   // Cooldown in seconds before this ability can be used again.
   cooldown: number
   // When the player last used this ability (null if never).
@@ -220,6 +224,7 @@ const ACTION_ERROR_MESSAGES: Record<string, string> = {
   ABILITY_NOT_AVAILABLE: 'Абилка недоступна',
   ABILITY_ON_COOLDOWN: 'Абилка ещё перезаряжается',
   ABILITY_NO_CHARGES: 'Закончились заряды абилки',
+  ABILITY_IS_PASSIVE: 'Это пассивная способность — её нельзя использовать',
   ABILITY_TARGET_REQUIRED: 'Выбери цель',
   INVALID_ABILITY_TARGET: 'Недопустимая цель',
   INVALID_ABILITY_TARGETS: 'Недопустимая цель',

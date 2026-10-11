@@ -10,8 +10,10 @@ export type CharacterAbilityInfo = {
   abilityId: string
   name: string
   description: string
+  // ACTIVE = usable action, PASSIVE = display-only trait.
+  type: string
   // Effective buff duration in seconds (ability override ?? buff default).
-  // null for instantaneous (HEAL/HURT) or permanent buffs.
+  // null for instantaneous (HEAL/HURT), permanent buffs, and passives.
   duration: number | null
   cooldown: number
   // Configured starting use count for this character (null = unlimited).
@@ -88,6 +90,8 @@ export type PlayerAbilityView = {
   abilityId: string
   name: string
   description: string
+  // ACTIVE = usable action, PASSIVE = display-only trait (never usable).
+  type: string
   // Cooldown in seconds before this ability can be used again.
   cooldown: number
   // When the player last used this ability (null if never).
@@ -140,7 +144,7 @@ export type LobbyState = {
   players: LobbyPlayer[]
   quests: GameQuestView[]
   chatMessages: ChatMessageView[]
-  // Abilities the viewer owns (usable, with cooldown).
+  // Abilities the viewer owns (active usable ones plus passive traits).
   abilities: PlayerAbilityView[]
   // Buffs currently applied to the viewer (timed and permanent).
   buffs: PlayerBuffView[]

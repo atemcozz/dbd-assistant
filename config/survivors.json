@@ -45,10 +45,9 @@
     "maxHealth": 3,
     "abilities": [
       { "abilityId": "self-attack" },
-      { "abilityId": "killer-breath" }
+      { "abilityId": "killer-breath" },
+      { "abilityId": "free-run" }
     ],
-    "startingBuffs": [
-      { "buffId": "free-run", "duration": null }
-    ]
+    "startingBuffs": []
   }
 ]

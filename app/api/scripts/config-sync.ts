@@ -18,9 +18,11 @@ type AbilityConfig = {
   id: string
   name: string
   description: string
-  cooldown: number
-  allowedTargets: string[]
-  buffs: { buffId: string; duration: number | null }[]
+  // ACTIVE = usable action; PASSIVE = display-only trait (name + description).
+  type: 'ACTIVE' | 'PASSIVE'
+  cooldown?: number
+  allowedTargets?: string[]
+  buffs?: { buffId: string; duration: number | null }[]
 }
 
 type BuffConfig = {
@@ -57,6 +59,7 @@ const VALID_TARGETS = new Set([
   'ALL_SURVIVORS',
 ])
 const VALID_BUFF_ACTIONS = new Set(['HEAL', 'HURT', 'INFO'])
+const VALID_ABILITY_TYPES = new Set(['ACTIVE', 'PASSIVE'])
 
 // Duration override rule: explicit number, or null to inherit
 // (buff.defaultDuration — itself null for permanent buffs).
@@ -130,6 +133,27 @@ async function main() {
         `Ability missing required fields: ${JSON.stringify(ability)}`,
       )
     }
+    if (!VALID_ABILITY_TYPES.has(ability.type)) {
+      throw new Error(
+        `Ability ${ability.id} has unknown type ${ability.type}`,
+      )
+    }
+
+    // Passive abilities are display-only traits — name + description.
+    // They carry no cooldown, targets, or buffs and can never be used.
+    if (ability.type === 'PASSIVE') {
+      if (
+        ability.cooldown !== undefined ||
+        ability.allowedTargets !== undefined ||
+        ability.buffs !== undefined
+      ) {
+        throw new Error(
+          `Passive ability ${ability.id} must only define name and description`,
+        )
+      }
+      continue
+    }
+
     if (
       typeof ability.cooldown !== 'number' ||
       ability.cooldown < 0
@@ -183,11 +207,23 @@ async function main() {
 
       const ability = abilitiesJson.find((a) => a.id === item.abilityId)!
 
+      // Passive abilities are always-on traits — a use count is meaningless.
+      if (
+        ability.type === 'PASSIVE' &&
+        item.count !== undefined &&
+        item.count !== null
+      ) {
+        throw new Error(
+          `Character ${character.id} passive ability ${item.abilityId} must not define count`,
+        )
+      }
+
       // Killers must never own killer-targeting abilities (stun-killer,
       // killer-breath) — otherwise one killer could stun another killer.
       if (
+        ability.type === 'ACTIVE' &&
         character.role === 'KILLER' &&
-        ability.allowedTargets.includes('KILLER')
+        ability.allowedTargets!.includes('KILLER')
       ) {
         throw new Error(
           `Killer ${character.id} references killer-targeting ability ${item.abilityId}`,
@@ -197,8 +233,9 @@ async function main() {
       // Group abilities (ALL_SURVIVORS) are killer-only by server rule —
       // linking one to a survivor would just make it unusable.
       if (
+        ability.type === 'ACTIVE' &&
         character.role === 'SURVIVOR' &&
-        ability.allowedTargets.includes('ALL_SURVIVORS')
+        ability.allowedTargets!.includes('ALL_SURVIVORS')
       ) {
         throw new Error(
           `Survivor ${character.id} references killer-only group ability ${item.abilityId}`,
@@ -259,32 +296,45 @@ async function main() {
       abilitiesJson.map((ability) =>
         prisma.abilityDefinition.upsert({
           where: { id: ability.id },
+          // Passive abilities carry no cooldown, targets, or buff links —
+          // store neutral values so readers never have to branch on nulls.
           create: {
             id: ability.id,
             name: ability.name,
             description: ability.description,
-            cooldown: ability.cooldown,
-            allowedTargets: JSON.stringify(ability.allowedTargets),
+            type: ability.type,
+            cooldown: ability.type === 'ACTIVE' ? ability.cooldown! : 0,
+            allowedTargets: JSON.stringify(
+              ability.type === 'ACTIVE' ? ability.allowedTargets! : [],
+            ),
           },
           update: {
             name: ability.name,
             description: ability.description,
-            cooldown: ability.cooldown,
-            allowedTargets: JSON.stringify(ability.allowedTargets),
+            type: ability.type,
+            cooldown: ability.type === 'ACTIVE' ? ability.cooldown! : 0,
+            allowedTargets: JSON.stringify(
+              ability.type === 'ACTIVE' ? ability.allowedTargets! : [],
+            ),
           },
         }),
       ),
     )
 
     // Replace each ability's buff links so the DB matches the JSON exactly.
+    // Passive abilities inflict no buffs — their links are just cleared.
     for (const ability of abilitiesJson) {
       await prisma.$transaction(async (tx) => {
         await tx.abilityBuff.deleteMany({
           where: { abilityId: ability.id },
         })
 
+        if (ability.type !== 'ACTIVE') {
+          return
+        }
+
         await tx.abilityBuff.createMany({
-          data: ability.buffs.map((link) => ({
+          data: ability.buffs!.map((link) => ({
             abilityId: ability.id,
             buffId: link.buffId,
             duration: link.duration,

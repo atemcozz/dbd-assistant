@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import type { LobbyPlayer, PlayerAbility, PlayerBuff } from '@/gameStore'
 
-// Effects tab panel — shows the viewer's abilities (usable, with cooldown),
-// active buffs with time remaining, and permanent character buffs.
+// Effects tab panel — shows the viewer's active abilities (usable, with
+// cooldown), passive abilities (display-only traits), active buffs with time
+// remaining, and permanent buffs.
 export function EffectsSection({
   abilities,
   buffs,
@@ -33,6 +34,14 @@ export function EffectsSection({
 }) {
   // Typed buff id for manual self-application (instructed during play).
   const [buffIdInput, setBuffIdInput] = useState('')
+  // Active abilities — usable actions with cooldowns and targets.
+  const activeAbilities = abilities.filter(
+    (ability) => ability.type === 'ACTIVE',
+  )
+  // Passive abilities — display-only character traits, never usable.
+  const passiveAbilities = abilities.filter(
+    (ability) => ability.type === 'PASSIVE',
+  )
   // Timed buffs currently affecting the player (with live countdowns).
   const timedBuffs = buffs.filter(
     (buff) =>
@@ -64,7 +73,7 @@ export function EffectsSection({
         </Card>
       )}
 
-      {/* Abilities the player can use. */}
+      {/* Active abilities the player can use. */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -76,12 +85,12 @@ export function EffectsSection({
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          {abilities.length === 0 ? (
+          {activeAbilities.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Абилки не назначены
             </p>
           ) : (
-            abilities.map((ability) => (
+            activeAbilities.map((ability) => (
               <AbilityCard
                 key={ability.id}
                 ability={ability}
@@ -93,6 +102,35 @@ export function EffectsSection({
           )}
         </CardContent>
       </Card>
+
+      {/* Passive abilities — character traits, name + description only. */}
+      {passiveAbilities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="size-5" />
+              Пассивные способности
+            </CardTitle>
+            <CardDescription>
+              Постоянные особенности персонажа. Их нельзя использовать —
+              они действуют сами.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {passiveAbilities.map((ability) => (
+              <div
+                key={ability.id}
+                className="rounded-md border border-border p-3"
+              >
+                <p className="text-sm font-medium">{ability.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {ability.description}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Manual self-application by buff id — instructed use only. */}
       <Card>
@@ -138,10 +176,10 @@ export function EffectsSection({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Info className="size-5" />
-              Пассивные
+              Постоянные эффекты
             </CardTitle>
             <CardDescription>
-              Постоянные характеристики персонажа
+              Эффекты, действующие на тебя постоянно
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">

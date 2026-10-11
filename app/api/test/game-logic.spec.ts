@@ -167,6 +167,7 @@ describe('Game logic', () => {
         id: 'field-dressing',
         name: 'Field Dressing',
         description: 'Restore 1 HP.',
+        type: 'ACTIVE',
         cooldown: 0,
         allowedTargets: JSON.stringify(['SELF', 'SURVIVOR']),
       },
@@ -180,6 +181,7 @@ describe('Game logic', () => {
         id: 'attack-survivor',
         name: 'Attack Survivor',
         description: 'Attack one survivor. Removes 1 HP.',
+        type: 'ACTIVE',
         cooldown: 5,
         allowedTargets: JSON.stringify(['SURVIVOR']),
       },
@@ -193,6 +195,7 @@ describe('Game logic', () => {
         id: 'stay-still',
         name: 'Stay Still',
         description: "Don't move for 30 seconds.",
+        type: 'ACTIVE',
         cooldown: 20,
         allowedTargets: JSON.stringify(['SURVIVOR']),
       },
@@ -206,6 +209,7 @@ describe('Game logic', () => {
         id: 'quick-stun',
         name: 'Quick Stun',
         description: "Don't move for 5 seconds.",
+        type: 'ACTIVE',
         cooldown: 0,
         allowedTargets: JSON.stringify(['SURVIVOR']),
       },
@@ -219,8 +223,23 @@ describe('Game logic', () => {
         id: 'field-stay',
         name: 'Field Dressing + Stay Still',
         description: 'Restore 1 HP and stun yourself briefly.',
+        type: 'ACTIVE',
         cooldown: 0,
         allowedTargets: JSON.stringify(['SELF', 'SURVIVOR']),
+      },
+    })
+
+    // Passive ability — display-only trait, no cooldown/targets/buffs.
+    await prisma.abilityDefinition.upsert({
+      where: { id: 'iron-skin' },
+      update: {},
+      create: {
+        id: 'iron-skin',
+        name: 'Iron Skin',
+        description: 'Takes one less damage.',
+        type: 'PASSIVE',
+        cooldown: 0,
+        allowedTargets: JSON.stringify([]),
       },
     })
 
@@ -295,6 +314,17 @@ describe('Game logic', () => {
       },
       update: {},
       create: { characterTypeId: 'medic', abilityId: 'field-stay' },
+    })
+    // Link medic → iron-skin passive trait (no buff links, no count).
+    await prisma.characterAbility.upsert({
+      where: {
+        characterTypeId_abilityId: {
+          characterTypeId: 'medic',
+          abilityId: 'iron-skin',
+        },
+      },
+      update: {},
+      create: { characterTypeId: 'medic', abilityId: 'iron-skin' },
     })
 
     // Link stalker → attack-survivor, stay-still and quick-stun.
@@ -889,6 +919,49 @@ describe('Game logic', () => {
         (a) => a.abilityId === 'field-dressing',
       )!
       expect(ability.chargesRemaining).toBeNull()
+    })
+
+    it('passive ability is listed with its type but cannot be used', async () => {
+      const { owner } = await setupRunningGame()
+
+      // Medic owns the iron-skin passive trait alongside active abilities.
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const passive = state.abilities.find((a) => a.abilityId === 'iron-skin')!
+      expect(passive).toBeDefined()
+      expect(passive.type).toBe('PASSIVE')
+      expect(passive.allowedTargets).toEqual([])
+
+      const active = state.abilities.find(
+        (a) => a.abilityId === 'field-dressing',
+      )!
+      expect(active.type).toBe('ACTIVE')
+
+      // Using a passive is rejected — nothing is applied to anyone.
+      await expect(
+        abilitiesService.use(
+          owner.state.code,
+          'iron-skin',
+          undefined,
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('ABILITY_IS_PASSIVE')
+
+      await expect(
+        abilitiesService.use(
+          owner.state.code,
+          'iron-skin',
+          owner.playerId,
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('ABILITY_IS_PASSIVE')
+
+      const rows = await prisma.activeBuff.findMany({
+        where: { targetPlayerId: owner.playerId },
+      })
+      expect(rows).toHaveLength(0)
     })
 
     it('manual self-application creates a permanent buff with a normalized id', async () => {

@@ -201,13 +201,17 @@ model BuffDefinition {
 
 // Reusable ability definition — an activatable action a player can use.
 // Config source of truth: config/abilities.json.
+// type is ACTIVE (usable, inflicts buffs) or PASSIVE (display-only character
+// trait: name + description, no cooldown/targets/buffs, cannot be used).
 model AbilityDefinition {
   id             String @id
   name           String
   description    String
-  // Cooldown in seconds between uses.
+  type           String @default("ACTIVE")
+  // Cooldown in seconds between uses (0 for passive abilities).
   cooldown       Int
   // JSON array of allowed target types: SELF | SURVIVOR | KILLER | ALL_SURVIVORS.
+  // Empty array for passive abilities.
   allowedTargets String
   buffs             AbilityBuff[]
   characterAbilities CharacterAbility[]

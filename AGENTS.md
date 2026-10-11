@@ -251,9 +251,7 @@ Example:
   "abilities": [
     { "abilityId": "field-dressing", "count": 3 }
   ],
-  "startingBuffs": [
-    { "buffId": "free-run", "duration": null }
-  ]
+  "startingBuffs": []
 }
 ```
 
@@ -379,9 +377,18 @@ Ability definitions roughly contain:
 * `id`
 * `name`
 * `description`
-* `cooldown`
-* `allowedTargets`
-* `buffs` — list of `{ buffId, duration }`
+* `type` — `ACTIVE` (usable action) or `PASSIVE` (display-only trait)
+* `cooldown` (active only)
+* `allowedTargets` (active only)
+* `buffs` — list of `{ buffId, duration }` (active only)
+
+A passive ability defines only `id`, `name`, `description`, and `type`.
+It has no cooldown, targets, or buffs, is shown in a separate UI category,
+and can never be applied to anyone — the server rejects its use with
+`ABILITY_IS_PASSIVE`. Use passive abilities for always-on character traits
+instead of permanent starting buffs. Keep `startingBuffs` for buffs a
+character genuinely starts the game with (e.g. a temporary buff active
+from game start).
 
 Buff definitions roughly contain:
 
@@ -419,9 +426,21 @@ Example ability:
   "id": "field-dressing",
   "name": "Перевязка",
   "description": "Выбери себя или другого выжившего и восстанови 1 HP.",
+  "type": "ACTIVE",
   "cooldown": 30,
   "allowedTargets": ["SELF", "SURVIVOR"],
   "buffs": [{ "buffId": "field-dressing", "duration": null }]
+}
+```
+
+Example passive ability:
+
+```json
+{
+  "id": "free-run",
+  "name": "Свободный бег",
+  "description": "Тебе разрешено бегать без ограничений.",
+  "type": "PASSIVE"
 }
 ```
 
@@ -467,6 +486,7 @@ Frontend visibility is only a usability feature, not authorization.
 When an ability is used, the server should validate:
 
 * source player has the ability;
+* ability is active (passive abilities are never usable);
 * source has charges remaining (when the ability is limited);
 * target is valid;
 * game state allows the action;
@@ -702,6 +722,7 @@ Important tests include:
 * heal cannot exceed maxHealth;
 * invalid target is rejected;
 * an ability applies all of its buffs;
+* a passive ability is listed but rejected when used;
 * permanent starting buff is listed (expiresAt null);
 * limited ability count is consumed and rejected when exhausted;
 * manual self-application normalizes the buff id and respects the buff's default duration (null = permanent);

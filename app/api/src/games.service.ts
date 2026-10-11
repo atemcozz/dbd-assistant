@@ -328,6 +328,7 @@ export class GamesService {
                 abilityId: ca.abilityId,
                 name: ca.ability.name,
                 description: ca.ability.description,
+                type: ca.ability.type,
                 duration: link
                   ? (link.duration ?? link.buff.defaultDuration)
                   : null,
