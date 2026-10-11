@@ -119,6 +119,15 @@ export function Home() {
           </CardContent>
         </Card>
       </div>
+      {/* Inconspicuous admin diagnostics entry — plain text, bottom corner. */}
+      <div className="mx-auto max-w-6xl px-1 py-6 text-right">
+        <a
+          href="?debug"
+          className="font-mono text-[11px] text-muted-foreground/40 hover:text-muted-foreground"
+        >
+          debug
+        </a>
+      </div>
     </main>
   )
 }

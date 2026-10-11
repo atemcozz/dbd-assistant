@@ -49,6 +49,10 @@ npm run config:sync
 
 The database file can be inspected/edited with any SQLite tool.
 
+If a player's client misbehaves during a live game, open the site with
+`?debug` (admin diagnostics: connection facts, API ping, localStorage
+session repair).
+
 ## Game flow
 
 1. **Create** a game room — you become the owner (a survivor by default)

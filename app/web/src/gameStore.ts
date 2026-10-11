@@ -5,9 +5,9 @@ import { io, type Socket } from 'socket.io-client'
 // arg), otherwise the same host as the opened page on the default API
 // port. The hostname fallback makes LAN/docker usage work without a
 // rebuild (players open the site via the server's IP).
-const API_URL =
+export const API_URL =
   import.meta.env.VITE_API_URL
-const SESSION_KEY = 'dbd-assistant-session'
+export const SESSION_KEY = 'dbd-assistant-session'
 
 export type Role = 'SURVIVOR' | 'KILLER'
 export type PlayerStatus = 'ALIVE' | 'DEAD' | 'DISCONNECTED' | 'ESCAPED'
@@ -179,6 +179,7 @@ export type GameExit = {
 }
 
 type Session = { gameCode: string; playerId: string; sessionToken: string }
+export type { Session }
 
 type GameStore = {
   session: Session | null

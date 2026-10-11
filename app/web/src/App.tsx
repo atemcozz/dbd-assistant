@@ -3,7 +3,17 @@ import { LoadingScreen } from '@/components/shared/LoadingScreen'
 import { GameScreen } from '@/screens/GameScreen'
 import { Home } from '@/screens/Home'
 import { Lobby } from '@/screens/Lobby'
+import { DebugPanel } from '@/screens/DebugPanel'
 import { useGameStore } from '@/gameStore'
+
+// Admin diagnostics (?debug or #debug) render standalone, without waiting
+// for session restore — the point is debugging broken clients.
+function isDebugMode() {
+  return (
+    new URLSearchParams(window.location.search).has('debug') ||
+    window.location.hash === '#debug'
+  )
+}
 
 // App root — restores session on mount, connects Socket.IO when a session
 // exists, then routes to the correct screen based on game status.
@@ -29,6 +39,7 @@ export default function App() {
     return disconnectRealtime
   }, [connectRealtime, disconnectRealtime, session])
 
+  if (isDebugMode()) return <DebugPanel />
   if (!isReady) return <LoadingScreen />
   if (state && session && (state.status === 'RUNNING' || state.status === 'FINISHED')) {
     return <GameScreen />
