@@ -90,18 +90,18 @@ export function QuestPanel({
             : 'border-warning/60 bg-warning/10',
         )}
       >
-        <div>
+        <div className="pr-4">
           <p className="text-xs font-semibold uppercase tracking-[.16em] text-muted-foreground">
             Очки квестов
           </p>
           <p
             className={cn(
-              'font-display text-2xl font-bold tabular-nums',
+              'font-display text-2xl font-bold tabular-nums text-nowrap',
               hasEnoughPoints ? 'text-success' : 'text-warning',
             )}
           >
             {totalPoints}
-            <span className="text-muted-foreground"> / {requiredQuestPoints}</span>
+            <span className="text-muted-foreground">/{requiredQuestPoints}</span>
           </p>
         </div>
         <Badge
@@ -130,7 +130,7 @@ export function QuestPanel({
               Выбранные квесты
             </h2>
           </div>
-          <Badge variant="secondary">{quests.length} выбрано</Badge>
+          <Badge className='text-nowrap' variant="secondary">{quests.length} выбрано</Badge>
         </div>
         {quests.length === 0 ? (
           <Card>
@@ -297,12 +297,12 @@ function QuestDefinitionCard({
         selected && 'border-primary/60 bg-primary/5',
       )}
     >
-      <div className="flex items-center gap-3 p-4">
+      <div className="flex items-center gap-3 p-2 sm:p-4">
         <div className="grid size-10 shrink-0 place-items-center rounded-md bg-muted text-primary">
           <Icon className="size-5" />
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{definition.name}</p>
+        <div className="min-w-0 flex-1 flex flex-col gap-1">
+          <p className="truncate font-medium text-sm text-wrap">{definition.name}</p>
           <div className="flex flex-wrap gap-1">
             {/* <Badge variant="outline">{definition.type}</Badge> */}
             <Badge variant="default">{definition.cost} очков</Badge>

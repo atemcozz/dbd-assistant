@@ -48,10 +48,10 @@ export function GameQuests({
           <div>
             <CardTitle>Квесты</CardTitle>
             <CardDescription>
-              {pointsProgress} очков · {completedCount}/{totalCount} завершено
+              {completedCount} завершено
             </CardDescription>
           </div>
-          <Badge variant="secondary">
+          <Badge variant="secondary" className="text-nowrap">
             {pointsProgress} очков
           </Badge>
         </div>

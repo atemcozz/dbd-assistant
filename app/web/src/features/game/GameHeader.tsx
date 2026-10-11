@@ -22,7 +22,7 @@ export function GameHeader({
     <header className="sticky top-0 z-20 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:-mx-8 sm:px-8 lg:-mx-16 lg:px-16">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-lg font-semibold text-foreground">
+          <p className="truncate font-display text-sm sm:text-lg font-semibold text-foreground">
             {state.name}
           </p>
           <p className="text-xs text-muted-foreground">

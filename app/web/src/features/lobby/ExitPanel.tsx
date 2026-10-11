@@ -1,4 +1,5 @@
-import { DoorOpen, Plus } from 'lucide-react'
+import { ChevronDown, ChevronUp, DoorOpen, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -121,6 +122,7 @@ function ExitDefinitionCard({
   selected: boolean
   onToggle: (id: string) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
   return (
     <Card
       className={cn(
@@ -133,10 +135,7 @@ function ExitDefinitionCard({
           <DoorOpen className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{definition.name}</p>
-          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-            {definition.description}
-          </p>
+          <p className="truncate font-medium text-wrap text-sm">{definition.name}</p>
         </div>
         <Button
           type="button"
@@ -154,7 +153,26 @@ function ExitDefinitionCard({
             <Plus className="size-4" />
           )}
         </Button>
+        <Button
+          type="button"
+          aria-label={
+            expanded ? `Свернуть выход ${definition.name}` : `Развернуть выход ${definition.name}`
+          }
+          onClick={() => setExpanded((value) => !value)}
+          size="icon"
+          variant="ghost"
+          title={expanded ? 'Свернуть' : 'Развернуть'}
+        >
+          {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+        </Button>
       </div>
+      {expanded && (
+        <CardContent className="border-t border-border bg-muted/30 pt-4">
+          <p className="text-sm leading-6 text-muted-foreground">
+            {definition.description}
+          </p>
+        </CardContent>
+      )}
     </Card>
   )
 }
