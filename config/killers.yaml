@@ -1,4 +1,4 @@
-- id: king-of-spades
+- id: king
   role: KILLER
   name: Король Пик
   description: "Контролирует территорию: останавливает выживших и меняет их расположение."
@@ -12,12 +12,14 @@
     - abilityId: decoy
     - abilityId: seal-quest
   startingBuffs: []
-- id: doctor
+
+- id: mask
   role: KILLER
-  name: Доктор
+  name: Маска
   description: "Навязывает короткие неприятные процедуры: вскрытие позиции и
     принудительные паузы."
   maxHealth: null
+  coverImage: killers/mask.jpg
   abilities:
     - abilityId: force-shout
     - abilityId: silent-step
@@ -25,11 +27,13 @@
     - abilityId: lockdown
     - abilityId: toll
   startingBuffs: []
-- id: puppet-master
+
+- id: nobody
   role: KILLER
-  name: Кукловод
+  name: Никто
   description: Связывает выживших друг с другом и заставляет их выполнять команды в паре.
   maxHealth: null
+  coverImage: killers/nobody.jpg
   abilities:
     - abilityId: forced-room
     - abilityId: no-turning
@@ -37,11 +41,41 @@
     - abilityId: pair-up
     - abilityId: courier
   startingBuffs: []
+
+
 - id: ronin
   role: KILLER
   name: Ронин
   description: "Быстрое давление: групповые остановки и короткие ложные сигналы."
   maxHealth: null
+  coverImage: killers/ronin.jpg
+  abilities:
+    - abilityId: stay-still
+    - abilityId: group-command
+    - abilityId: lockdown
+    - abilityId: decoy
+  startingBuffs: []
+
+
+- id: trapper
+  role: KILLER
+  name: Траппер
+  description: "Быстрое давление: групповые остановки и короткие ложные сигналы."
+  maxHealth: null
+  coverImage: killers/trapper.jpg
+  abilities:
+    - abilityId: stay-still
+    - abilityId: group-command
+    - abilityId: lockdown
+    - abilityId: decoy
+  startingBuffs: []
+
+- id: twins
+  role: KILLER
+  name: Близнецы
+  description: "Быстрое давление: групповые остановки и короткие ложные сигналы."
+  maxHealth: null
+  coverImage: killers/twins.jpg
   abilities:
     - abilityId: stay-still
     - abilityId: group-command

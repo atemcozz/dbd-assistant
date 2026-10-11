@@ -98,29 +98,32 @@ export function Lobby() {
   // Debounce timer for auto-saving settings.
   const settingsSaveTimer = useRef<number | null>(null)
 
-  // Load character types once when the lobby mounts.
+  // Reload character types every time the lobby mounts — config may have
+  // changed (and been re-synced) between games in the same tab. A stale
+  // list would show removed characters, and assigning one fails with
+  // INVALID_CHARACTER_TYPE.
   useEffect(() => {
-    if (characterTypes.length > 0) return
     void loadCharacterTypes()
       .then((types) => useGameStore.setState({ characterTypes: types }))
       .catch(() => undefined)
-  }, [characterTypes.length])
+  }, [])
 
-  // Owner loads quest definitions once — needed for the selection panel.
+  // Owner loads quest definitions on every lobby mount, for the same
+  // staleness reason as character types above.
   useEffect(() => {
-    if (!isOwner || questDefinitions.length > 0) return
+    if (!isOwner) return
     void loadQuestDefinitions()
       .then((definitions) => useGameStore.setState({ questDefinitions: definitions }))
       .catch(() => undefined)
-  }, [isOwner, questDefinitions.length])
+  }, [isOwner])
 
-  // Owner loads exit definitions once — needed for the exit selection panel.
+  // Owner loads exit definitions on every lobby mount, same reason.
   useEffect(() => {
-    if (!isOwner || exitDefinitions.length > 0) return
+    if (!isOwner) return
     void loadExitDefinitions()
       .then((definitions) => useGameStore.setState({ exitDefinitions: definitions }))
       .catch(() => undefined)
-  }, [isOwner, exitDefinitions.length])
+  }, [isOwner])
 
   // Keep local selected IDs in sync when server state changes (e.g. another tab).
   useEffect(() => {

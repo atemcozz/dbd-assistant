@@ -83,6 +83,11 @@ function validateDuration(
 async function main() {
   // Game content lives in YAML under config/ — validated here, then
   // upserted into SQLite (the runtime source of truth).
+  // Print resolved locations first: sync writes exactly one DB file, and
+  // a stale server or a second environment (e.g. docker's /data/game.db)
+  // silently reading another file is the classic "sync did nothing" bug.
+  console.log(`Config: ${configPath}`)
+
   const readConfig = async <T>(name: string): Promise<T> =>
     parseYaml(await readFile(resolve(configPath, `${name}.yaml`), 'utf8')) as T
 
@@ -332,6 +337,13 @@ async function main() {
   }
 
   const prisma = new PrismaClient()
+
+  // The actual SQLite file, resolved the same way the app resolves it —
+  // not the raw URL string, which may be relative.
+  const dbList = (await prisma.$queryRaw`
+    SELECT file FROM pragma_database_list WHERE name = 'main'
+  `) as { file: string }[]
+  console.log(`Database: ${dbList[0]?.file ?? '(unknown)'}`)
 
   try {
     await Promise.all(

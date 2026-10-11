@@ -43,14 +43,14 @@
   type: PUZZLE
   radius: null
   cost: 130
-  killerCharacterTypeId: king-of-spades
+  killerCharacterTypeId: king
 - id: king-spades-throne
   name: Трон Короля
   description: Найди комнату, где спрятан знак Короля Пик. Запомни число рядом со знаком.
   type: EXPLORATION
   radius: null
   cost: 110
-  killerCharacterTypeId: king-of-spades
+  killerCharacterTypeId: king
 - id: doctor-prescription
   name: Рецепт Доктора
   description: Найди лист с тремя медицинскими символами. Определи правильный
@@ -58,7 +58,7 @@
   type: PUZZLE
   radius: null
   cost: 130
-  killerCharacterTypeId: doctor
+  killerCharacterTypeId: mask
 - id: doctor-cabinet
   name: Кабинет Доктора
   description: Найди отмеченный медицинский кабинет и отыщи там спрятанную
@@ -66,7 +66,7 @@
   type: EXPLORATION
   radius: null
   cost: 110
-  killerCharacterTypeId: doctor
+  killerCharacterTypeId: mask
 - id: puppet-strings
   name: Нити Кукловода
   description: Найди три места, где Кукловод оставил бумажные нити. Соедини
@@ -74,14 +74,14 @@
   type: PUZZLE
   radius: null
   cost: 130
-  killerCharacterTypeId: puppet-master
+  killerCharacterTypeId: nobody
 - id: puppet-room
   name: Комната Кукловода
   description: Найди комнату с кукольным символом и запомни слово, написанное рядом.
   type: EXPLORATION
   radius: null
   cost: 110
-  killerCharacterTypeId: puppet-master
+  killerCharacterTypeId: nobody
 - id: ronin-mark
   name: Знак Ронина
   description: Найди бумажный знак Ронина на одном из этажей. Запиши цифру под ним.

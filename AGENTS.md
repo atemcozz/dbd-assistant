@@ -760,7 +760,8 @@ Manual recovery is an important project requirement.
 A developer should be able to inspect and repair:
 
 * `config/*.yaml`
-* `data/game.db`
+* the SQLite file (host dev: `app/api/prisma/data/game.db` per `app/api/.env`;
+  docker uses `/data/game.db` via the `./data` bind mount instead)
 * logs
 
 Example recovery workflow:
@@ -770,6 +771,13 @@ edit YAML
 npm run config:sync
 restart app
 ```
+
+Adding characters (or any content) is the same flow: edit YAML, sync,
+restart the server, reload the browser tab. The lobby reloads its
+character/quest/exit definitions on every mount, so a plain reload is
+enough — no rebuild needed. `config:sync` prints the config dir and the
+exact database file it writes; if the app doesn't reflect the sync,
+check that the running server reads that same file (host vs docker).
 
 SQLite should remain inspectable/editable manually when necessary.
 
