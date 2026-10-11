@@ -70,6 +70,19 @@ curl http://localhost:3000/health
 # => {"status":"ok"}
 ```
 
+## Serving behind a subpath
+
+The frontend build uses relative asset URLs, so one build works under any
+path or domain — the reverse proxy owns path mapping. It must strip its
+prefix when proxying to the web container (trailing slash matters —
+without it, assets resolve as HTML and the app won't boot):
+
+```nginx
+location /dbdassistant/ {
+    proxy_pass http://<docker-host>:3333/;
+}
+```
+
 ## Verification
 
 ```sh

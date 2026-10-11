@@ -36,7 +36,6 @@ export function GameQuests({
   const completedCount = quests.filter(
     (quest) => quest.status === 'COMPLETED',
   ).length
-  const totalCount = quests.length
 
   // Progress toward the exit requirement — e.g. "400/500 points".
   const pointsProgress = `${Math.min(completedQuestPoints, requiredQuestPoints)}/${requiredQuestPoints}`
