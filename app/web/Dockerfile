@@ -13,8 +13,10 @@ RUN npm ci --workspace=@dbd-assistant/web \
 COPY app/web ./app/web
 WORKDIR /app/app/web
 
-# Optional: absolute API URL baked into the build. When empty the app
-# falls back to http://<page hostname>:3000 at runtime (LAN-friendly).
+# Required: absolute API URL baked into the build (e.g. the LAN address
+# or public URL players use to reach the API). The build fails without
+# it — an empty value would silently send all API and socket.io traffic
+# to the page origin instead. Pass via compose (root .env) or --build-arg.
 ARG VITE_API_URL=
 ENV VITE_API_URL=${VITE_API_URL}
 

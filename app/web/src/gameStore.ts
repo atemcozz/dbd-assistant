@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { io, type Socket } from 'socket.io-client'
 
-// API base URL — VITE_API_URL when set (e.g. .env file or docker build
-// arg), otherwise the same host as the opened page on the default API
-// port. The hostname fallback makes LAN/docker usage work without a
-// rebuild (players open the site via the server's IP).
+// API base URL — baked in at build time from VITE_API_URL (required;
+// the build fails without it, because an empty value silently redirects
+// all API and socket.io traffic to the page origin). Absolute, so the
+// app works under any page path or domain.
 export const API_URL =
   import.meta.env.VITE_API_URL
 export const SESSION_KEY = 'dbd-assistant-session'
