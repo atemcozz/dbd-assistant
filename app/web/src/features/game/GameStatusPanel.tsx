@@ -1,4 +1,5 @@
-import { Skull, Users } from 'lucide-react'
+import { ChevronDown, ChevronUp, Skull, Users } from 'lucide-react'
+import { useState } from 'react'
 import {
   Card,
   CardContent,
@@ -123,6 +124,8 @@ function CharacterIntelCard({
   const character = target.characterType
   const abilities: CharacterAbilityInfo[] = character?.abilities ?? []
   const startingBuffs: CharacterStartBuffInfo[] = character?.startingBuffs ?? []
+  // Abilities list starts expanded; collapsible to keep long kits compact.
+  const [abilitiesExpanded, setAbilitiesExpanded] = useState(true)
 
   return (
     <div
@@ -168,9 +171,22 @@ function CharacterIntelCard({
       {/* Read-only list of the character's abilities and permanent buffs. */}
       {(abilities.length > 0 || startingBuffs.length > 0) && (
         <div className="relative mt-3">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Абилки персонажа
-          </p>
+          <button
+            type="button"
+            aria-label={abilitiesExpanded ? 'Свернуть абилки' : 'Раскрыть абилки'}
+            onClick={() => setAbilitiesExpanded((value) => !value)}
+            className="flex w-full items-center justify-between gap-2"
+          >
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Абилки персонажа
+            </p>
+            {abilitiesExpanded ? (
+              <ChevronUp className="size-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="size-4 text-muted-foreground" />
+            )}
+          </button>
+          {abilitiesExpanded && (
           <ul className="mt-2 grid gap-2">
             {abilities.map((ability) => (
               <li
@@ -215,6 +231,7 @@ function CharacterIntelCard({
               </li>
             ))}
           </ul>
+          )}
         </div>
       )}
     </div>

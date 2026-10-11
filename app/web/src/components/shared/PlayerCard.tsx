@@ -1,4 +1,5 @@
-import { Shield, Skull } from 'lucide-react'
+import { ChevronDown, ChevronUp, Shield, Skull } from 'lucide-react'
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import {
   Card,
@@ -44,6 +45,8 @@ export function PlayerCard({
   const character = player.characterType
   const abilities = character?.abilities ?? []
   const startingBuffs = character?.startingBuffs ?? []
+  // Abilities list starts expanded; collapsible to keep long kits compact.
+  const [abilitiesExpanded, setAbilitiesExpanded] = useState(true)
 
   return (
     <Card className="relative overflow-hidden">
@@ -120,9 +123,22 @@ export function PlayerCard({
             </p>
             {(abilities.length > 0 || startingBuffs.length > 0) && (
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Абилки
-                </p>
+                <button
+                  type="button"
+                  aria-label={abilitiesExpanded ? 'Свернуть абилки' : 'Раскрыть абилки'}
+                  onClick={() => setAbilitiesExpanded((value) => !value)}
+                  className="flex w-full items-center justify-between gap-2"
+                >
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Абилки
+                  </p>
+                  {abilitiesExpanded ? (
+                    <ChevronUp className="size-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="size-4 text-muted-foreground" />
+                  )}
+                </button>
+                {abilitiesExpanded && (
                 <ul className="mt-2 grid gap-2">
                   {abilities.map((ability) => (
                     <li
@@ -167,6 +183,7 @@ export function PlayerCard({
                     </li>
                   ))}
                 </ul>
+                )}
               </div>
             )}
           </div>
