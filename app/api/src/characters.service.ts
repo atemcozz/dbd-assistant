@@ -154,11 +154,16 @@ export class CharactersService {
     }
 
     // Copy abilities and starting buffs to the player, set health from
-    // maxHealth, and drop selected killer quests whose type this player
-    // no longer plays.
+    // maxHealth, drop selected killer quests whose type this player no
+    // longer plays, and auto-select this killer type's quests so the
+    // owner doesn't forget them.
     await this.prisma.$transaction(async (tx) => {
       await this.applyCharacterKit(tx, player.id, character)
       await this.removeOrphanKillerQuests(tx, game.id)
+
+      if (character.role === PlayerRole.KILLER) {
+        await this.addKillerQuests(tx, game.id, character.id)
+      }
     })
 
     return game
@@ -372,6 +377,48 @@ export class CharactersService {
         })
       }
     }
+  }
+
+  // After assigning a killer character, auto-select that type's quests
+  // so the owner doesn't forget them. Only missing ones are added,
+  // appended after existing numbers — manual deselection of other
+  // quests is never touched.
+  private async addKillerQuests(
+    tx: Prisma.TransactionClient,
+    gameId: string,
+    killerTypeId: string,
+  ) {
+    const existing = await tx.gameQuest.findMany({
+      where: { gameId },
+      select: { questDefinitionId: true, number: true },
+    })
+    const existingIds = new Set(
+      existing.map((quest) => quest.questDefinitionId),
+    )
+
+    const defs = await tx.questDefinition.findMany({
+      where: { killerCharacterTypeId: killerTypeId },
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    })
+    const missing = defs.filter((def) => !existingIds.has(def.id))
+
+    if (missing.length === 0) {
+      return
+    }
+
+    const nextNumber = existing.reduce(
+      (max, quest) => Math.max(max, quest.number),
+      0,
+    )
+
+    await tx.gameQuest.createMany({
+      data: missing.map((def, index) => ({
+        gameId,
+        questDefinitionId: def.id,
+        number: nextNumber + index + 1,
+      })),
+    })
   }
 
   private async getOwnedLobby(

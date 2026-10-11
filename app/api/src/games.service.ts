@@ -90,6 +90,21 @@ export class GamesService {
         },
       })
 
+      // Auto-select all exits so the owner doesn't forget them.
+      // Deselecting individual exits stays possible in the lobby.
+      const exitDefs = await tx.exitDefinition.findMany({
+        select: { id: true },
+      })
+
+      if (exitDefs.length > 0) {
+        await tx.gameExit.createMany({
+          data: exitDefs.map((def) => ({
+            gameId: createdGame.id,
+            exitDefinitionId: def.id,
+          })),
+        })
+      }
+
       return tx.game.update({
         where: { id: createdGame.id },
         data: {
