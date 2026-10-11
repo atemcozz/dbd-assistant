@@ -81,6 +81,16 @@ without it, assets resolve as HTML and the app won't boot):
 location /dbdassistant/ {
     proxy_pass http://<docker-host>:3333/;
 }
+
+# The API (REST + socket.io) behind the same prefix. Websocket upgrade
+# headers are required — without them realtime stays on long-polling
+# (works, but heavier); REST is unaffected.
+location /dbdassistant/api/ {
+    proxy_pass http://<docker-host>:3000/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
 ```
 
 ## Verification

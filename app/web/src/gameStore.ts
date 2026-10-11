@@ -223,6 +223,18 @@ type GameStore = {
 }
 
 let realtimeSocket: Socket | null = null
+
+// Splits an absolute API URL into socket.io connection parts: the origin
+// plus the engine.io path. A URL path is a namespace to socket.io, so it
+// must travel via the `path` option instead of the connection URL.
+export function splitSocketAddress(apiUrl: string): {
+  origin: string
+  path: string
+} {
+  const url = new URL(apiUrl)
+  const basePath = url.pathname.replace(/\/+$/, '')
+  return { origin: url.origin, path: `${basePath}/socket.io/` }
+}
 let questMutationQueue = Promise.resolve()
 
 function readSession(): Session | null {
@@ -554,7 +566,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!session || realtimeSocket?.connected) return
     realtimeSocket?.disconnect()
     set({ connectionStatus: 'connecting' })
-    realtimeSocket = io(API_URL, {
+    // socket.io treats a path in the connection URL as a namespace, not
+    // the engine path — so split API_URL into origin + engine path here.
+    // Root-path URLs (local dev, LAN) yield the default '/socket.io/';
+    // subpath URLs (edge proxy) yield e.g. '/dbdassistant/api/socket.io/'.
+    const { origin, path } = splitSocketAddress(API_URL)
+    realtimeSocket = io(origin, {
+      path,
       auth: { sessionToken: session.sessionToken },
       transports: ['websocket', 'polling'],
     })

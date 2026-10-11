@@ -637,6 +637,11 @@ Use Socket.IO directly through NestJS.
 
 Do not create a custom realtime abstraction.
 
+The client connects to the API origin with the engine path derived from
+the API URL subpath (`API_URL` + `/socket.io/`) — a path in the
+connection URL would be treated as a namespace, not the engine path,
+so the two are passed separately. Namespace stays `/`.
+
 Useful rooms:
 
 ```text
