@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { CharacterCover } from '@/components/shared/CharacterCover'
 import { HealthDisplay } from '@/components/shared/HealthDisplay'
 import type { CharacterAbilityInfo, CharacterStartBuffInfo, LobbyPlayer } from '@/gameStore'
 
@@ -127,11 +128,12 @@ function CharacterIntelCard({
     <div
       className={
         variant === 'killer'
-          ? 'rounded-md border border-destructive/30 bg-destructive/5 p-4'
-          : 'rounded-md border border-primary/30 bg-primary/5 p-4'
+          ? 'relative overflow-hidden rounded-md border border-destructive/30 bg-destructive/5 p-4'
+          : 'relative overflow-hidden rounded-md border border-primary/30 bg-primary/5 p-4'
       }
     >
-      <div className="flex items-start justify-between gap-3">
+      <CharacterCover coverImage={character?.coverImage ?? null} />
+      <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-display text-lg font-semibold">
@@ -165,7 +167,7 @@ function CharacterIntelCard({
 
       {/* Read-only list of the character's abilities and permanent buffs. */}
       {(abilities.length > 0 || startingBuffs.length > 0) && (
-        <div className="mt-3">
+        <div className="relative mt-3">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
             Абилки персонажа
           </p>

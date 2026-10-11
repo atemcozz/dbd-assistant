@@ -151,6 +151,9 @@ model CharacterType {
   name          String
   description   String
   maxHealth     Int?
+  // Cover art path relative to config/images/ (e.g. killers/king.jpg).
+  // Null = no cover. Served by the API under /static/images/.
+  coverImage    String?
   players       Player[]
   killerQuests  QuestDefinition[]
   characterAbilities   CharacterAbility[]

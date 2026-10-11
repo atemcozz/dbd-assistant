@@ -40,6 +40,8 @@ export type CharacterType = {
   name: string
   description: string
   maxHealth: number | null
+  // Cover art path relative to config/images/ (null = no cover).
+  coverImage: string | null
   // Abilities and permanent starting buffs this character type has.
   // Only present in game state (getState), not in the lobby character-types list.
   // Used to show killers their abilities in the survivor's game status view.

@@ -716,6 +716,36 @@ describe('Game logic', () => {
     })
   })
 
+  describe('Character covers', () => {
+    it('coverImage flows into the character list and game state', async () => {
+      await prisma.characterType.update({
+        where: { id: 'medic' },
+        data: { coverImage: 'survivors/doc.jpg' },
+      })
+
+      const list = await charactersService.list()
+      expect(
+        list.find((character) => character.id === 'medic')!.coverImage,
+      ).toBe('survivors/doc.jpg')
+      expect(
+        list.find((character) => character.id === 'stalker')!.coverImage,
+      ).toBeNull()
+
+      const { owner } = await setupRunningGame()
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const me = state.players.find((p) => p.id === owner.playerId)!
+      expect(me.characterType!.coverImage).toBe('survivors/doc.jpg')
+
+      await prisma.characterType.update({
+        where: { id: 'medic' },
+        data: { coverImage: null },
+      })
+    })
+  })
+
   describe('Abilities and buffs', () => {
     it('heal restores HP but cannot exceed maxHealth', async () => {
       const { owner, survivor } = await setupRunningGame()

@@ -49,6 +49,9 @@ export type LobbyPlayer = {
     name: string
     description: string
     maxHealth: number | null
+    // Cover art path relative to config/images/ (null = no cover).
+    // Served by the API under /static/images/.
+    coverImage: string | null
     // Abilities and permanent starting buffs this character type has
     // (from CharacterAbility + AbilityDefinition, CharacterStartBuff + BuffDefinition).
     // Used to show killers their abilities in the survivor's game status view.

@@ -1,5 +1,6 @@
+import { existsSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { resolve, sep } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { PrismaClient } from '@prisma/client'
 
@@ -9,6 +10,9 @@ type CharacterConfig = {
   name: string
   description: string
   maxHealth: number | null
+  // Cover art path relative to config/images/ (e.g. killers/king.jpg).
+  // Null/absent = no cover. Served by the API under /static/images/.
+  coverImage?: string | null
   // count is the optional starting use count for this ability
   // (integer >= 1); absent = unlimited uses.
   abilities: { abilityId: string; count?: number | null }[]
@@ -211,6 +215,33 @@ async function main() {
   }
 
   for (const character of charactersJson) {
+    // Cover art must stay inside config/images/ and point at a real file.
+    if (
+      character.coverImage !== undefined &&
+      character.coverImage !== null
+    ) {
+      const imagesDir = resolve(configPath, 'images')
+      const resolved = resolve(imagesDir, character.coverImage)
+
+      if (
+        character.coverImage.length === 0 ||
+        !resolved.startsWith(imagesDir + sep) ||
+        !existsSync(resolved)
+      ) {
+        throw new Error(
+          `Character ${character.id} references unknown cover image ${character.coverImage}`,
+        )
+      }
+
+      const sizeBytes = statSync(resolved).size
+
+      if (sizeBytes > 500 * 1024) {
+        console.warn(
+          `Cover ${character.coverImage} is ${Math.round(sizeBytes / 1024)} KB — phones on LAN load it on every view, keep covers small (JPEG/WebP, ~800 px).`,
+        )
+      }
+    }
+
     for (const item of character.abilities) {
       if (!abilityIds.has(item.abilityId)) {
         throw new Error(
@@ -396,12 +427,14 @@ async function main() {
             name: character.name,
             description: character.description,
             maxHealth: character.maxHealth,
+            coverImage: character.coverImage ?? null,
           },
           update: {
             role: character.role,
             name: character.name,
             description: character.description,
             maxHealth: character.maxHealth,
+            coverImage: character.coverImage ?? null,
           },
         })
 

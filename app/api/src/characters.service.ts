@@ -40,6 +40,7 @@ export class CharactersService {
       name: character.name,
       description: character.description,
       maxHealth: character.maxHealth,
+      coverImage: character.coverImage,
       abilities: character.characterAbilities.map((ca) => {
         const link = ca.ability.buffs[0]
         return {

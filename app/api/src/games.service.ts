@@ -350,6 +350,7 @@ export class GamesService {
           name: player.characterType.name,
           description: player.characterType.description,
           maxHealth: player.characterType.maxHealth,
+          coverImage: player.characterType.coverImage,
           // Flatten abilities and starting buffs into read-only summaries.
           // duration = effective first-buff length (ability override ?? default)
           // so the frontend can show the same badges as before.

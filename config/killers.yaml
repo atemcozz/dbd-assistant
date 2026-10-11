@@ -3,6 +3,7 @@
   name: Король Пик
   description: "Контролирует территорию: останавливает выживших и меняет их расположение."
   maxHealth: null
+  coverImage: killers/king.jpg
   abilities:
     - abilityId: stay-still
     - abilityId: forced-room

@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { CharacterCover } from '@/components/shared/CharacterCover'
 import {
   Select,
   SelectContent,
@@ -45,8 +46,9 @@ export function PlayerCard({
   const startingBuffs = character?.startingBuffs ?? []
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-start gap-3 space-y-0">
+    <Card className="relative overflow-hidden">
+      <CharacterCover coverImage={character?.coverImage ?? null} />
+      <CardHeader className="relative flex-row items-start gap-3 space-y-0">
         <div
           className={cn(
             'grid size-10 shrink-0 place-items-center rounded-full',
@@ -71,7 +73,7 @@ export function PlayerCard({
           <Badge className="ml-auto shrink-0">К бою готов</Badge>
         )}
       </CardHeader>
-      <CardContent className="grid gap-4">
+      <CardContent className="relative grid gap-4">
         {isOwner && (
           <div className="grid gap-4">
             <div className="grid gap-2">

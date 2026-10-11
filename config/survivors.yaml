@@ -3,6 +3,7 @@
   name: Медик
   description: Помогает команде восстанавливать здоровье.
   maxHealth: 4
+  coverImage: survivors/doc.jpg
   abilities:
     - abilityId: field-dressing
       count: 3

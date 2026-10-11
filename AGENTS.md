@@ -238,6 +238,11 @@ A character type roughly contains:
 * `maxHealth`
 * `abilities`
 * `startingBuffs`
+* `coverImage` — optional art path relative to `config/images/`
+  (e.g. `killers/king.jpg`), served by the API under `/static/images/`.
+  Null/absent = no cover; cards render a background cover with a
+  readability gradient when present. Keep files small (JPEG/WebP,
+  portrait, ~800 px, well under 500 KB) — phones load them over LAN.
 
 Example:
 
