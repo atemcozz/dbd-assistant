@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import type { LobbyPlayer, PlayerAbility, PlayerBuff } from '@/gameStore'
+import type { GameQuest, LobbyPlayer, PlayerAbility, PlayerBuff } from '@/gameStore'
 
 // Effects tab panel — shows the viewer's active abilities (usable, with
 // cooldown), passive abilities (display-only traits), active buffs with time
@@ -21,6 +21,7 @@ export function EffectsSection({
   abilities,
   buffs,
   players,
+  quests,
   currentPlayerId,
   onUse,
   onApplyBuff,
@@ -28,8 +29,9 @@ export function EffectsSection({
   abilities: PlayerAbility[]
   buffs: PlayerBuff[]
   players: LobbyPlayer[]
+  quests: GameQuest[]
   currentPlayerId: string
-  onUse: (abilityId: string, targetPlayerId?: string) => void
+  onUse: (abilityId: string, targetPlayerId?: string, targetQuestNumber?: number) => void
   onApplyBuff: (buffId: string) => void
 }) {
   // Typed buff id for manual self-application (instructed during play).
@@ -95,6 +97,7 @@ export function EffectsSection({
                 key={ability.id}
                 ability={ability}
                 players={players}
+                quests={quests}
                 currentPlayerId={currentPlayerId}
                 onUse={onUse}
               />
@@ -272,13 +275,15 @@ function ActiveBuffCard({ buff }: { buff: PlayerBuff }) {
 function AbilityCard({
   ability,
   players,
+  quests,
   currentPlayerId,
   onUse,
 }: {
   ability: PlayerAbility
   players: LobbyPlayer[]
+  quests: GameQuest[]
   currentPlayerId: string
-  onUse: (abilityId: string, targetPlayerId?: string) => void
+  onUse: (abilityId: string, targetPlayerId?: string, targetQuestNumber?: number) => void
 }) {
   // Compute cooldown state.
   const cooldownRemaining = getCooldownRemaining(ability)
@@ -286,6 +291,9 @@ function AbilityCard({
   const exhausted =
     ability.chargesRemaining !== null && ability.chargesRemaining <= 0
   const disabled = cooldownRemaining > 0 || exhausted
+
+  // Quest-blocking abilities pick a quest by its physical marker number.
+  const targetsQuest = ability.allowedTargets.includes('QUEST')
 
   // Decide whether this ability needs a target picker.
   const selfOnly =
@@ -301,7 +309,23 @@ function AbilityCard({
     currentPlayerId,
   )
 
+  // Only available quests can be blocked (completed ones are rejected).
+  // Blocked ones stay listed — re-blocking refreshes the timer.
+  const validQuests = quests.filter((quest) => quest.status === 'AVAILABLE')
+
   const needsTargetPicker = !selfOnly && !supportsAllSurvivors && validTargets.length > 0
+
+  if (targetsQuest) {
+    return (
+      <QuestAbilityRow
+        ability={ability}
+        validQuests={validQuests}
+        disabled={disabled || validQuests.length === 0}
+        cooldownRemaining={cooldownRemaining}
+        onUse={onUse}
+      />
+    )
+  }
 
   if (selfOnly) {
     return (
@@ -464,7 +488,7 @@ function AllSurvivorsAbilityRow({
   ability: PlayerAbility
   disabled: boolean
   cooldownRemaining: number
-  onUse: (abilityId: string, targetPlayerId?: string) => void
+  onUse: (abilityId: string, targetPlayerId?: string, targetQuestNumber?: number) => void
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3">
@@ -499,7 +523,7 @@ function TargetAbilityRow({
   validTargets: { id: string; label: string }[]
   disabled: boolean
   cooldownRemaining: number
-  onUse: (abilityId: string, targetPlayerId?: string) => void
+  onUse: (abilityId: string, targetPlayerId?: string, targetQuestNumber?: number) => void
 }) {
   const [selectedTarget, setSelectedTarget] = useState('')
 
@@ -528,6 +552,60 @@ function TargetAbilityRow({
         size="sm"
         disabled={!selectedTarget || disabled}
         onClick={() => onUse(ability.abilityId, selectedTarget)}
+      >
+        Использовать
+      </Button>
+    </div>
+  )
+}
+
+// Ability row that lets the killer pick a quest by its physical marker
+// number before blocking it. validQuests is pre-filtered to available
+// quests (completed ones are rejected by the server).
+function QuestAbilityRow({
+  ability,
+  validQuests,
+  disabled,
+  cooldownRemaining,
+  onUse,
+}: {
+  ability: PlayerAbility
+  validQuests: GameQuest[]
+  disabled: boolean
+  cooldownRemaining: number
+  onUse: (abilityId: string, targetPlayerId?: string, targetQuestNumber?: number) => void
+}) {
+  const [selectedQuest, setSelectedQuest] = useState('')
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3">
+      <div className="min-w-0 flex-1 basis-40">
+        <p className="text-sm font-medium">{ability.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {ability.description}
+        </p>
+        <AbilityBadges ability={ability} cooldownRemaining={cooldownRemaining} />
+      </div>
+      <Select value={selectedQuest} onValueChange={setSelectedQuest}>
+        <SelectTrigger className="w-full sm:w-36">
+          <SelectValue placeholder="Квест" />
+        </SelectTrigger>
+        <SelectContent>
+          {validQuests.map((quest) => (
+            <SelectItem key={quest.id} value={String(quest.number)}>
+              №{quest.number} · {quest.definition.name}
+              {quest.blockedUntil !== null &&
+              new Date(quest.blockedUntil).getTime() > Date.now()
+                ? ' (заблокирован)'
+                : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button
+        size="sm"
+        disabled={!selectedQuest || disabled}
+        onClick={() => onUse(ability.abilityId, undefined, Number(selectedQuest))}
       >
         Использовать
       </Button>

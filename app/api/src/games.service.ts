@@ -36,6 +36,7 @@ type QuestWithDefinition = {
   id: string
   number: number
   status: QuestStatus
+  blockedUntil: Date | null
   completedById: string | null
   completedAt: Date | null
   questDefinition: {
@@ -688,6 +689,7 @@ async getStateById(
         id: quest.id,
         number: quest.number,
         status: quest.status,
+        blockedUntil: quest.blockedUntil,
         completedBy: quest.completedById,
         completedAt: quest.completedAt,
         definition: {

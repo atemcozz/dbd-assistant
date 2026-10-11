@@ -74,6 +74,9 @@ model GameQuest {
   questDefinition   QuestDefinition @relation(fields: [questDefinitionId], references: [id])
   number            Int
   status            QuestStatus    @default(AVAILABLE)
+  // Killer quest block: quest cannot be completed while this is in the
+  // future. Null = not blocked. Compared lazily, no scheduler.
+  blockedUntil      DateTime?
   completedById String?
   completedBy   Player? @relation("QuestCompletedBy", fields: [completedById], references: [id])
   completedAt       DateTime?
@@ -210,9 +213,12 @@ model AbilityDefinition {
   type           String @default("ACTIVE")
   // Cooldown in seconds between uses (0 for passive abilities).
   cooldown       Int
-  // JSON array of allowed target types: SELF | SURVIVOR | KILLER | ALL_SURVIVORS.
+  // JSON array of allowed target types: SELF | SURVIVOR | KILLER | ALL_SURVIVORS | QUEST.
   // Empty array for passive abilities.
   allowedTargets String
+  // Quest-block length in seconds for QUEST-target abilities (fixed in
+  // config). Null for everything else.
+  blockDurationSeconds Int?
   buffs             AbilityBuff[]
   characterAbilities CharacterAbility[]
   playerAbilities    PlayerAbility[]

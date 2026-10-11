@@ -114,6 +114,20 @@ export type AppliedInstantEffect = {
   targetPlayerId: string
   targetPlayerName: string
 }
+// A quest block applied by an ability use. The use endpoint returns these
+// so the client can show a feedback modal — blocked quests also show a lock
+// badge with a countdown in the quest list.
+export type AppliedQuestBlock = {
+  questNumber: number
+  questName: string
+  blockedUntil: string
+}
+// What an ability use applied: instant player effects, quest blocks, or
+// nothing (pure INFO abilities surface through the buff list instead).
+export type AbilityUseResult = {
+  appliedEffects: AppliedInstantEffect[]
+  appliedQuestBlocks: AppliedQuestBlock[]
+}
 // A buff currently applied to the player (timed or permanent).
 export type PlayerBuff = {
   id: string
@@ -143,6 +157,9 @@ export type GameQuest = {
   id: string
   number: number
   status: 'AVAILABLE' | 'COMPLETED'
+  // Killer block expiry (ISO); null = not blocked. The client derives the
+  // remaining countdown from this timestamp.
+  blockedUntil: string | null
   completedBy: string | null
   completedAt: string | null
   definition: QuestDefinition
@@ -185,7 +202,7 @@ type GameStore = {
   attackPlayer: (playerId: string) => Promise<void>
   completeQuest: (questId: string) => Promise<void>
   escapeThroughExit: (exitDefinitionId: string) => Promise<void>
-  useAbility: (abilityId: string, targetPlayerId?: string) => Promise<AppliedInstantEffect[] | null>
+  useAbility: (abilityId: string, targetPlayerId?: string, targetQuestNumber?: number) => Promise<AbilityUseResult | null>
   applySelfBuff: (buffId: string) => Promise<string | null>
   updateSettings: (durationSeconds: number, requiredQuestPoints: number) => Promise<void>
   sendChat: (text: string) => Promise<void>
@@ -235,6 +252,11 @@ const ACTION_ERROR_MESSAGES: Record<string, string> = {
   ABILITY_ON_COOLDOWN: 'Абилка ещё перезаряжается',
   ABILITY_NO_CHARGES: 'Закончились заряды абилки',
   ABILITY_IS_PASSIVE: 'Это пассивная способность — её нельзя использовать',
+  QUEST_TARGET_REQUIRED: 'Выбери квест',
+  QUEST_NOT_FOUND: 'Квест не найден',
+  QUEST_BLOCKED: 'Квест заблокирован маньяком — дождись окончания блокировки',
+  ONLY_KILLERS_CAN_BLOCK_QUESTS: 'Только маньяк может блокировать квесты',
+  INVALID_ABILITY_CONFIG: 'Недопустимая настройка абилки',
   ABILITY_TARGET_REQUIRED: 'Выбери цель',
   INVALID_ABILITY_TARGET: 'Недопустимая цель',
   INVALID_ABILITY_TARGETS: 'Недопустимая цель',
@@ -447,15 +469,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  // Returns the instant effects applied by this use (empty when the
-  // ability only inflicted INFO buffs), or null when the use failed.
-  useAbility: async (abilityId, targetPlayerId) => {
+  // Returns what this use applied (instant effects and quest blocks),
+  // or null when the use failed.
+  useAbility: async (abilityId, targetPlayerId, targetQuestNumber) => {
     const { session } = get()
     if (!session) return null
     try {
-      const { state, appliedEffects } = await request<{ state: LobbyState; appliedEffects: AppliedInstantEffect[] }>(`/games/${session.gameCode}/abilities/${abilityId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId }) }, session.sessionToken)
+      const { state, appliedEffects, appliedQuestBlocks } = await request<{ state: LobbyState; appliedEffects: AppliedInstantEffect[]; appliedQuestBlocks: AppliedQuestBlock[] }>(`/games/${session.gameCode}/abilities/${abilityId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId, targetQuestNumber }) }, session.sessionToken)
       set({ state, error: null })
-      return appliedEffects
+      return { appliedEffects, appliedQuestBlocks }
     } catch (error) {
       // Backend returns error codes; show a player-facing message for the
       // common ability failures instead of the raw code.

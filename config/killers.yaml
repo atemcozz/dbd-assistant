@@ -9,6 +9,7 @@
     - abilityId: look-at-me
     - abilityId: swap-places
     - abilityId: decoy
+    - abilityId: seal-quest
   startingBuffs: []
 - id: doctor
   role: KILLER

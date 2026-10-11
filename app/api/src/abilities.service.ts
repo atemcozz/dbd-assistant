@@ -5,10 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { PlayerRole, PlayerStatus } from '@prisma/client'
+import { PlayerRole, PlayerStatus, Prisma, QuestStatus } from '@prisma/client'
 import { PrismaService } from './prisma.service'
 import type {
+  AbilityUseResult,
   AppliedInstantEffect,
+  AppliedQuestBlock,
   PlayerAbilityView,
   PlayerBuffView,
 } from './game.types'
@@ -75,7 +77,8 @@ export class AbilitiesService {
     abilityId: string,
     targetPlayerId: string | undefined,
     sessionToken: string,
-  ) {
+    targetQuestNumber?: number,
+  ): Promise<AbilityUseResult> {
     const code = codeInput.toUpperCase()
 
     const source = await this.prisma.player.findUnique({
@@ -139,6 +142,17 @@ export class AbilitiesService {
     const allowedTargets = this.parseTargets(
       owned.ability.allowedTargets,
     )
+
+    // Quest-blocking abilities lock a chosen game quest instead of
+    // touching players — a block is game-quest state, not a buff.
+    if (allowedTargets.includes('QUEST')) {
+      return {
+        appliedEffects: [],
+        appliedQuestBlocks: [
+          await this.blockQuest(source, owned, targetQuestNumber),
+        ],
+      }
+    }
 
     const targets = await this.findTargets(
       source.id,
@@ -259,25 +273,102 @@ export class AbilitiesService {
 
       // Consume one charge when the ability is limited. The where-guard
       // keeps chargesRemaining from going below zero if two uses race.
-      const updated = await tx.playerAbility.updateMany({
-        where: {
-          id: owned.id,
-          OR: [{ chargesRemaining: null }, { chargesRemaining: { gt: 0 } }],
-        },
-        data: {
-          lastUsedAt: now,
-          ...(owned.chargesRemaining !== null
-            ? { chargesRemaining: { decrement: 1 } }
-            : {}),
-        },
-      })
-
-      if (updated.count === 0) {
-        throw new ConflictException('ABILITY_NO_CHARGES')
-      }
+      await this.consumeCharge(
+        tx,
+        owned.id,
+        owned.chargesRemaining !== null,
+        now,
+      )
     })
 
-    return appliedInstant
+    return { appliedEffects: appliedInstant, appliedQuestBlocks: [] }
+  }
+
+  // Locks the chosen game quest for the ability's configured duration.
+  // Re-blocking refreshes the timer (same as buff re-application).
+  private async blockQuest(
+    source: { id: string; role: PlayerRole; gameId: string },
+    owned: {
+      id: string
+      chargesRemaining: number | null
+      ability: { blockDurationSeconds: number | null }
+    },
+    targetQuestNumber: number | undefined,
+  ): Promise<AppliedQuestBlock> {
+    // Defense in depth: config validation and kit rules already restrict
+    // quest-blocking abilities to killers, but a hand-edited DB could not.
+    if (source.role !== PlayerRole.KILLER) {
+      throw new ForbiddenException('ONLY_KILLERS_CAN_BLOCK_QUESTS')
+    }
+
+    if (targetQuestNumber === undefined) {
+      throw new BadRequestException('QUEST_TARGET_REQUIRED')
+    }
+
+    const seconds = owned.ability.blockDurationSeconds
+
+    if (seconds === null) {
+      throw new ConflictException('INVALID_ABILITY_CONFIG')
+    }
+
+    const now = new Date()
+    const blockedUntil = new Date(now.getTime() + seconds * 1000)
+
+    return this.prisma.$transaction(async (tx) => {
+      const quest = await tx.gameQuest.findFirst({
+        where: { gameId: source.gameId, number: targetQuestNumber },
+        include: { questDefinition: true },
+      })
+
+      if (!quest) {
+        throw new NotFoundException('QUEST_NOT_FOUND')
+      }
+
+      if (quest.status !== QuestStatus.AVAILABLE) {
+        throw new ConflictException('QUEST_ALREADY_COMPLETED')
+      }
+
+      await tx.gameQuest.update({
+        where: { id: quest.id },
+        data: { blockedUntil },
+      })
+
+      await this.consumeCharge(
+        tx,
+        owned.id,
+        owned.chargesRemaining !== null,
+        now,
+      )
+
+      return {
+        questNumber: quest.number,
+        questName: quest.questDefinition.name,
+        blockedUntil,
+      }
+    })
+  }
+
+  // Shared cooldown/charge bookkeeping for every ability use path.
+  private async consumeCharge(
+    tx: Prisma.TransactionClient,
+    playerAbilityId: string,
+    isLimited: boolean,
+    now: Date,
+  ) {
+    const updated = await tx.playerAbility.updateMany({
+      where: {
+        id: playerAbilityId,
+        OR: [{ chargesRemaining: null }, { chargesRemaining: { gt: 0 } }],
+      },
+      data: {
+        lastUsedAt: now,
+        ...(isLimited ? { chargesRemaining: { decrement: 1 } } : {}),
+      },
+    })
+
+    if (updated.count === 0) {
+      throw new ConflictException('ABILITY_NO_CHARGES')
+    }
   }
 
   // Manual self-application: the player enters a buff id (as instructed

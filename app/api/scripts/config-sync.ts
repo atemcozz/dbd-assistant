@@ -24,6 +24,8 @@ type AbilityConfig = {
   cooldown?: number
   allowedTargets?: string[]
   buffs?: { buffId: string; duration: number | null }[]
+  // Quest-block length in seconds — only for QUEST-target abilities.
+  blockDurationSeconds?: number
 }
 
 type BuffConfig = {
@@ -58,6 +60,7 @@ const VALID_TARGETS = new Set([
   'SURVIVOR',
   'KILLER',
   'ALL_SURVIVORS',
+  'QUEST',
 ])
 const VALID_BUFF_ACTIONS = new Set(['HEAL', 'HURT', 'INFO'])
 const VALID_ABILITY_TYPES = new Set(['ACTIVE', 'PASSIVE'])
@@ -168,6 +171,32 @@ async function main() {
       }
     }
 
+    // Quest-blocking abilities lock a chosen quest instead of inflicting
+    // buffs — a block is game-quest state, not a buff on a player.
+    if (ability.allowedTargets.includes('QUEST')) {
+      if (ability.buffs !== undefined) {
+        throw new Error(
+          `Quest-blocking ability ${ability.id} must not inflict buffs`,
+        )
+      }
+      if (
+        typeof ability.blockDurationSeconds !== 'number' ||
+        !Number.isInteger(ability.blockDurationSeconds) ||
+        ability.blockDurationSeconds < 1
+      ) {
+        throw new Error(
+          `Quest-blocking ability ${ability.id} needs blockDurationSeconds >= 1`,
+        )
+      }
+      continue
+    }
+
+    if (ability.blockDurationSeconds !== undefined) {
+      throw new Error(
+        `Ability ${ability.id} defines blockDurationSeconds without a QUEST target`,
+      )
+    }
+
     if (!Array.isArray(ability.buffs) || ability.buffs.length === 0) {
       throw new Error(`Ability ${ability.id} must inflict at least one buff`)
     }
@@ -235,6 +264,17 @@ async function main() {
           `Survivor ${character.id} references killer-only group ability ${item.abilityId}`,
         )
       }
+
+      // Quest-blocking abilities are killer-only by server rule.
+      if (
+        ability.type === 'ACTIVE' &&
+        character.role === 'SURVIVOR' &&
+        ability.allowedTargets!.includes('QUEST')
+      ) {
+        throw new Error(
+          `Survivor ${character.id} references killer-only quest-blocking ability ${item.abilityId}`,
+        )
+      }
     }
 
     for (const item of character.startingBuffs ?? []) {
@@ -292,6 +332,7 @@ async function main() {
           where: { id: ability.id },
           // Passive abilities carry no cooldown, targets, or buff links —
           // store neutral values so readers never have to branch on nulls.
+          // Quest-blocking abilities carry a block duration instead of buffs.
           create: {
             id: ability.id,
             name: ability.name,
@@ -301,6 +342,7 @@ async function main() {
             allowedTargets: JSON.stringify(
               ability.type === 'ACTIVE' ? ability.allowedTargets! : [],
             ),
+            blockDurationSeconds: ability.blockDurationSeconds ?? null,
           },
           update: {
             name: ability.name,
@@ -310,20 +352,25 @@ async function main() {
             allowedTargets: JSON.stringify(
               ability.type === 'ACTIVE' ? ability.allowedTargets! : [],
             ),
+            blockDurationSeconds: ability.blockDurationSeconds ?? null,
           },
         }),
       ),
     )
 
-    // Replace each ability's buff links so the DB matches the JSON exactly.
-    // Passive abilities inflict no buffs — their links are just cleared.
+    // Replace each ability's buff links so the DB matches the YAML exactly.
+    // Passive and quest-blocking abilities inflict no buffs — their links
+    // are just cleared.
     for (const ability of abilitiesJson) {
       await prisma.$transaction(async (tx) => {
         await tx.abilityBuff.deleteMany({
           where: { abilityId: ability.id },
         })
 
-        if (ability.type !== 'ACTIVE') {
+        if (
+          ability.type !== 'ACTIVE' ||
+          ability.allowedTargets!.includes('QUEST')
+        ) {
           return
         }
 

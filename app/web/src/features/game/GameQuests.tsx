@@ -1,5 +1,5 @@
-import { Check, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { Check, ChevronDown, ChevronUp, Lock, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -95,13 +95,34 @@ function GameQuestCard({
 }) {
   const [expanded, setExpanded] = useState(false)
   const completed = quest.status === 'COMPLETED'
+  // Killer block countdown — ticks every second while a block is set so
+  // the badge and the button state stay accurate without a broadcast.
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (quest.blockedUntil === null) return
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [quest.blockedUntil])
+
+  const blockedRemaining =
+    quest.blockedUntil === null
+      ? 0
+      : Math.max(
+          0,
+          Math.ceil((new Date(quest.blockedUntil).getTime() - now) / 1000),
+        )
+  const blocked = blockedRemaining > 0
+
   return (
     <div
       className={cn(
         'rounded-md border p-3 transition-colors',
         completed
           ? 'border-primary/60 bg-primary/10'
-          : 'border-border bg-card',
+          : blocked
+            ? 'border-warning/40 bg-card'
+            : 'border-border bg-card',
       )}
     >
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -118,6 +139,15 @@ function GameQuestCard({
         <p className="min-w-0 flex-1 truncate text-sm font-medium">
           {quest.definition.name}
         </p>
+        {blocked && (
+          <Badge
+            variant="outline"
+            className="shrink-0 border-warning/40 text-xs text-warning"
+          >
+            <Lock className="mr-1 size-3" />
+            {blockedRemaining}с.
+          </Badge>
+        )}
         <Badge variant="secondary" className="shrink-0 text-xs hidden sm:flex">
           {quest.definition.cost} очков
         </Badge>
@@ -144,11 +174,22 @@ function GameQuestCard({
               {quest.definition.cost} очков
             </Badge>
           </div>
-          {isSurvivor && !completed && (
+          {isSurvivor && !completed && !blocked && (
             <Button onClick={() => onComplete(quest.id)} size="sm">
               <Check className="size-4" />
               Завершить квест
             </Button>
+          )}
+          {isSurvivor && !completed && blocked && (
+            <div className="grid gap-2">
+              <Button disabled size="sm">
+                <Lock className="size-4" />
+                Заблокирован · {blockedRemaining}с.
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Маньяк заблокировал этот квест. Дождись окончания блокировки.
+              </p>
+            </div>
           )}
           {completed && <Badge>Завершено</Badge>}
         </div>

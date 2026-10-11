@@ -112,12 +112,16 @@ export class QuestsService {
     if (game.status === GameStatus.LOBBY) {
       throw new ConflictException('GAME_NOT_RUNNING')
     }
-    // updateMany to avoid race conditions
+    // updateMany to avoid race conditions. The blocked condition closes the
+    // race with a killer blocking the quest at the same moment — a
+    // completion landing after the block simply does not match.
+    const now = new Date()
     const result = await this.prisma.gameQuest.updateMany({
       where: {
         id: questId,
         gameId: game.id,
         status: QuestStatus.AVAILABLE,
+        OR: [{ blockedUntil: null }, { blockedUntil: { lte: now } }],
       },
       data: {
         status: QuestStatus.COMPLETED,
@@ -127,6 +131,19 @@ export class QuestsService {
     })
 
     if (result.count === 0) {
+      // Read back to report the precise reason — blocked vs completed.
+      const quest = await this.prisma.gameQuest.findFirst({
+        where: { id: questId, gameId: game.id },
+      })
+
+      if (
+        quest &&
+        quest.blockedUntil !== null &&
+        quest.blockedUntil.getTime() > now.getTime()
+      ) {
+        throw new ConflictException('QUEST_BLOCKED')
+      }
+
       throw new ConflictException('QUEST_ALREADY_COMPLETED')
     }
 

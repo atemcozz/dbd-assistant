@@ -20,7 +20,7 @@ import { GamePlayers } from '@/features/game/GamePlayers'
 import { GameQuests } from '@/features/game/GameQuests'
 import { GameStatusPanel } from '@/features/game/GameStatusPanel'
 import { describeGameEnd, getRemainingSeconds } from '@/lib/format'
-import { useGameStore, type LobbyState } from '@/gameStore'
+import { useGameStore, type AppliedInstantEffect, type AppliedQuestBlock, type LobbyState } from '@/gameStore'
 
 // Modal state — a confirm modal, a timed modal, or a non-timed info modal.
 type ModalState =
@@ -88,6 +88,9 @@ export function GameScreen() {
   // Track which timed buff IDs we've already shown a modal for,
   // so we don't re-show the same buff every state broadcast.
   const shownBuffModals = useRef<Set<string>>(new Set())
+  // Track shown quest blocks by quest id + block expiry, so re-blocks
+  // (new expiry) pop again but broadcasts don't repeat.
+  const shownQuestBlocks = useRef<Set<string>>(new Set())
   // End-game modal is shown once per finish (not on every state broadcast).
   const endModalShownFor = useRef<string | null>(null)
   const [remainingSeconds, setRemainingSeconds] = useState(() =>
@@ -186,6 +189,29 @@ export function GameScreen() {
     }
   }, [state.buffs, currentPlayer.name])
 
+  // Detect newly blocked quests and show a modal to survivors.
+  // Mirrors the buff-modal effect above. Expired blocks are skipped —
+  // blockedUntil is never cleared, it just lapses. Killers don't pop here;
+  // the blocking killer already got a confirmation modal from the use call.
+  useEffect(() => {
+    for (const quest of state.quests) {
+      if (quest.blockedUntil === null) continue
+      if (new Date(quest.blockedUntil).getTime() <= Date.now()) continue
+
+      const key = `${quest.id}:${quest.blockedUntil}`
+      if (shownQuestBlocks.current.has(key)) continue
+      shownQuestBlocks.current.add(key)
+
+      if (currentPlayer.role !== 'SURVIVOR') continue
+
+      setModal({
+        kind: 'info',
+        title: 'Квест заблокирован',
+        body: `Маньяк заблокировал квест №${quest.number} «${quest.definition.name}». Его нельзя завершить, пока действует блокировка.`,
+      })
+    }
+  }, [state.quests, currentPlayer.role])
+
   // Chat unread tracking — messages from other players that arrive while
   // the chat tab is not open. History present at mount counts as read.
   const [unreadChatCount, setUnreadChatCount] = useState(0)
@@ -263,7 +289,11 @@ export function GameScreen() {
     })
   }
 
-  function confirmAbilityUse(abilityId: string, targetPlayerId?: string) {
+  function confirmAbilityUse(
+    abilityId: string,
+    targetPlayerId?: string,
+    targetQuestNumber?: number,
+  ) {
     setModal({
       kind: 'confirm',
       title: 'Применить абилку?',
@@ -271,36 +301,59 @@ export function GameScreen() {
       confirmLabel: 'Использовать',
       onConfirm: () => {
         setModal(null)
-        void triggerAbility(abilityId, targetPlayerId).then((applied) => {
-          if (!applied || applied.length === 0) return
-          // Instant effects (HEAL/HURT) leave no buff row, so unlike INFO
-          // buffs they would show no feedback — pop the same style of
-          // info modal with the effect description.
-          if (applied.length === 1) {
-            const [effect] = applied
-            const targetText =
-              effect.targetPlayerId !== currentPlayer.id
-                ? ` (цель: ${effect.targetPlayerName})`
-                : ''
-            setModal({
-              kind: 'info',
-              title: `Нанесён эффект: ${effect.name}`,
-              body: `${effect.description}${targetText}`,
-            })
-          } else {
-            setModal({
-              kind: 'info',
-              title: 'Нанесены эффекты',
-              body: applied
-                .map(
-                  (effect) =>
-                    `«${effect.name}» (${effect.targetPlayerName}): ${effect.description}`,
-                )
-                .join(' '),
-            })
-          }
-        })
+        void triggerAbility(abilityId, targetPlayerId, targetQuestNumber).then(
+          (result) => {
+            if (!result) return
+            showAppliedEffectsModal(result.appliedEffects)
+            showAppliedQuestBlocksModal(result.appliedQuestBlocks)
+          },
+        )
       },
+    })
+  }
+
+  // Instant effects (HEAL/HURT) leave no buff row, so unlike INFO buffs
+  // they would show no feedback — pop the same style of info modal with
+  // the effect description.
+  function showAppliedEffectsModal(applied: AppliedInstantEffect[]) {
+    if (applied.length === 0) return
+    if (applied.length === 1) {
+      const [effect] = applied
+      const targetText =
+        effect.targetPlayerId !== currentPlayer.id
+          ? ` (цель: ${effect.targetPlayerName})`
+          : ''
+      setModal({
+        kind: 'info',
+        title: `Нанесён эффект: ${effect.name}`,
+        body: `${effect.description}${targetText}`,
+      })
+    } else {
+      setModal({
+        kind: 'info',
+        title: 'Нанесены эффекты',
+        body: applied
+          .map(
+            (effect) =>
+              `«${effect.name}» (${effect.targetPlayerName}): ${effect.description}`,
+          )
+          .join(' '),
+      })
+    }
+  }
+
+  // Quest blocks applied by this use — one modal naming the blocked quest.
+  function showAppliedQuestBlocksModal(applied: AppliedQuestBlock[]) {
+    if (applied.length === 0) return
+    setModal({
+      kind: 'info',
+      title: 'Квест заблокирован',
+      body: applied
+        .map(
+          (block) =>
+            `Квест №${block.questNumber} «${block.questName}» нельзя завершить, пока действует блокировка.`,
+        )
+        .join(' '),
     })
   }
 
@@ -490,6 +543,7 @@ export function GameScreen() {
               abilities={state.abilities}
               buffs={state.buffs}
               players={state.players}
+              quests={state.quests}
               currentPlayerId={session.playerId}
               onUse={confirmAbilityUse}
               onApplyBuff={handleApplyBuff}

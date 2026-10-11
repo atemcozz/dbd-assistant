@@ -23,12 +23,14 @@ export class AbilitiesController {
     @Param('abilityId') abilityId: string,
     @Headers('x-session-token') sessionToken: string,
     @Body('targetPlayerId') targetPlayerId?: string,
+    @Body('targetQuestNumber') targetQuestNumber?: number,
   ) {
-    const appliedEffects = await this.abilitiesService.use(
+    const result = await this.abilitiesService.use(
       code,
       abilityId,
       targetPlayerId,
       sessionToken,
+      targetQuestNumber,
     )
 
     const state = await this.gamesService.getState(
@@ -38,7 +40,11 @@ export class AbilitiesController {
 
     await this.gameGateway.broadcastGameState(state.id)
 
-    return { state, appliedEffects }
+    return {
+      state,
+      appliedEffects: result.appliedEffects,
+      appliedQuestBlocks: result.appliedQuestBlocks,
+    }
   }
 
   // Manual self-application by typed buff id (instructed during play).

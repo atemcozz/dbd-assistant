@@ -215,3 +215,11 @@
   name: Свободный бег
   description: Тебе разрешено бегать без ограничений.
   type: PASSIVE
+- id: seal-quest
+  name: Печать квеста
+  description: Выбери квест по его номеру. Выжившие не смогут завершить его 60 секунд.
+  type: ACTIVE
+  cooldown: 120
+  allowedTargets:
+    - QUEST
+  blockDurationSeconds: 60

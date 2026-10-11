@@ -55,6 +55,9 @@ export type GameQuestView = {
   id: string
   number: number
   status: QuestStatus
+  // Killer block expiry; null = not blocked. The client derives the
+  // remaining countdown from this timestamp.
+  blockedUntil: Date | null
   completedBy: string | null
   completedAt: Date | null
   definition: {
@@ -127,6 +130,22 @@ export type AppliedInstantEffect = {
   description: string
   targetPlayerId: string
   targetPlayerName: string
+}
+
+// A quest block applied by an ability use. Returned by the use endpoint so
+// the client can show a feedback modal — blocked quests also show a lock
+// badge with a countdown in the quest list.
+export type AppliedQuestBlock = {
+  questNumber: number
+  questName: string
+  blockedUntil: Date
+}
+
+// What an ability use applied: instant player effects, quest blocks, or
+// nothing (pure INFO abilities surface through the buff list instead).
+export type AbilityUseResult = {
+  appliedEffects: AppliedInstantEffect[]
+  appliedQuestBlocks: AppliedQuestBlock[]
 }
 
 // Game state with computional fields for frontend convenience,\

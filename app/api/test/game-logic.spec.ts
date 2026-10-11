@@ -243,6 +243,21 @@ describe('Game logic', () => {
       },
     })
 
+    // Quest-blocking ability — killer locks a chosen quest number.
+    await prisma.abilityDefinition.upsert({
+      where: { id: 'seal-quest' },
+      update: {},
+      create: {
+        id: 'seal-quest',
+        name: 'Seal Quest',
+        description: 'Block a quest for 60 seconds.',
+        type: 'ACTIVE',
+        cooldown: 0,
+        allowedTargets: JSON.stringify(['QUEST']),
+        blockDurationSeconds: 60,
+      },
+    })
+
     // Ability → buff links (duration null = inherit buff.defaultDuration).
     await prisma.abilityBuff.upsert({
       where: {
@@ -358,6 +373,17 @@ describe('Game logic', () => {
       // Limited ability: only one use per game (count: 1).
       update: { count: 1 },
       create: { characterTypeId: 'stalker', abilityId: 'quick-stun', count: 1 },
+    })
+    // Link stalker → seal-quest block ability (unlimited uses).
+    await prisma.characterAbility.upsert({
+      where: {
+        characterTypeId_abilityId: {
+          characterTypeId: 'stalker',
+          abilityId: 'seal-quest',
+        },
+      },
+      update: {},
+      create: { characterTypeId: 'stalker', abilityId: 'seal-quest' },
     })
 
     // Link stalker → free-run permanent starting buff.
@@ -974,14 +1000,15 @@ describe('Game logic', () => {
         undefined,
         owner.sessionToken,
       )
-      expect(applied).toHaveLength(1)
-      expect(applied[0]).toMatchObject({
+      expect(applied.appliedEffects).toHaveLength(1)
+      expect(applied.appliedEffects[0]).toMatchObject({
         buffId: 'field-dressing',
         name: 'Field Dressing',
         targetPlayerId: owner.playerId,
         targetPlayerName: 'Owner',
       })
-      expect(applied[0].description).toContain('wounds')
+      expect(applied.appliedEffects[0].description).toContain('wounds')
+      expect(applied.appliedQuestBlocks).toHaveLength(0)
 
       // HURT on another player names that target.
       const hurt = await abilitiesService.use(
@@ -990,8 +1017,8 @@ describe('Game logic', () => {
         owner.playerId,
         survivor.sessionToken,
       )
-      expect(hurt).toHaveLength(1)
-      expect(hurt[0]).toMatchObject({
+      expect(hurt.appliedEffects).toHaveLength(1)
+      expect(hurt.appliedEffects[0]).toMatchObject({
         buffId: 'attack-survivor',
         targetPlayerId: owner.playerId,
         targetPlayerName: 'Owner',
@@ -1005,7 +1032,8 @@ describe('Game logic', () => {
         owner.playerId,
         survivor.sessionToken,
       )
-      expect(none).toHaveLength(0)
+      expect(none.appliedEffects).toHaveLength(0)
+      expect(none.appliedQuestBlocks).toHaveLength(0)
     })
 
     it('manual self-application creates a permanent buff with a normalized id', async () => {
@@ -1141,6 +1169,213 @@ describe('Game logic', () => {
           owner.sessionToken,
         ),
       ).rejects.toThrow('PLAYER_NOT_ACTIVE')
+    })
+  })
+
+  describe('Quest blocking', () => {
+    async function setupGameWithQuest() {
+      const { owner, survivor } = await setupLobbyGame()
+      await questsService.select(owner.state.code, owner.sessionToken, [
+        'universal-quest',
+      ])
+      await gamesService.startGame(owner.state.code, owner.sessionToken)
+      return { owner, survivor }
+    }
+
+    it('killer blocks a quest and completion is rejected while blocked', async () => {
+      const { owner, survivor } = await setupGameWithQuest()
+
+      // Killer (stalker) blocks quest #1 for 60s.
+      const result = await abilitiesService.use(
+        owner.state.code,
+        'seal-quest',
+        undefined,
+        survivor.sessionToken,
+        1,
+      )
+      expect(result.appliedEffects).toHaveLength(0)
+      expect(result.appliedQuestBlocks).toHaveLength(1)
+      expect(result.appliedQuestBlocks[0]).toMatchObject({
+        questNumber: 1,
+        questName: 'Universal Quest',
+      })
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const quest = state.quests[0]
+      expect(quest.blockedUntil).not.toBeNull()
+      const remainingMs =
+        new Date(quest.blockedUntil!).getTime() - Date.now()
+      expect(remainingMs).toBeGreaterThan(0)
+      expect(remainingMs).toBeLessThanOrEqual(60_000)
+
+      // Survivor completion is rejected while blocked.
+      await expect(
+        questsService.complete(owner.state.code, quest.id, owner.sessionToken),
+      ).rejects.toThrow('QUEST_BLOCKED')
+    })
+
+    it('blocked quest can be completed after the block expires', async () => {
+      const { owner, survivor } = await setupGameWithQuest()
+
+      await abilitiesService.use(
+        owner.state.code,
+        'seal-quest',
+        undefined,
+        survivor.sessionToken,
+        1,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      const quest = state.quests[0]
+
+      // Move the block into the past — expiry is a lazy timestamp check.
+      await prisma.gameQuest.update({
+        where: { id: quest.id },
+        data: { blockedUntil: new Date(Date.now() - 1000) },
+      })
+
+      await questsService.complete(
+        owner.state.code,
+        quest.id,
+        owner.sessionToken,
+      )
+
+      const done = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(done.quests[0].status).toBe('COMPLETED')
+    })
+
+    it('re-blocking refreshes the timer', async () => {
+      const { owner, survivor } = await setupGameWithQuest()
+
+      await abilitiesService.use(
+        owner.state.code,
+        'seal-quest',
+        undefined,
+        survivor.sessionToken,
+        1,
+      )
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+
+      // Let the block lapse, then block again.
+      await prisma.gameQuest.update({
+        where: { id: state.quests[0].id },
+        data: { blockedUntil: new Date(Date.now() - 1000) },
+      })
+      await abilitiesService.use(
+        owner.state.code,
+        'seal-quest',
+        undefined,
+        survivor.sessionToken,
+        1,
+      )
+
+      const refreshed = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      expect(
+        new Date(refreshed.quests[0].blockedUntil!).getTime(),
+      ).toBeGreaterThan(Date.now())
+
+      await expect(
+        questsService.complete(
+          owner.state.code,
+          state.quests[0].id,
+          owner.sessionToken,
+        ),
+      ).rejects.toThrow('QUEST_BLOCKED')
+    })
+
+    it('blocking a completed quest is rejected', async () => {
+      const { owner, survivor } = await setupGameWithQuest()
+
+      const state = await gamesService.getState(
+        owner.state.code,
+        owner.sessionToken,
+      )
+      await questsService.complete(
+        owner.state.code,
+        state.quests[0].id,
+        owner.sessionToken,
+      )
+
+      await expect(
+        abilitiesService.use(
+          owner.state.code,
+          'seal-quest',
+          undefined,
+          survivor.sessionToken,
+          1,
+        ),
+      ).rejects.toThrow('QUEST_ALREADY_COMPLETED')
+    })
+
+    it('blocking requires a quest number from this game', async () => {
+      const { owner, survivor } = await setupGameWithQuest()
+
+      await expect(
+        abilitiesService.use(
+          owner.state.code,
+          'seal-quest',
+          undefined,
+          survivor.sessionToken,
+          undefined,
+        ),
+      ).rejects.toThrow('QUEST_TARGET_REQUIRED')
+
+      await expect(
+        abilitiesService.use(
+          owner.state.code,
+          'seal-quest',
+          undefined,
+          survivor.sessionToken,
+          99,
+        ),
+      ).rejects.toThrow('QUEST_NOT_FOUND')
+    })
+
+    it('survivor cannot block quests', async () => {
+      const { owner } = await setupGameWithQuest()
+
+      // Not owned through the kit at all.
+      await expect(
+        abilitiesService.use(
+          owner.state.code,
+          'seal-quest',
+          undefined,
+          owner.sessionToken,
+          1,
+        ),
+      ).rejects.toThrow('ABILITY_NOT_AVAILABLE')
+
+      // Even when owning it directly (config validation would never allow
+      // this kit link — defense in depth).
+      await prisma.playerAbility.create({
+        data: { playerId: owner.playerId, abilityId: 'seal-quest' },
+      })
+
+      await expect(
+        abilitiesService.use(
+          owner.state.code,
+          'seal-quest',
+          undefined,
+          owner.sessionToken,
+          1,
+        ),
+      ).rejects.toThrow('ONLY_KILLERS_CAN_BLOCK_QUESTS')
     })
   })
 

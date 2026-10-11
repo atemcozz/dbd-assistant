@@ -342,6 +342,7 @@ The server must validate:
 * player is alive if the quest requires an active player;
 * quest exists in this game;
 * quest is not already completed;
+* quest is not blocked by a killer (`blockedUntil` in the past or null);
 * any relevant killer-specific or role-specific restrictions are satisfied.
 
 No automatic geolocation/radius validation is required for MVP.
@@ -476,6 +477,10 @@ Initial target types:
 * `SURVIVOR`
 * `ALL_SURVIVORS`
 * `KILLER`
+* `QUEST` — killer-only; the ability locks the chosen game quest
+  (`GameQuest.blockedUntil`) for its fixed `blockDurationSeconds` instead of
+  inflicting buffs. Re-blocking refreshes the timer. Blocked quests reject
+  completion with `QUEST_BLOCKED` until the timestamp lapses.
 
 The server must validate target permissions.
 
@@ -580,7 +585,7 @@ A killer can:
 * see survivor health/status as allowed by the game;
 * see their own buffs;
 * attack survivors;
-* use allowed abilities;
+* use allowed abilities (including quest-blocking ones);
 * see quests relevant to their killer type plus universal quests.
 
 Attack removes `1 HP`.
@@ -732,6 +737,7 @@ Important tests include:
 * manual self-application normalizes the buff id and respects the buff's default duration (null = permanent);
 * killer cannot perform survivor-only actions;
 * completed quest cannot be completed twice;
+* blocked quest rejects completion until the block lapses;
 * killer-specific quest visibility/filtering works;
 * universal quests are visible to all relevant killers.
 
