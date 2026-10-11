@@ -592,6 +592,11 @@ Attack removes `1 HP`.
 
 When health reaches `0`, the survivor becomes `DEAD`.
 
+A survivor holding an active `shield` buff cannot be attacked — the server
+rejects with `TARGET_INVINCIBLE` and the player is flagged `isInvincible`
+so all clients can show it. Shield is a plain timed `INFO` buff, not a new
+action type; keep it that way unless a second immunity mechanic appears.
+
 The server must validate that the source is actually a killer.
 
 Physical mechanics such as escorting a survivor to a cage are currently outside the application.

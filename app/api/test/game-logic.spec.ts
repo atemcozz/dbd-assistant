@@ -158,6 +158,19 @@ describe('Game logic', () => {
       },
     })
 
+    // Timed invincibility buff — blocks killer attacks while active.
+    await prisma.buffDefinition.upsert({
+      where: { id: 'shield' },
+      update: {},
+      create: {
+        id: 'shield',
+        name: 'Shield',
+        description: 'You are invincible for 30 seconds.',
+        action: 'INFO',
+        defaultDuration: 30,
+      },
+    })
+
     // Ability definitions — each inflicts one or more buffs when used.
     // Heal ability — SELF or another survivor, no cooldown.
     await prisma.abilityDefinition.upsert({
@@ -643,6 +656,63 @@ describe('Game logic', () => {
           survivor.sessionToken,
         ),
       ).rejects.toThrow('PLAYER_NOT_ACTIVE')
+    })
+
+    it('shielded survivor cannot be attacked while the buff is active', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // Timed shield on the owner.
+      await prisma.activeBuff.create({
+        data: {
+          buffId: 'shield',
+          sourcePlayerId: owner.playerId,
+          targetPlayerId: owner.playerId,
+          appliedAt: new Date(),
+          expiresAt: new Date(Date.now() + 30_000),
+        },
+      })
+
+      await expect(
+        combatService.attack(
+          owner.state.code,
+          owner.playerId,
+          survivor.sessionToken,
+        ),
+      ).rejects.toThrow('TARGET_INVINCIBLE')
+
+      // Flag is visible in game state (killer UI shows the badge).
+      const shielded = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+      const shieldedOwner = shielded.players.find((p) => p.id === owner.playerId)!
+      expect(shieldedOwner.isInvincible).toBe(true)
+      // Expiry is exposed so clients drop the badge without a refresh.
+      const remainingMs =
+        new Date(shieldedOwner.invincibleUntil!).getTime() - Date.now()
+      expect(remainingMs).toBeGreaterThan(0)
+      expect(remainingMs).toBeLessThanOrEqual(30_000)
+
+      // After expiry the attack lands again and the flag clears.
+      await prisma.activeBuff.updateMany({
+        where: { targetPlayerId: owner.playerId, buffId: 'shield' },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      })
+
+      await combatService.attack(
+        owner.state.code,
+        owner.playerId,
+        survivor.sessionToken,
+      )
+
+      const exposed = await gamesService.getState(
+        owner.state.code,
+        survivor.sessionToken,
+      )
+      const ownerPlayer = exposed.players.find((p) => p.id === owner.playerId)!
+      expect(ownerPlayer.health).toBe(2)
+      expect(ownerPlayer.isInvincible).toBe(false)
+      expect(ownerPlayer.invincibleUntil).toBeNull()
     })
   })
 

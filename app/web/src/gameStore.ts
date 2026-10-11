@@ -54,6 +54,12 @@ export type LobbyPlayer = {
   characterTypeId: string | null
   health: number | null
   status: PlayerStatus
+  // True while the player holds an active `shield` buff — attacks rejected.
+  isInvincible: boolean
+  // Invincibility expiry (ISO); null = not invincible or permanent shield.
+  // Derived live on the client so an expired shield disappears without
+  // waiting for the next state fetch.
+  invincibleUntil: string | null
   characterType: CharacterType | null
 }
 export type LobbyState = {
@@ -264,6 +270,7 @@ const ACTION_ERROR_MESSAGES: Record<string, string> = {
   TARGET_NOT_ACTIVE: 'Цель не может действовать',
   TARGET_CANNOT_BE_HEALED: 'Эту цель нельзя вылечить',
   TARGET_CANNOT_TAKE_DAMAGE: 'Эту цель нельзя ранить',
+  TARGET_INVINCIBLE: 'Этот выживший неуязвим — атака невозможна',
   PLAYER_NOT_ACTIVE: 'Ты не можешь действовать',
   GAME_NOT_RUNNING: 'Игра ещё не началась',
   BUFF_ID_REQUIRED: 'Введи id баффа',

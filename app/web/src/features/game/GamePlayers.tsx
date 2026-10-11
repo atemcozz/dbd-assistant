@@ -1,4 +1,6 @@
 import { DoorOpen, Shield, Skull, Swords } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -21,6 +23,19 @@ export function GamePlayers({
   isKiller: boolean
   onDamage: (playerId: string, playerName: string) => void
 }) {
+  // Tick while any shield is counting down so an expired shield drops its
+  // badge (and restores the attack button) without a state refresh.
+  const [now, setNow] = useState(() => Date.now())
+  const needsTick = players.some(
+    (player) => player.isInvincible && player.invincibleUntil !== null,
+  )
+
+  useEffect(() => {
+    if (!needsTick) return
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [needsTick])
+
   return (
     <Card>
       <CardHeader>
@@ -30,7 +45,9 @@ export function GamePlayers({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3">
-        {players.map((player) => (
+        {players.map((player) => {
+          const shielded = isShielded(player, now)
+          return (
           <div
             key={player.id}
             className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 sm:gap-3"
@@ -52,11 +69,20 @@ export function GamePlayers({
 
               </p>
             </div>
+            {shielded && player.status === 'ALIVE' && (
+              <Badge
+                variant="outline"
+                className="shrink-0 border-primary/40 text-xs text-primary"
+              >
+                <Shield className="mr-1 size-3" />
+                Неуязвим
+              </Badge>
+            )}
             <HealthDisplay
               health={player.health}
               maxHealth={player.characterType?.maxHealth ?? null}
             />
-            {isKiller && player.status === 'ALIVE' && (
+            {isKiller && player.status === 'ALIVE' && !shielded && (
               <Button
                 onClick={() => onDamage(player.id, player.name)}
                 size="sm"
@@ -67,8 +93,18 @@ export function GamePlayers({
               </Button>
             )}
           </div>
-        ))}
+          )
+        })}
       </CardContent>
     </Card>
   )
+}
+
+// Live shield state: the server snapshot (isInvincible) combined with the
+// exposed expiry, so an expired shield disappears without a state fetch.
+// A null expiry means a permanent shield — it never lapses.
+function isShielded(player: LobbyPlayer, now: number): boolean {
+  if (!player.isInvincible) return false
+  if (player.invincibleUntil === null) return true
+  return new Date(player.invincibleUntil).getTime() > now
 }

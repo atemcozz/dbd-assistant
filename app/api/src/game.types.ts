@@ -35,6 +35,14 @@ export type LobbyPlayer = {
   characterTypeId: string | null
   health: number | null
   status: PlayerStatus
+  // True while the player holds an active `shield` buff — the killer
+  // cannot attack them (server rejects with TARGET_INVINCIBLE).
+  isInvincible: boolean
+  // Expiry of the invincibility (max over active shield rows); null means
+  // either not invincible or a permanent shield. Clients derive the live
+  // state from this timestamp so an expired shield disappears without
+  // waiting for the next state fetch.
+  invincibleUntil: Date | null
   characterType: {
     id: string
     role: PlayerRole

@@ -10,9 +10,28 @@ import {
 } from '@prisma/client'
 import { PrismaService } from './prisma.service'
 
+// Timed buff that makes its target immune to killer attacks while active.
+// Single-use by design: only the `shield` ability inflicts it, so a plain
+// buff id (instead of a generic flag framework) is enough.
+export const INVINCIBILITY_BUFF_ID = 'shield'
+
 @Injectable()
 export class CombatService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // Whether the player currently holds an active invincibility buff.
+  async isInvincible(targetPlayerId: string): Promise<boolean> {
+    const row = await this.prisma.activeBuff.findFirst({
+      where: {
+        buffId: INVINCIBILITY_BUFF_ID,
+        targetPlayerId,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      select: { id: true },
+    })
+
+    return row !== null
+  }
 
   async attack(
     codeInput: string,
@@ -70,6 +89,10 @@ export class CombatService {
 
     if (target.health === null) {
       throw new ConflictException('TARGET_HAS_NO_HEALTH')
+    }
+
+    if (await this.isInvincible(target.id)) {
+      throw new ConflictException('TARGET_INVINCIBLE')
     }
 
     // Обычная физическая атака всегда снимает ровно 1 HP.

@@ -113,3 +113,8 @@
   description: Тебе разрешено бегать без ограничений.
   action: INFO
   defaultDuration: null
+- id: shield
+  name: Щит
+  description: Ты неуязвим. Атаки маньяка не действуют 30 секунд.
+  action: INFO
+  defaultDuration: 30

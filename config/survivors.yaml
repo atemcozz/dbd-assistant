@@ -18,6 +18,7 @@
     - abilityId: self-attack
     - abilityId: stun-killer
     - abilityId: killer-breath
+    - abilityId: shield
   startingBuffs: []
 - id: technician
   role: SURVIVOR

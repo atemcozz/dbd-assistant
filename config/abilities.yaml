@@ -141,6 +141,16 @@
   buffs:
     - buffId: killer-breath
       duration: null
+- id: shield
+  name: Щит
+  description: Стань неуязвимым к атакам маньяка на 30 секунд.
+  type: ACTIVE
+  cooldown: 90
+  allowedTargets:
+    - SELF
+  buffs:
+    - buffId: shield
+      duration: null
 - id: swap-places
   name: Обмен местами
   description: Выбери выжившего. В течение 60 секунд он должен физически

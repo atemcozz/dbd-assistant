@@ -12,6 +12,7 @@ import {
 import { randomBytes } from 'node:crypto'
 import { PrismaService } from './prisma.service'
 import { AbilitiesService } from './abilities.service'
+import { INVINCIBILITY_BUFF_ID } from './combat.service'
 import type {
   CharacterAbilityInfo,
   CharacterStartBuffInfo,
@@ -307,6 +308,36 @@ export class GamesService {
       (player) => player.sessionToken === sessionToken,
     )
 
+    // One query for every shielded player in the game — shown to all
+    // viewers so the killer (and the team) sees who cannot be attacked.
+    // The expiry timestamp is exposed so clients drop the badge the
+    // moment it lapses instead of waiting for the next state fetch.
+    const now = new Date()
+    const shielded = await this.prisma.activeBuff.findMany({
+      where: {
+        buffId: INVINCIBILITY_BUFF_ID,
+        targetPlayer: { gameId: game.id },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      select: { targetPlayerId: true, expiresAt: true },
+    })
+    // Max finite expiry per player; null marks a permanent shield.
+    const invincibleUntilByPlayer = new Map<string, Date | null>()
+    for (const row of shielded) {
+      const current = invincibleUntilByPlayer.get(row.targetPlayerId)
+
+      if (current === undefined) {
+        invincibleUntilByPlayer.set(row.targetPlayerId, row.expiresAt)
+      } else if (current !== null && row.expiresAt !== null) {
+        if (row.expiresAt > current) {
+          invincibleUntilByPlayer.set(row.targetPlayerId, row.expiresAt)
+        }
+      } else {
+        // A permanent shield row means no expiry.
+        invincibleUntilByPlayer.set(row.targetPlayerId, null)
+      }
+    }
+
     const players: LobbyPlayer[] = []
 
     for (const player of game.players) {
@@ -355,6 +386,8 @@ export class GamesService {
         characterTypeId: player.characterTypeId,
         health: player.health,
         status: player.status,
+        isInvincible: invincibleUntilByPlayer.has(player.id),
+        invincibleUntil: invincibleUntilByPlayer.get(player.id) ?? null,
         characterType,
       })
     }
