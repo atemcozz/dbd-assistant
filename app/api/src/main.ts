@@ -7,10 +7,23 @@ async function bootstrap() {
   // CORS open so LAN players can connect from their phones/browsers.
   app.enableCors()
 
-  // Bind to 0.0.0.0 so the app is reachable from other devices on the local network.
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0', () => {
-    console.log(`Server is running on port ${process.env.PORT ?? 3000}`)
+  const PORT = process.env.PORT;
+  if (!PORT) {
+    throw new Error('PORT environment variable is not defined')
+  }
+
+  const globalPrefix = process.env.API_GLOBAL_PREFIX || '';
+
+  app.setGlobalPrefix(globalPrefix);
+
+  await app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`)
+
   })
+
+
+  console.log(`API base URL: ${await app.getUrl()}/${globalPrefix}`);
+
 }
 
 void bootstrap()

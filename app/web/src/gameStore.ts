@@ -6,7 +6,7 @@ import { io, type Socket } from 'socket.io-client'
 // port. The hostname fallback makes LAN/docker usage work without a
 // rebuild (players open the site via the server's IP).
 const API_URL =
-  import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000`
+  import.meta.env.VITE_API_URL
 const SESSION_KEY = 'dbd-assistant-session'
 
 export type Role = 'SURVIVOR' | 'KILLER'
@@ -486,8 +486,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!session || realtimeSocket?.connected) return
     realtimeSocket?.disconnect()
     set({ connectionStatus: 'connecting' })
-    realtimeSocket = io(window.location.origin, {
-      path: '/dbdassistant/api/socket.io',
+    realtimeSocket = io(API_URL, {
       auth: { sessionToken: session.sessionToken },
       transports: ['websocket', 'polling'],
     })
