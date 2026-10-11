@@ -509,7 +509,10 @@ Then it applies every inflicted buff to every resolved target:
 
 The use endpoint returns the instantly applied effects (`buffId`, `name`,
 `description`, target) so the client can pop a feedback modal — `INFO`
-buffs already pop one via the buff list.
+buffs already pop one via the buff list. The modal is shown to the caster,
+so write cross-target instant-buff descriptions in neutral voice
+(e.g. «Оказана первая помощь», not «Тебе оказывают») — the client appends
+the target name itself.
 
 Persist the result before broadcasting the resulting realtime event.
 

@@ -1,6 +1,6 @@
 - id: field-dressing
   name: Перевязка
-  description: Тебе оказывают первую помощь. Ты восстанавливаешь 1 HP.
+  description: Оказана первая помощь. Восстановлено 1 HP.
   action: HEAL
   params:
     quantity: 1
