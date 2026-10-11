@@ -84,7 +84,7 @@ model GameQuest {
 }
 
 // Reusable exit definition — physical escape routes in the venue.
-// Like quests, these live in config/exits.json and are synced to SQLite.
+// Like quests, these live in config/exits.yaml and are synced to SQLite.
 model ExitDefinition {
   id          String     @id
   name        String
@@ -182,7 +182,7 @@ model CharacterStartBuff {
 }
 
 // Reusable buff definition — a state that can be applied to a player.
-// Config source of truth: config/buffs.json.
+// Config source of truth: config/buffs.yaml.
 model BuffDefinition {
   id          String @id
   name        String
@@ -200,7 +200,7 @@ model BuffDefinition {
 }
 
 // Reusable ability definition — an activatable action a player can use.
-// Config source of truth: config/abilities.json.
+// Config source of truth: config/abilities.yaml.
 // type is ACTIVE (usable, inflicts buffs) or PASSIVE (display-only character
 // trait: name + description, no cooldown/targets/buffs, cannot be used).
 model AbilityDefinition {

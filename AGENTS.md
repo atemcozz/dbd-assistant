@@ -140,25 +140,25 @@ Do not introduce Redis, Kafka, PostgreSQL, MongoDB, Kubernetes, microservices, o
 
 ## Static configuration vs runtime state
 
-Reusable game definitions should live in readable JSON files under version control.
+Reusable game definitions should live in readable YAML files under version control.
 
 Suggested structure:
 
 ```text
 config/
-  characters/
-    survivors.json
-    killers.json
-  abilities.json
-  buffs.json
-  quests.json
+  survivors.yaml
+  killers.yaml
+  abilities.yaml
+  buffs.yaml
+  quests.yaml
+  exits.yaml
 ```
 
-JSON is the source of truth for reusable game content.
+YAML is the source of truth for reusable game content.
 
 SQLite is the source of truth for runtime game state.
 
-Use stable IDs in JSON.
+Use stable IDs in YAML.
 
 A command such as:
 
@@ -172,7 +172,7 @@ Changing quests, abilities, buffs, or character definitions should not require a
 
 Prisma migrations are for database schema changes.
 
-A running game must not silently change because somebody edited JSON files. Once a game starts or its configuration is finalized, relevant values must be frozen/copied into runtime state so that the game continues using the configuration with which it started.
+A running game must not silently change because somebody edited YAML files. Once a game starts or its configuration is finalized, relevant values must be frozen/copied into runtime state so that the game continues using the configuration with which it started.
 
 Do not build a general configuration snapshot/versioning framework for the MVP.
 
@@ -739,14 +739,14 @@ Manual recovery is an important project requirement.
 
 A developer should be able to inspect and repair:
 
-* `config/*.json`
+* `config/*.yaml`
 * `data/game.db`
 * logs
 
 Example recovery workflow:
 
 ```text
-edit JSON
+edit YAML
 npm run config:sync
 restart app
 ```
@@ -849,7 +849,7 @@ Do not automatically turn every example into a new system or database abstractio
 
 ### Step 4 — Quests
 
-* JSON
+* YAML
 * config sync
 * role-aware quest visibility
 * killer-specific and universal quest grouping
@@ -866,7 +866,7 @@ Do not automatically turn every example into a new system or database abstractio
 
 ### Step 6 — Abilities and buffs
 
-* ability/buff definitions in JSON
+* ability/buff definitions in YAML
 * player abilities
 * HEAL/HURT/INFO actions
 * targets
@@ -895,7 +895,7 @@ Do not automatically turn every example into a new system or database abstractio
 * backend starts without Docker;
 * frontend starts;
 * SQLite works;
-* config JSON validates/syncs;
+* config YAML validates/syncs;
 * game create/join works;
 * player session survives refresh/reconnect;
 * roles and character types can be assigned;

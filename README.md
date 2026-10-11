@@ -10,7 +10,7 @@ A lightweight web app to support a physical game played in a real building. Play
 
 - **Frontend** (`app/web`): React 19, Vite, TypeScript, Tailwind CSS, shadcn/ui components, Zustand, Socket.IO client
 - **Backend** (`app/api`): NestJS, Prisma, SQLite, Socket.IO
-- **Config** (`config/`): JSON files for quests, characters, abilities, buffs — synced to SQLite via `npm run config:sync`
+- **Config** (`config/`): YAML files for quests, characters, abilities, buffs — synced to SQLite via `npm run config:sync`
 
 ## Setup
 
@@ -42,7 +42,7 @@ npm run dev --workspace=@dbd-assistant/api
 ### Manual recovery
 
 ```sh
-# Edit config JSON, then:
+# Edit config YAML, then:
 npm run config:sync
 # Restart the API
 ```

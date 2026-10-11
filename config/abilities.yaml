@@ -1,0 +1,217 @@
+- id: field-dressing
+  name: Перевязка
+  description: Выбери себя или другого выжившего и восстанови 1 HP.
+  type: ACTIVE
+  cooldown: 30
+  allowedTargets:
+    - SELF
+    - SURVIVOR
+  buffs:
+    - buffId: field-dressing
+      duration: null
+- id: self-attack
+  name: Ударить себя
+  description: Ударь себя. Ты теряешь 1 HP.
+  type: ACTIVE
+  cooldown: 0
+  allowedTargets:
+    - SELF
+  buffs:
+    - buffId: self-attack
+      duration: null
+- id: stun-killer
+  name: Оглушение маньяка
+  description: Выбери маньяка. Он не должен двигаться 15 секунд.
+  type: ACTIVE
+  cooldown: 60
+  allowedTargets:
+    - KILLER
+  buffs:
+    - buffId: stun-killer
+      duration: null
+- id: force-shout
+  name: Крик
+  description: Выбери выжившего и заставь его громко назвать свою текущую комнату.
+  type: ACTIVE
+  cooldown: 25
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: force-shout
+      duration: null
+- id: forced-room
+  name: "Приказ: комната"
+  description: Выбери выжившего и отправь его в комнату 3. Он должен прибыть туда
+    в течение минуты.
+  type: ACTIVE
+  cooldown: 45
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: forced-room
+      duration: null
+- id: stay-still
+  name: Замри
+  description: Все выжившие должны остановиться на месте и не двигаться 20 секунд.
+  type: ACTIVE
+  cooldown: 45
+  allowedTargets:
+    - ALL_SURVIVORS
+  buffs:
+    - buffId: stay-still
+      duration: null
+- id: hands-up
+  name: Руки вверх
+  description: Выбери выжившего. Он должен поднять обе руки и стоять так 10 секунд.
+  type: ACTIVE
+  cooldown: 20
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: hands-up
+      duration: null
+- id: silent-step
+  name: Тихий шаг
+  description: Выбери выжившего. В течение 30 секунд он не должен разговаривать.
+  type: ACTIVE
+  cooldown: 35
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: silent-step
+      duration: null
+- id: group-command
+  name: Общий приказ
+  description: Все выжившие должны одновременно коснуться стены ближайшей комнаты
+    в течение 20 секунд.
+  type: ACTIVE
+  cooldown: 60
+  allowedTargets:
+    - ALL_SURVIVORS
+  buffs:
+    - buffId: group-command
+      duration: null
+- id: marked
+  name: Метка
+  description: Наложи на выбранного выжившего метку на одну минуту.
+  type: ACTIVE
+  cooldown: 45
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: marked
+      duration: null
+- id: no-turning
+  name: Не оборачивайся
+  description: Выбери выжившего. Следующие 20 секунд он не должен оборачиваться назад.
+  type: ACTIVE
+  cooldown: 30
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: no-turning
+      duration: null
+- id: look-at-me
+  name: Смотри на меня
+  description: Выбери выжившего. Он должен смотреть в сторону маньяка 10 секунд.
+  type: ACTIVE
+  cooldown: 30
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: look-at-me
+      duration: null
+- id: call-the-room
+  name: Назови комнату
+  description: Выбери выжившего и заставь его трижды громко назвать номер своей комнаты.
+  type: ACTIVE
+  cooldown: 40
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: call-the-room
+      duration: null
+- id: killer-breath
+  name: Сдержать маньяка
+  description: Выбери маньяка. Он должен остановиться и не двигаться 10 секунд.
+  type: ACTIVE
+  cooldown: 75
+  allowedTargets:
+    - KILLER
+  buffs:
+    - buffId: killer-breath
+      duration: null
+- id: swap-places
+  name: Обмен местами
+  description: Выбери выжившего. В течение 60 секунд он должен физически
+    поменяться текущей комнатой с другим живым выжившим. Оба должны реально
+    переместиться.
+  type: ACTIVE
+  cooldown: 50
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: swap-places
+      duration: null
+- id: pair-up
+  name: Пара
+  description: Выбери выжившего. Следующие 45 секунд он должен идти в паре с
+    другим живым выжившим — рядом или за руки. Если разойдутся раньше времени,
+    каждый обязан ударить себя.
+  type: ACTIVE
+  cooldown: 55
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: pair-up
+      duration: null
+- id: decoy
+  name: Приманка
+  description: Выбери выжившего. Он должен громко назвать номер комнаты, в которой
+    НЕ находится, и 20 секунд вести себя так, будто он там.
+  type: ACTIVE
+  cooldown: 45
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: decoy
+      duration: null
+- id: courier
+  name: Курьер
+  description: Выбери выжившего. Он должен подойти к другому живому выжившему,
+    шёпотом передать ему номер своей текущей комнаты и вернуться на место в
+    течение 90 секунд.
+  type: ACTIVE
+  cooldown: 50
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: courier
+      duration: null
+- id: lockdown
+  name: Карантин
+  description: Выбери выжившего. У него 30 секунд, чтобы дойти до ближайшей двери
+    или арки и стоять там до конца приказа. Если не успеет — он обязан ударить
+    себя.
+  type: ACTIVE
+  cooldown: 45
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: lockdown
+      duration: null
+- id: toll
+  name: Пошлина
+  description: Выбери выжившего. Чтобы снять с себя ограничения маньяка, он должен
+    ударить себя и вслух назвать номер своей текущей комнаты.
+  type: ACTIVE
+  cooldown: 40
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: toll
+      duration: null
+- id: free-run
+  name: Свободный бег
+  description: Тебе разрешено бегать без ограничений.
+  type: PASSIVE

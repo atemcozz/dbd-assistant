@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { parse as parseYaml } from 'yaml'
 import { PrismaClient } from '@prisma/client'
 
 type CharacterConfig = {
@@ -73,29 +74,22 @@ function validateDuration(
 }
 
 async function main() {
-  const questsJson = JSON.parse(
-    await readFile(resolve(configPath, 'quests.json'), 'utf8'),
-  ) as QuestConfig[]
+  // Game content lives in YAML under config/ — validated here, then
+  // upserted into SQLite (the runtime source of truth).
+  const readConfig = async <T>(name: string): Promise<T> =>
+    parseYaml(await readFile(resolve(configPath, `${name}.yaml`), 'utf8')) as T
 
-  const survivorsJson = JSON.parse(
-    await readFile(resolve(configPath, 'survivors.json'), 'utf8'),
-  ) as CharacterConfig[]
+  const questsJson = await readConfig<QuestConfig[]>('quests')
 
-  const killersJson = JSON.parse(
-    await readFile(resolve(configPath, 'killers.json'), 'utf8'),
-  ) as CharacterConfig[]
+  const survivorsJson = await readConfig<CharacterConfig[]>('survivors')
 
-  const abilitiesJson = JSON.parse(
-    await readFile(resolve(configPath, 'abilities.json'), 'utf8'),
-  ) as AbilityConfig[]
+  const killersJson = await readConfig<CharacterConfig[]>('killers')
 
-  const buffsJson = JSON.parse(
-    await readFile(resolve(configPath, 'buffs.json'), 'utf8'),
-  ) as BuffConfig[]
+  const abilitiesJson = await readConfig<AbilityConfig[]>('abilities')
 
-  const exitsJson = JSON.parse(
-    await readFile(resolve(configPath, 'exits.json'), 'utf8'),
-  ) as ExitConfig[]
+  const buffsJson = await readConfig<BuffConfig[]>('buffs')
+
+  const exitsJson = await readConfig<ExitConfig[]>('exits')
 
   const charactersJson = [...survivorsJson, ...killersJson]
 
