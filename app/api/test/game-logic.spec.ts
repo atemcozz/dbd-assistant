@@ -964,6 +964,50 @@ describe('Game logic', () => {
       expect(rows).toHaveLength(0)
     })
 
+    it('ability use returns instant effects for the feedback modal', async () => {
+      const { owner, survivor } = await setupRunningGame()
+
+      // HEAL on self returns the applied buff info (name/description).
+      const applied = await abilitiesService.use(
+        owner.state.code,
+        'field-dressing',
+        undefined,
+        owner.sessionToken,
+      )
+      expect(applied).toHaveLength(1)
+      expect(applied[0]).toMatchObject({
+        buffId: 'field-dressing',
+        name: 'Field Dressing',
+        targetPlayerId: owner.playerId,
+        targetPlayerName: 'Owner',
+      })
+      expect(applied[0].description).toContain('wounds')
+
+      // HURT on another player names that target.
+      const hurt = await abilitiesService.use(
+        owner.state.code,
+        'attack-survivor',
+        owner.playerId,
+        survivor.sessionToken,
+      )
+      expect(hurt).toHaveLength(1)
+      expect(hurt[0]).toMatchObject({
+        buffId: 'attack-survivor',
+        targetPlayerId: owner.playerId,
+        targetPlayerName: 'Owner',
+      })
+
+      // INFO-only ability returns no instant effects —
+      // its modal comes from the created buff row instead.
+      const none = await abilitiesService.use(
+        owner.state.code,
+        'stay-still',
+        owner.playerId,
+        survivor.sessionToken,
+      )
+      expect(none).toHaveLength(0)
+    })
+
     it('manual self-application creates a permanent buff with a normalized id', async () => {
       const { owner } = await setupRunningGame()
 

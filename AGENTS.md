@@ -497,6 +497,10 @@ Then it applies every inflicted buff to every resolved target:
 `HEAL`/`HURT` update health instantly (clamped to `[0, maxHealth]`, 0 → DEAD),
 `INFO` creates an `ActiveBuff` row.
 
+The use endpoint returns the instantly applied effects (`buffId`, `name`,
+`description`, target) so the client can pop a feedback modal — `INFO`
+buffs already pop one via the buff list.
+
 Persist the result before broadcasting the resulting realtime event.
 
 ### Manual buff application

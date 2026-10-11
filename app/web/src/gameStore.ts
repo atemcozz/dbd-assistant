@@ -104,6 +104,16 @@ export type PlayerAbility = {
   // Allowed target types (e.g. ["SELF","SURVIVOR"] or ["ALL_SURVIVORS"]).
   allowedTargets: string[]
 }
+// An instant effect applied by an ability use (HEAL/HURT resolve immediately
+// and leave no buff row). The use endpoint returns these so the client can
+// show a feedback modal — INFO buffs already pop one via the buff list.
+export type AppliedInstantEffect = {
+  buffId: string
+  name: string
+  description: string
+  targetPlayerId: string
+  targetPlayerName: string
+}
 // A buff currently applied to the player (timed or permanent).
 export type PlayerBuff = {
   id: string
@@ -175,7 +185,7 @@ type GameStore = {
   attackPlayer: (playerId: string) => Promise<void>
   completeQuest: (questId: string) => Promise<void>
   escapeThroughExit: (exitDefinitionId: string) => Promise<void>
-  useAbility: (abilityId: string, targetPlayerId?: string) => Promise<void>
+  useAbility: (abilityId: string, targetPlayerId?: string) => Promise<AppliedInstantEffect[] | null>
   applySelfBuff: (buffId: string) => Promise<string | null>
   updateSettings: (durationSeconds: number, requiredQuestPoints: number) => Promise<void>
   sendChat: (text: string) => Promise<void>
@@ -437,17 +447,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  // Returns the instant effects applied by this use (empty when the
+  // ability only inflicted INFO buffs), or null when the use failed.
   useAbility: async (abilityId, targetPlayerId) => {
     const { session } = get()
-    if (!session) return
+    if (!session) return null
     try {
-      const state = await request<LobbyState>(`/games/${session.gameCode}/abilities/${abilityId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId }) }, session.sessionToken)
+      const { state, appliedEffects } = await request<{ state: LobbyState; appliedEffects: AppliedInstantEffect[] }>(`/games/${session.gameCode}/abilities/${abilityId}/use`, { method: 'POST', body: JSON.stringify({ targetPlayerId }) }, session.sessionToken)
       set({ state, error: null })
+      return appliedEffects
     } catch (error) {
       // Backend returns error codes; show a player-facing message for the
       // common ability failures instead of the raw code.
       const message = error instanceof Error ? error.message : 'Не удалось использовать абилку'
       set({ error: ACTION_ERROR_MESSAGES[message] ?? message })
+      return null
     }
   },
 

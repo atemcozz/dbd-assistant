@@ -118,6 +118,17 @@ export type PlayerBuffView = {
   sourcePlayerName: string | null
 }
 
+// An instant effect applied by an ability use (HEAL/HURT resolve immediately
+// and leave no ActiveBuff row). Returned by the use endpoint so the client
+// can show a feedback modal — INFO buffs already pop one via the buff list.
+export type AppliedInstantEffect = {
+  buffId: string
+  name: string
+  description: string
+  targetPlayerId: string
+  targetPlayerName: string
+}
+
 // Game state with computional fields for frontend convenience,\
 // eg remainingSeconds, exitsUnlocked, abilities, buffs, chatMessages and etc
 export type LobbyState = {

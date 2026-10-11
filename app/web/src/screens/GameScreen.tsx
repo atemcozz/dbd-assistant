@@ -271,7 +271,35 @@ export function GameScreen() {
       confirmLabel: 'Использовать',
       onConfirm: () => {
         setModal(null)
-        void triggerAbility(abilityId, targetPlayerId)
+        void triggerAbility(abilityId, targetPlayerId).then((applied) => {
+          if (!applied || applied.length === 0) return
+          // Instant effects (HEAL/HURT) leave no buff row, so unlike INFO
+          // buffs they would show no feedback — pop the same style of
+          // info modal with the effect description.
+          if (applied.length === 1) {
+            const [effect] = applied
+            const targetText =
+              effect.targetPlayerId !== currentPlayer.id
+                ? ` (цель: ${effect.targetPlayerName})`
+                : ''
+            setModal({
+              kind: 'info',
+              title: `Нанесён эффект: ${effect.name}`,
+              body: `${effect.description}${targetText}`,
+            })
+          } else {
+            setModal({
+              kind: 'info',
+              title: 'Нанесены эффекты',
+              body: applied
+                .map(
+                  (effect) =>
+                    `«${effect.name}» (${effect.targetPlayerName}): ${effect.description}`,
+                )
+                .join(' '),
+            })
+          }
+        })
       },
     })
   }

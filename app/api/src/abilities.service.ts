@@ -7,7 +7,11 @@ import {
 } from '@nestjs/common'
 import { PlayerRole, PlayerStatus } from '@prisma/client'
 import { PrismaService } from './prisma.service'
-import type { PlayerAbilityView, PlayerBuffView } from './game.types'
+import type {
+  AppliedInstantEffect,
+  PlayerAbilityView,
+  PlayerBuffView,
+} from './game.types'
 
 // Abilities are activatable actions owned by a player; buffs are states
 // applied to players. An ability inflicts its configured buffs on the
@@ -145,6 +149,11 @@ export class AbilitiesService {
     )
 
     // Apply all inflicted buffs to all targets in one transaction.
+    // Instant effects (HEAL/HURT) are collected for the response — they
+    // leave no ActiveBuff row, so without this the client could not show
+    // a feedback modal for them like it does for INFO buffs.
+    const appliedInstant: AppliedInstantEffect[] = []
+
     await this.prisma.$transaction(async (tx) => {
       const now = new Date()
 
@@ -178,6 +187,14 @@ export class AbilitiesService {
               maxHealth,
               health + this.getQuantity(buff.params),
             )
+
+            appliedInstant.push({
+              buffId: buff.id,
+              name: buff.name,
+              description: buff.description,
+              targetPlayerId: target.id,
+              targetPlayerName: target.name,
+            })
           }
 
           if (buff.action === 'HURT') {
@@ -193,6 +210,14 @@ export class AbilitiesService {
             if (health === 0) {
               status = PlayerStatus.DEAD
             }
+
+            appliedInstant.push({
+              buffId: buff.id,
+              name: buff.name,
+              description: buff.description,
+              targetPlayerId: target.id,
+              targetPlayerName: target.name,
+            })
           }
 
           if (buff.action === 'INFO') {
@@ -252,7 +277,7 @@ export class AbilitiesService {
       }
     })
 
-    return true
+    return appliedInstant
   }
 
   // Manual self-application: the player enters a buff id (as instructed

@@ -4,7 +4,7 @@
   action: HEAL
   params:
     quantity: 1
-  defaultDuration: null
+  defaultDuration: 5
 - id: self-attack
   name: Ударить себя
   description: Ты ударил себя и потерял 1 HP.
