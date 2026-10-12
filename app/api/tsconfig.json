@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "nodenext",
+    "target": "ES2022",
+    "moduleResolution": "nodenext",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,7 +19,14 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": false,
     "noFallthroughCasesInSwitch": false,
-    "moduleResolution": "node",
-    "esModuleInterop": true
-  }
+    "esModuleInterop": true,
+    // Global types for Node APIs (src/scripts) and jest globals (test/).
+    // Every other library ships its own types via real imports, so this
+    // list is complete — do NOT narrow it to ["jest"] alone, that drops
+    // `process`/`Buffer`/`__dirname` and breaks compilation everywhere.
+    "types": ["node", "jest"]
+  },
+  // The program the editor, tsc --noEmit, ts-jest and ts-node all share.
+  // nest build narrows this to src/ via tsconfig.build.json.
+  "include": ["src", "test", "scripts"]
 }
