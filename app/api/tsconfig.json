@@ -20,6 +20,10 @@
     "strictPropertyInitialization": false,
     "noFallthroughCasesInSwitch": false,
     "esModuleInterop": true,
+    // Matches how ts-jest transpiles test files (per-file). Also makes
+    // tsc flag re-exports that transpilers cannot resolve (use
+    // `import type` / `export type` for types).
+    "isolatedModules": true,
     // Global types for Node APIs (src/scripts) and jest globals (test/).
     // Every other library ships its own types via real imports, so this
     // list is complete — do NOT narrow it to ["jest"] alone, that drops
