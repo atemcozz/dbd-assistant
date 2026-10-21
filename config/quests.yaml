@@ -1,29 +1,27 @@
 - id: find-red-marker
   name: Красный маркер
-  description: Найди в здании красную метку. Запомни символ рядом с ней и введи
-    его на сайте.
+  description: В работе
   type: EXPLORATION
   radius: null
   cost: 100
   killerCharacterTypeId: null
 - id: three-room-sequence
   name: Три комнаты
-  description: Найди три отмеченные комнаты. В каждой есть цифра. Запиши цифры в
-    порядке от первого этажа к последнему.
+  description: В работе
   type: PUZZLE
   radius: null
   cost: 120
   killerCharacterTypeId: null
 - id: missing-key
   name: Пропавший ключ
-  description: Найди спрятанный ключ и запомни номер, написанный на бирке.
+  description: В работе
   type: OBJECT
   radius: null
   cost: 80
   killerCharacterTypeId: null
 - id: blue-symbol
   name: Синие символы
-  description: Найди три синих символа в разных комнатах и определи их порядок
+  description: В работе
     слева направо.
   type: PUZZLE
   radius: null
@@ -31,68 +29,63 @@
   killerCharacterTypeId: null
 - id: medical-note
   name: Медицинская записка
-  description: Найди записку с медицинским текстом и сообщи её код другому выжившему.
+  description: В работе
   type: OBJECT
   radius: null
   cost: 90
   killerCharacterTypeId: null
 - id: king-spades-black-cards
   name: Чёрные карты
-  description: Найди три чёрные карты, оставленные в разных комнатах. На каждой
-    есть символ. Составь из них правильную последовательность.
+  description: В работе
   type: PUZZLE
   radius: null
   cost: 130
   killerCharacterTypeId: king
 - id: king-spades-throne
   name: Трон Короля
-  description: Найди комнату, где спрятан знак Короля Пик. Запомни число рядом со знаком.
+  description: В работе
   type: EXPLORATION
   radius: null
   cost: 110
   killerCharacterTypeId: king
 - id: doctor-prescription
   name: Рецепт Доктора
-  description: Найди лист с тремя медицинскими символами. Определи правильный
-    порядок символов.
+  description: В работе
   type: PUZZLE
   radius: null
   cost: 130
   killerCharacterTypeId: mask
 - id: doctor-cabinet
   name: Кабинет Доктора
-  description: Найди отмеченный медицинский кабинет и отыщи там спрятанную
-    карточку с номером.
+  description: В работе
   type: EXPLORATION
   radius: null
   cost: 110
   killerCharacterTypeId: mask
 - id: puppet-strings
   name: Нити Кукловода
-  description: Найди три места, где Кукловод оставил бумажные нити. Соедини
-    найденные номера в правильной последовательности.
+  description: В работе
   type: PUZZLE
   radius: null
   cost: 130
   killerCharacterTypeId: nobody
 - id: puppet-room
   name: Комната Кукловода
-  description: Найди комнату с кукольным символом и запомни слово, написанное рядом.
+  description: В работе
   type: EXPLORATION
   radius: null
   cost: 110
   killerCharacterTypeId: nobody
 - id: ronin-mark
   name: Знак Ронина
-  description: Найди бумажный знак Ронина на одном из этажей. Запиши цифру под ним.
+  description: В работе
   type: EXPLORATION
   radius: null
   cost: 100
   killerCharacterTypeId: ronin
 - id: ronin-blades
   name: Три клинка
-  description: Найди три изображения клинков и установи их порядок по длине от
-    самого короткого к самому длинному.
+  description: В работе
   type: PUZZLE
   radius: null
   cost: 140

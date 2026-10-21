@@ -3,8 +3,7 @@
   name: Виктор
   description: Интеллектуал группы. Способен выведать подсказки у маньяка и защитить себя от клетки решением личной головоломки.
   maxHealth: 2
-  # TODO: добавить обложку survivors/victor.jpg
-  coverImage: null
+  coverImage: survivors/victor.jpg
   abilities:
     - abilityId: dejavu
       count: 2
@@ -17,8 +16,7 @@
   name: Mr. Freddybahher
   description: Мастер на все руки. Умеет взламывать клетки саботажем и создавать полезные предметы.
   maxHealth: 2
-  # TODO: добавить обложку survivors/freddy.jpg
-  coverImage: null
+  coverImage: survivors/freddy.jpg
   abilities:
     - abilityId: sabotage
     - abilityId: umelec
@@ -44,8 +42,7 @@
   name: Агент С-021
   description: Опытный оперативник с повышенным запасом прочности. Способен наглухо блокировать целые помещения.
   maxHealth: 3
-  # TODO: добавить обложку survivors/agent.jpg
-  coverImage: null
+  coverImage: survivors/agent.jpg
   abilities:
     - abilityId: castle
     - abilityId: iron-man
@@ -57,8 +54,7 @@
   name: Саймон О'Райли
   description: Находчивый провокатор. Ослепляет маньяка фонарем и может безопасно отсиживаться в сейф-зоне.
   maxHealth: 2
-  # TODO: добавить обложку survivors/saimon.jpg
-  coverImage: null
+  coverImage: survivors/simon.jpg
   abilities:
     - abilityId: sunshine
     - abilityId: audacity
@@ -70,8 +66,7 @@
   name: Лука Вайт
   description: Любитель риска. Испытывает удачу в смертельной рулетке и ловко подтасовывает её результат.
   maxHealth: 2
-  # TODO: добавить обложку survivors/luka.jpg
-  coverImage: null
+  coverImage: survivors/luka.jpg
   abilities:
     - abilityId: roulette
     - abilityId: crook
