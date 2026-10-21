@@ -62,7 +62,7 @@
   name: Адреналин
   description: Ты неуязвим. Любые атаки маньяка не действуют в течение 3 минут.
   action: INFO
-  defaultDuration: 180
+  defaultDuration: 120
 
 - id: castle
   name: Крепость

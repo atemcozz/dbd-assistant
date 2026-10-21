@@ -186,7 +186,7 @@
     - SURVIVOR
   buffs:
     - buffId: adrenaline
-      duration: 180
+      duration: 120
 
 - id: help-doc
   name: Квалифицированная помощь
@@ -251,7 +251,7 @@
 
 - id: self-attack
   name: Ударить себя
-  description: Отнять у себя 1 HP при получении удара от маньяка или штрафа.
+  description: Отнять у себя 1 HP.
   type: ACTIVE
   cooldown: 0
   allowedTargets:
