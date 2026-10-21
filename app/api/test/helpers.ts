@@ -13,11 +13,15 @@ export async function joinSurvivor(ctx: TestContext, code: string, name: string)
 }
 
 // Helper: create a lobby-ready game with owner + survivor and characters assigned.
+// `killerTypeId` lets damage tests use a different killer type (e.g. king).
 // Does NOT start the game — quest/exit selection must happen in LOBBY status.
 // Selects one exit (startGame requires at least one) and sets requiredQuestPoints
 // to 1 so exits stay locked (0 completed points < 1) while still allowing
 // startGame with any selected quest. Point-system tests override this value.
-export async function setupLobbyGame(ctx: TestContext) {
+export async function setupLobbyGame(
+  ctx: TestContext,
+  killerTypeId = 'stalker',
+) {
   const owner = await createGameWithOwner(ctx)
   const survivor = await joinSurvivor(ctx, owner.state.code, 'Survivor')
 
@@ -59,7 +63,7 @@ export async function setupLobbyGame(ctx: TestContext) {
     owner.state.code,
     survivor.playerId,
     owner.sessionToken,
-    'stalker',
+    killerTypeId,
   )
 
   return { owner, survivor }
@@ -68,8 +72,11 @@ export async function setupLobbyGame(ctx: TestContext) {
 // Helper: start a game after assigning characters to all players.
 // Sets requiredQuestPoints to 0 — combat/effects tests don't select quests
 // and don't care about the exits gate.
-export async function setupRunningGame(ctx: TestContext) {
-  const { owner, survivor } = await setupLobbyGame(ctx)
+export async function setupRunningGame(
+  ctx: TestContext,
+  killerTypeId = 'stalker',
+) {
+  const { owner, survivor } = await setupLobbyGame(ctx, killerTypeId)
   await ctx.gamesService.updateSettings(
     owner.state.code,
     owner.sessionToken,

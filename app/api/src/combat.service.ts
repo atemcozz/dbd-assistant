@@ -43,6 +43,9 @@ export class CombatService {
 
     const killer = await this.prisma.player.findUnique({
       where: { sessionToken },
+      include: {
+        characterType: { select: { damage: true } },
+      },
     })
 
     if (!killer) {
@@ -96,9 +99,14 @@ export class CombatService {
       throw new ConflictException('TARGET_INVINCIBLE')
     }
 
-    // Обычная физическая атака всегда наносит ровно 1 урон. Смертельный
-    // удар при этом сначала расходует нокаут, а не снимает последнее HP.
-    const damage = applyDamage(target.health, target.knockouts, 1)
+    // Обычная физическая атака наносит урон, заданный типом персонажа
+    // (по умолчанию 1; у Короля 999 — гарантированный нокаут за один удар).
+    // Смертельный удар сначала расходует нокаут, а не снимает последнее HP.
+    const damage = applyDamage(
+      target.health,
+      target.knockouts,
+      killer.characterType?.damage ?? 1,
+    )
 
     await this.prisma.player.update({
       where: { id: target.id },

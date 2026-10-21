@@ -10,6 +10,9 @@ type CharacterConfig = {
   name: string
   description: string
   maxHealth: number | null
+  // Basic-attack damage. Optional, killers only, default 1.
+  // 999 is the overkill value that always knocks out in one hit.
+  damage?: number
   // Cover art path relative to config/images/ (e.g. killers/king.jpg).
   // Null/absent = no cover. Served by the API under /static/images/.
   coverImage?: string | null
@@ -222,6 +225,20 @@ async function main() {
   }
 
   for (const character of charactersJson) {
+    if (character.damage !== undefined) {
+      if (character.role !== 'KILLER') {
+        throw new Error(
+          `Character ${character.id} defines damage but is not a killer`,
+        )
+      }
+
+      if (!Number.isInteger(character.damage) || character.damage < 1) {
+        throw new Error(
+          `Character ${character.id} has invalid damage: ${character.damage}`,
+        )
+      }
+    }
+
     // Cover art must stay inside config/images/ and point at a real file.
     if (
       character.coverImage !== undefined &&
@@ -441,6 +458,7 @@ async function main() {
             name: character.name,
             description: character.description,
             maxHealth: character.maxHealth,
+            damage: character.damage ?? 1,
             coverImage: character.coverImage ?? null,
           },
           update: {
@@ -448,6 +466,7 @@ async function main() {
             name: character.name,
             description: character.description,
             maxHealth: character.maxHealth,
+            damage: character.damage ?? 1,
             coverImage: character.coverImage ?? null,
           },
         })

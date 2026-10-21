@@ -246,6 +246,9 @@ A character type roughly contains:
 * `name`
 * `description`
 * `maxHealth`
+* `damage` — optional basic-attack damage for killers (integer >= 1,
+  default `1`). Ignored for survivors. `king` uses `999`, which the
+  knockout rule turns into a one-hit knockout.
 * `abilities`
 * `startingBuffs`
 * `coverImage` — optional art path relative to `config/images/`
@@ -606,9 +609,11 @@ A killer can:
 * use allowed abilities (including quest-blocking ones);
 * see quests relevant to their killer type plus universal quests.
 
-Attack deals `1` damage. Lethal damage follows the knockout rule above:
+Attack damage comes from the killer's character type (`damage`, default
+`1`; King uses `999`). Lethal damage follows the knockout rule above:
 the survivor is knocked out at 1 HP on the first two lethal hits, and dies
-on the third.
+on the third. High damage values therefore knock out in one hit without
+skipping the knockout stages.
 
 A survivor holding an active `shield` buff cannot be attacked — the server
 rejects with `TARGET_INVINCIBLE` and the player is flagged `isInvincible`

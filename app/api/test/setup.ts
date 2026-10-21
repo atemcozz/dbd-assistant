@@ -120,6 +120,20 @@ export async function seedTestData(prisma: PrismaService) {
     },
   })
 
+  // High-damage killer: one attack always knocks out (King's 999 in config).
+  await prisma.characterType.upsert({
+    where: { id: 'king' },
+    update: { damage: 999 },
+    create: {
+      id: 'king',
+      role: PlayerRole.KILLER,
+      name: 'King',
+      description: 'Knocks out in one hit.',
+      maxHealth: null,
+      damage: 999,
+    },
+  })
+
   // Buff definitions — HEAL / HURT / INFO with free-form params.
   await prisma.buffDefinition.upsert({
     where: { id: 'field-dressing' },

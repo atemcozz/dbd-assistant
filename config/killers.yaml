@@ -50,6 +50,7 @@
   name: Король Пик
   description: Нокаутирует с одного удара, запечатывает квесты и сталкивает выживших в смертельных играх и беспощадном вальсе.
   maxHealth: null
+  damage: 999
   coverImage: killers/king.jpg
   abilities:
     - abilityId: liquidation

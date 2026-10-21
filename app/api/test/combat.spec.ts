@@ -70,6 +70,27 @@ describe('Attack / combat', () => {
     expect(ownerPlayer.health).toBe(2)
   })
 
+  it('killer damage above 1 knocks out in one hit', async () => {
+    const { owner, survivor } = await setupRunningGame(ctx, 'king')
+
+    // King's damage is 999: the first hit is lethal even at full HP, so the
+    // survivor is knocked out at 1 HP instead of losing HP normally.
+    await combatService.attack(
+      owner.state.code,
+      owner.playerId,
+      survivor.sessionToken,
+    )
+
+    const state = await gamesService.getState(
+      owner.state.code,
+      survivor.sessionToken,
+    )
+    const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+    expect(ownerPlayer.health).toBe(1)
+    expect(ownerPlayer.knockouts).toBe(1)
+    expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
+  })
+
   it('lethal hit knocks out instead of removing the last HP', async () => {
     const { owner, survivor } = await setupRunningGame(ctx)
 

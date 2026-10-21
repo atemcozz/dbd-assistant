@@ -154,6 +154,9 @@ model CharacterType {
   name          String
   description   String
   maxHealth     Int?
+  // Damage dealt by this character's basic attack. Killers only; survivors
+  // ignore it. Config source: config/killers.yaml (king uses 999).
+  damage        Int          @default(1)
   // Cover art path relative to config/images/ (e.g. killers/king.jpg).
   // Null = no cover. Served by the API under /static/images/.
   coverImage    String?
