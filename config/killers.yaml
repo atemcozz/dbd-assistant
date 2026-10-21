@@ -1,84 +1,72 @@
-- id: king
+- id: twins
   role: KILLER
-  name: Король Пик
-  description: "Контролирует территорию: останавливает выживших и меняет их расположение."
+  name: Близнецы
+  description: Действуют в связке с приспешником Сэмом. Замедляют плевками, провоцируют давку сиреной и выводят игроков из строя шоковой терапией.
   maxHealth: null
-  coverImage: killers/king.jpg
+  coverImage: killers/twins.jpg
   abilities:
-    - abilityId: stay-still
-    - abilityId: forced-room
-    - abilityId: look-at-me
-    - abilityId: swap-places
-    - abilityId: decoy
-    - abilityId: seal-quest
+    - abilityId: abdication
+    - abilityId: scumbags
+    - abilityId: shock-therapy
+    - abilityId: paranoia
+  startingBuffs: []
+
+- id: trapper
+  role: KILLER
+  name: Траппер
+  description: Эксперт по блокированию пространства. Расставляет смертоносные растяжки и зачищает комнаты гранатами.
+  maxHealth: null
+  coverImage: killers/trapper.jpg
+  abilities:
+    - abilityId: trap
+    - abilityId: surprise
   startingBuffs: []
 
 - id: mask
   role: KILLER
   name: Маска
-  description: "Навязывает короткие неприятные процедуры: вскрытие позиции и
-    принудительные паузы."
+  description: Кукловод, скрывающий личности жертв одинаковыми масками и подчиняющий разум выживших для атак на союзников.
   maxHealth: null
   coverImage: killers/mask.jpg
   abilities:
-    - abilityId: force-shout
-    - abilityId: silent-step
-    - abilityId: hands-up
-    - abilityId: lockdown
-    - abilityId: toll
+    - abilityId: marionette
+    - abilityId: true-path
+  startingBuffs: []
+
+- id: ronin
+  role: KILLER
+  name: Ронин
+  description: Дисциплинированный убийца. Поражает кунаями на дистанции, погружается в транс для мгновенной казни и дезориентирует выживших во время ярости.
+  maxHealth: null
+  coverImage: killers/ronin.jpg
+  abilities:
+    - abilityId: kunai
+    - abilityId: meditation
+    - abilityId: rage
+  startingBuffs: []
+
+- id: king
+  role: KILLER
+  name: Король Пик
+  description: Нокаутирует с одного удара, запечатывает квесты и сталкивает выживших в смертельных играх и беспощадном вальсе.
+  maxHealth: null
+  coverImage: killers/king.jpg
+  abilities:
+    - abilityId: liquidation
+    - abilityId: kings-game
+    - abilityId: kings-seal
+      count: 3
+    - abilityId: kings-waltz
+      count: 3
   startingBuffs: []
 
 - id: nobody
   role: KILLER
   name: Никто
-  description: Связывает выживших друг с другом и заставляет их выполнять команды в паре.
+  description: Незримый наблюдатель. Контролирует каждый шаг выживших через камеры и оставляет ложные квесты.
   maxHealth: null
   coverImage: killers/nobody.jpg
   abilities:
-    - abilityId: forced-room
-    - abilityId: no-turning
-    - abilityId: call-the-room
-    - abilityId: pair-up
-    - abilityId: courier
-  startingBuffs: []
-
-
-- id: ronin
-  role: KILLER
-  name: Ронин
-  description: "Быстрое давление: групповые остановки и короткие ложные сигналы."
-  maxHealth: null
-  coverImage: killers/ronin.jpg
-  abilities:
-    - abilityId: stay-still
-    - abilityId: group-command
-    - abilityId: lockdown
-    - abilityId: decoy
-  startingBuffs: []
-
-
-- id: trapper
-  role: KILLER
-  name: Траппер
-  description: "Быстрое давление: групповые остановки и короткие ложные сигналы."
-  maxHealth: null
-  coverImage: killers/trapper.jpg
-  abilities:
-    - abilityId: stay-still
-    - abilityId: group-command
-    - abilityId: lockdown
-    - abilityId: decoy
-  startingBuffs: []
-
-- id: twins
-  role: KILLER
-  name: Близнецы
-  description: "Быстрое давление: групповые остановки и короткие ложные сигналы."
-  maxHealth: null
-  coverImage: killers/twins.jpg
-  abilities:
-    - abilityId: stay-still
-    - abilityId: group-command
-    - abilityId: lockdown
-    - abilityId: decoy
+    - abilityId: allseeing-eye
+    - abilityId: fraud
   startingBuffs: []

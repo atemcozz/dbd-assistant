@@ -1,6 +1,197 @@
-- id: field-dressing
-  name: Перевязка
-  description: Выбери себя или другого выжившего и восстанови 1 HP.
+- id: abdication
+  name: Отречение
+  description: Приспешник Сэм совершает бросок мячом. Первое попадание накладывает запрет на бег на 15 секунд, второе попадание наносит ранение (-1 HP).
+  type: PASSIVE
+
+- id: scumbags
+  name: Отбросы общества
+  description: >
+    Звучит сирена: все выжившие обязаны добежать до контрольной кнопки.
+    Нажавший кнопку последним отправляется в клетку.
+  type: ACTIVE  
+  cooldown: 420
+  allowedTargets:
+    - ALL_SURVIVORS
+  buffs:
+    - buffId: scumbags-siren
+      duration: 60
+
+- id: shock-therapy
+  name: Шоковая терапия
+  description: Удар электрошокером. Выбранный выживший обездвижен и не может совершать действий 2 минуты.
+  type: ACTIVE
+  cooldown: 180
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: shock-therapy
+      duration: 120
+
+- id: paranoia
+  name: Паранойя
+  description: При открытии тайника с негативным эффектом выживший обязан закричать 3 раза с интервалом в 20 секунд.
+  type: PASSIVE
+
+
+- id: liquidation
+  name: Ликвидация
+  description: Любая успешная атака Короля сразу отправляет выжившего в нокаут с одного удара.
+  type: PASSIVE
+
+
+- id: kings-game
+  name: Игра Короля
+  description: >
+    Король лично предлагает выжившему две коробки на выбор.
+    В одной лежит полезный предмет или подсказка, во второй — проклятие, делающее игрока временным слугой Короля с правом наносить удары.
+  type: PASSIVE
+
+
+- id: kings-seal
+  name: Печать Короля
+  description: Блокирует выполнение выбранного квеста по его номеру на 5 минут.
+  type: ACTIVE
+  cooldown: 0
+  allowedTargets:
+    - QUEST
+  blockDurationSeconds: 300
+
+
+- id: kings-waltz
+  name: Вальс Короля
+  description: >
+    Король собирает выживших в зале со стульями под музыку вальса.
+    Не успевший занять стул получает штраф: 1-й вальс — Порча, 2-й — ранение, 3-й — смерть и выбывание из игры.
+  type: ACTIVE
+  cooldown: 0
+  allowedTargets:
+    - ALL_SURVIVORS
+  buffs:
+    - buffId: kings-waltz-call
+      duration: 90
+      
+- id: trap
+  name: Ловушка
+  description: Установка растяжки. Подрыв ловушки ранит всех выживших в радиусе 5 метров.
+  type: PASSIVE
+  
+
+- id: surprise
+  name: Сюрприз
+  description: Бросок гранаты. Все выжившие в радиусе 5 метров от точки подрыва получают нокаут.
+  type: PASSIVE
+
+- id: marionette
+  name: Марионетки
+  description: Все выжившие начинают игру в одинаковых масках и одежде, скрывающих их личность.
+  type: PASSIVE
+
+
+- id: true-path
+  name: Верный путь
+  description: Выбранный выживший на 3 минуты становится марионеткой. Он не может покидать комнату и обязан атаковать любого входящего игрока при приближении на 5 метров.
+  type: ACTIVE
+  cooldown: 180
+  allowedTargets:
+    - SURVIVOR
+  buffs:
+    - buffId: marionette-curse
+      duration: 180
+
+- id: allseeing-eye
+  name: Всевидящее око
+  description: Маньяк может непрерывно отслеживать перемещения выживших через камеры наблюдения.
+  type: PASSIVE
+
+
+- id: fraud
+  name: Разводняк
+  description: Размещение двух ложных квестов-обманок, за выполнение которых не начисляются очки.
+  type: PASSIVE
+
+
+- id: kunai
+  name: Кунай учителя
+  description: Бросок тренировочного куная. Первое попадание ранит выжившего, второе — убивает.
+  type: PASSIVE
+
+- id: meditation
+  name: Медитация
+  description: >
+    Ронин медитирует под музыку 3 минуты.
+    В последующие 2 минуты его атака гарантированно нокаутирует с одного удара,
+    после чего он может сразу казнить жертву под ритуальную мелодию.
+  type: ACTIVE
+  cooldown: 420
+  allowedTargets:
+    - ALL_SURVIVORS
+  buffs:
+    - buffId: meditation-trance
+      duration: 300
+
+- id: rage
+  name: Ярость
+  description: >
+    Включается боевая музыка на 3,5 минуты.
+    Все выжившие обязаны каждые 10 секунд кричать «Я здесь!».
+    На время действия Ярости атаки Ронина убивают с 1 удара.
+  type: ACTIVE
+  cooldown: 210
+  allowedTargets:
+    - ALL_SURVIVORS
+  buffs:
+    - buffId: rage-call
+      duration: 210
+
+- id: sabotage
+  name: Саботаж
+  description: > 
+    Взлом замка клетки.
+    Позволяет мгновенно освободить себя или союзника.
+  type: ACTIVE
+  cooldown: 300
+  allowedTargets:
+    - SELF
+    - SURVIVOR
+  buffs:
+    - buffId: sabotage-escape
+      duration: null
+
+- id: umelec
+  name: Народный умелец
+  description: Создание любого игрового предмета по правилам игры за 2 жетона.
+  type: PASSIVE
+
+
+- id: sunshine
+  name: Солнечный
+  description: Направленный луч фонаря ослепляет маньяка. Маньяк обязан замереть на месте на 15 секунд.
+  type: PASSIVE
+
+
+- id: audacity
+  name: Дерзость
+  description: Позволяет находиться в безопасной зоне неограниченное количество времени.
+  type: PASSIVE
+
+- id: adrenaline
+  name: Адреналин
+  description: >
+    Укол адреналина себе или союзнику.
+    Даёт полную неуязвимость к атакам маньяка на 3 минуты.
+  type: ACTIVE
+  cooldown: 60
+  allowedTargets:
+    - SELF
+    - SURVIVOR
+  buffs:
+    - buffId: adrenaline
+      duration: 180
+
+- id: help-doc
+  name: Квалифицированная помощь
+  description: >
+   Медицинская помощь. Восстанавливает 1 HP себе или выбранному союзнику.
   type: ACTIVE
   cooldown: 30
   allowedTargets:
@@ -9,9 +200,58 @@
   buffs:
     - buffId: field-dressing
       duration: null
+
+- id: detect
+  name: Опытный сыщик
+  description: >
+    Разгадав личную головоломку, выживший получает однократную защиту от помещения в клетку при ранении.
+  type: PASSIVE
+
+- id: dejavu
+  name: Дежавю
+  description: Выживший запрашивает у маньяка одну подсказку по квестам или окружению.
+  type: ACTIVE
+  cooldown: 0
+  allowedTargets:
+    - KILLER
+  buffs:
+    - buffId: dejavu-request
+      duration: 60
+
+- id: iron-man
+  name: Железная воля
+  description: Запас здоровья увеличен на 1 единицу.
+  type: PASSIVE
+
+- id: castle
+  name: Крепость
+  description: >
+    За 2 жетона блокирует все входы и выходы в текущее помещение на 5 минут.
+  type: ACTIVE
+  cooldown: 0
+  allowedTargets:
+    - SELF
+  buffs:
+    - buffId: castle
+      duration: 300
+
+- id: roulette
+  name: Русская рулетка
+  description: >
+    Бросок кубика.
+    Нечётное число позволяет сбежать из клетки, получить +1 HP или снять дебафф.
+    Чётное число отнимает 1 HP и заставляет крикнуть «Я здесь!».
+  type: PASSIVE
+
+- id: crook
+  name: Жулик
+  description: Позволяет за 2 жетона перебросить кубик при неудаче в Русской рулетке.
+  type: PASSIVE
+ 
+
 - id: self-attack
   name: Ударить себя
-  description: Ударь себя. Ты теряешь 1 HP.
+  description: Отнять у себя 1 HP при получении удара от маньяка или штрафа.
   type: ACTIVE
   cooldown: 0
   allowedTargets:
@@ -19,217 +259,3 @@
   buffs:
     - buffId: self-attack
       duration: null
-- id: stun-killer
-  name: Оглушение маньяка
-  description: Выбери маньяка. Он не должен двигаться 15 секунд.
-  type: ACTIVE
-  cooldown: 60
-  allowedTargets:
-    - KILLER
-  buffs:
-    - buffId: stun-killer
-      duration: null
-- id: force-shout
-  name: Крик
-  description: Выбери выжившего и заставь его громко назвать свою текущую комнату.
-  type: ACTIVE
-  cooldown: 25
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: force-shout
-      duration: null
-- id: forced-room
-  name: "Приказ: комната"
-  description: Выбери выжившего и отправь его в комнату 3. Он должен прибыть туда
-    в течение минуты.
-  type: ACTIVE
-  cooldown: 45
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: forced-room
-      duration: null
-- id: stay-still
-  name: Замри
-  description: Все выжившие должны остановиться на месте и не двигаться 20 секунд.
-  type: ACTIVE
-  cooldown: 45
-  allowedTargets:
-    - ALL_SURVIVORS
-  buffs:
-    - buffId: stay-still
-      duration: null
-- id: hands-up
-  name: Руки вверх
-  description: Выбери выжившего. Он должен поднять обе руки и стоять так 10 секунд.
-  type: ACTIVE
-  cooldown: 20
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: hands-up
-      duration: null
-- id: silent-step
-  name: Тихий шаг
-  description: Выбери выжившего. В течение 30 секунд он не должен разговаривать.
-  type: ACTIVE
-  cooldown: 35
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: silent-step
-      duration: null
-- id: group-command
-  name: Общий приказ
-  description: Все выжившие должны одновременно коснуться стены ближайшей комнаты
-    в течение 20 секунд.
-  type: ACTIVE
-  cooldown: 60
-  allowedTargets:
-    - ALL_SURVIVORS
-  buffs:
-    - buffId: group-command
-      duration: null
-- id: marked
-  name: Метка
-  description: Наложи на выбранного выжившего метку на одну минуту.
-  type: ACTIVE
-  cooldown: 45
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: marked
-      duration: null
-- id: no-turning
-  name: Не оборачивайся
-  description: Выбери выжившего. Следующие 20 секунд он не должен оборачиваться назад.
-  type: ACTIVE
-  cooldown: 30
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: no-turning
-      duration: null
-- id: look-at-me
-  name: Смотри на меня
-  description: Выбери выжившего. Он должен смотреть в сторону маньяка 10 секунд.
-  type: ACTIVE
-  cooldown: 30
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: look-at-me
-      duration: null
-- id: call-the-room
-  name: Назови комнату
-  description: Выбери выжившего и заставь его трижды громко назвать номер своей комнаты.
-  type: ACTIVE
-  cooldown: 40
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: call-the-room
-      duration: null
-- id: killer-breath
-  name: Сдержать маньяка
-  description: Выбери маньяка. Он должен остановиться и не двигаться 10 секунд.
-  type: ACTIVE
-  cooldown: 75
-  allowedTargets:
-    - KILLER
-  buffs:
-    - buffId: killer-breath
-      duration: null
-- id: shield
-  name: Щит
-  description: Стань неуязвимым к атакам маньяка на 30 секунд.
-  type: ACTIVE
-  cooldown: 90
-  allowedTargets:
-    - SELF
-  buffs:
-    - buffId: shield
-      duration: null
-- id: swap-places
-  name: Обмен местами
-  description: Выбери выжившего. В течение 60 секунд он должен физически
-    поменяться текущей комнатой с другим живым выжившим. Оба должны реально
-    переместиться.
-  type: ACTIVE
-  cooldown: 50
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: swap-places
-      duration: null
-- id: pair-up
-  name: Пара
-  description: Выбери выжившего. Следующие 45 секунд он должен идти в паре с
-    другим живым выжившим — рядом или за руки. Если разойдутся раньше времени,
-    каждый обязан ударить себя.
-  type: ACTIVE
-  cooldown: 55
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: pair-up
-      duration: null
-- id: decoy
-  name: Приманка
-  description: Выбери выжившего. Он должен громко назвать номер комнаты, в которой
-    НЕ находится, и 20 секунд вести себя так, будто он там.
-  type: ACTIVE
-  cooldown: 45
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: decoy
-      duration: null
-- id: courier
-  name: Курьер
-  description: Выбери выжившего. Он должен подойти к другому живому выжившему,
-    шёпотом передать ему номер своей текущей комнаты и вернуться на место в
-    течение 90 секунд.
-  type: ACTIVE
-  cooldown: 50
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: courier
-      duration: null
-- id: lockdown
-  name: Карантин
-  description: Выбери выжившего. У него 30 секунд, чтобы дойти до ближайшей двери
-    или арки и стоять там до конца приказа. Если не успеет — он обязан ударить
-    себя.
-  type: ACTIVE
-  cooldown: 45
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: lockdown
-      duration: null
-- id: toll
-  name: Пошлина
-  description: Выбери выжившего. Чтобы снять с себя ограничения маньяка, он должен
-    ударить себя и вслух назвать номер своей текущей комнаты.
-  type: ACTIVE
-  cooldown: 40
-  allowedTargets:
-    - SURVIVOR
-  buffs:
-    - buffId: toll
-      duration: null
-- id: free-run
-  name: Свободный бег
-  description: Тебе разрешено бегать без ограничений.
-  type: PASSIVE
-- id: seal-quest
-  name: Печать квеста
-  description: Выбери квест по его номеру. Выжившие не смогут завершить его 60 секунд.
-  type: ACTIVE
-  cooldown: 120
-  allowedTargets:
-    - QUEST
-  blockDurationSeconds: 60

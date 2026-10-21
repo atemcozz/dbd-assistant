@@ -11,9 +11,9 @@ import {
 import { PrismaService } from './prisma.service'
 
 // Timed buff that makes its target immune to killer attacks while active.
-// Single-use by design: only the `shield` ability inflicts it, so a plain
+// Single-use by design: only the `adrenaline` ability inflicts it, so a plain
 // buff id (instead of a generic flag framework) is enough.
-export const INVINCIBILITY_BUFF_ID = 'shield'
+export const INVINCIBILITY_BUFF_ID = 'adrenaline'
 
 @Injectable()
 export class CombatService {

@@ -1,120 +1,168 @@
-- id: field-dressing
-  name: Перевязка
-  description: Оказана первая помощь. Восстановлено 1 HP.
+- id: kings-seal
+  name: Печать Короля
+  description: Квест заблокирован на 5 минут. Выжившие не могут взаимодействовать с ним или завершить его.
+  action: INFO
+  defaultDuration: 300
+
+- id: corruption
+  name: Порча
+  description: Запрещено бегать, лечиться и взаимодействовать с предметами. Найди антидот в течение 5 минут или получи ранение.
+  action: HURT
+  params:
+    quantity: 1
+  defaultDuration: 300
+
+- id: slowdown
+  name: Тише едешь — дальше будешь
+  description: Запрещено переходить на бег в течение 5 минут (разрешён только шаг).
+  action: INFO
+  defaultDuration: 300
+
+- id: sluggishness
+  name: Оцепенение
+  description: Ты не можешь совершать никаких игровых действий, кроме перемещения.
+  action: INFO
+  defaultDuration: 300
+
+- id: indifference
+  name: Равнодушие
+  description: Запрещено спасать союзников из клетки до момента открытия основных ворот.
+  action: INFO
+  defaultDuration: null
+
+- id: heal-potion
+  name: Зелье здоровья
+  description: Восстанавливает 1 единицу здоровья (HP).
   action: HEAL
   params:
     quantity: 1
-  defaultDuration: 5
+  defaultDuration: null
+
+- id: hallucination
+  name: Галлюцинация
+  description: В течение 20 секунд ты обязан каждые несколько секунд громко кричать «Я здесь!».
+  action: INFO
+  defaultDuration: 20
+
+- id: antidote
+  name: Антидот
+  description: Снимает все действующие негативные эффекты и дебаффы.
+  action: INFO
+  defaultDuration: null
+
+- id: medkit
+  name: Аптечка
+  description: Применение восстанавливает 1 HP за 30 секунд перевязки.
+  action: HEAL
+  params:
+    quantity: 1
+  defaultDuration: 30
+
+- id: adrenaline
+  name: Адреналин
+  description: Ты неуязвим. Любые атаки маньяка не действуют в течение 3 минут.
+  action: INFO
+  defaultDuration: 180
+
+- id: castle
+  name: Крепость
+  description: Все входы и двери в текущее помещение заблокированы на 5 минут.
+  action: INFO
+  defaultDuration: 300
+
+
+- id: shock-therapy
+  name: Паралич током
+  description: Ты поражён электрошоком. Запрещено двигаться и совершать любые действия в течение 2 минут.
+  action: INFO
+  defaultDuration: 120
+
+- id: marionette-curse
+  name: Подчинение Маски
+  description: Ты стал марионеткой на 3 минуты. Запрещено покидать комнату. Ты обязан напасть на любого вошедшего выжившего.
+  action: INFO
+  defaultDuration: 180
+
+- id: stun-killer
+  name: Ослепление маньяка
+  description: Маньяк ослеплён фонариком и обязан оставаться на месте 15 секунд.
+  action: INFO
+  defaultDuration: 15
+
+- id: field-dressing
+  name: Квалифицированная помощь
+  description: Оказана медицинская помощь. Восстановлено 1 HP.
+  action: HEAL
+  params:
+    quantity: 1
+  defaultDuration: null
+
 - id: self-attack
-  name: Ударить себя
-  description: Ты ударил себя и потерял 1 HP.
+  name: Получение урона
+  description: Получен урон. Снято 1 HP.
   action: HURT
   params:
     quantity: 1
   defaultDuration: null
-- id: stun-killer
-  name: Оглушение маньяка
-  description: Ты оглушён. Не двигайся 15 секунд.
-  action: INFO
-  defaultDuration: 15
-- id: force-shout
-  name: Крик
-  description: Громко назови комнату, в которой ты сейчас находишься.
-  action: INFO
-  defaultDuration: 10
-- id: forced-room
-  name: "Приказ: комната"
-  description: Ты должен прийти в комнату 3 в течение одной минуты.
+
+
+- id: scumbags-siren
+  name: "Тревога: Отбросы общества"
+  description: >
+    Звучит сирена!
+    Срочно беги к контрольной кнопке и нажми её.
+    Игрок, нажавший последним, отправляется в клетку.
   action: INFO
   defaultDuration: 60
-- id: stay-still
-  name: Замри
-  description: Замри на месте. Не двигайся 20 секунд.
-  action: INFO
-  defaultDuration: 20
-- id: hands-up
-  name: Руки вверх
-  description: Подними обе руки и стой так 10 секунд.
-  action: INFO
-  defaultDuration: 10
-- id: silent-step
-  name: Тихий шаг
-  description: Не разговаривай 30 секунд.
-  action: INFO
-  defaultDuration: 30
-- id: group-command
-  name: Общий приказ
-  description: Найди ближайшую комнату и коснись стены в течение 20 секунд.
-  action: INFO
-  defaultDuration: 20
-- id: marked
-  name: Метка
-  description: На тебе метка. Следующую минуту следи за всеми ограничениями,
-    указанными системой.
-  action: INFO
-  defaultDuration: 60
-- id: no-turning
-  name: Не оборачивайся
-  description: Следующие 20 секунд не оборачивайся назад.
-  action: INFO
-  defaultDuration: 20
-- id: look-at-me
-  name: Смотри на меня
-  description: Смотри на маньяка 10 секунд.
-  action: INFO
-  defaultDuration: 10
-- id: call-the-room
-  name: Назови комнату
-  description: Трижды громко назови номер своей комнаты.
-  action: INFO
-  defaultDuration: 10
-- id: killer-breath
-  name: Сдержать маньяка
-  description: Остановись. Не двигайся 10 секунд.
-  action: INFO
-  defaultDuration: 10
-- id: swap-places
-  name: Обмен местами
-  description: Поменяйся комнатой с другим живым выжившим в течение 60 секунд. Оба
-    должны реально переместиться.
-  action: INFO
-  defaultDuration: 60
-- id: pair-up
-  name: Пара
-  description: Следующие 45 секунд иди в паре с другим живым выжившим. Если
-    разойдётесь — каждый должен ударить себя.
-  action: INFO
-  defaultDuration: 45
-- id: decoy
-  name: Приманка
-  description: Громко назови номер комнаты, в которой ты НЕ находишься, и 20
-    секунд веди себя так, будто ты там.
-  action: INFO
-  defaultDuration: 20
-- id: courier
-  name: Курьер
-  description: Подойди к другому живому выжившему, шёпотом передай ему номер своей
-    комнаты и вернись на место в течение 90 секунд.
+
+- id: kings-waltz-call
+  name: "Приказ: Вальс Короля"
+  description: >
+    Играет вальс!
+    Все выжившие обязаны немедленно собраться в зале со стульями.
+    Не успевший занять стул игрок понесёт суровое наказание.
   action: INFO
   defaultDuration: 90
-- id: lockdown
-  name: Карантин
-  description: У тебя 30 секунд, чтобы дойти до ближайшей двери или арки и стоять
-    там. Если не успеешь — ударь себя.
+
+
+- id: meditation-trance
+  name: Боевая медитация
+  description: >
+    Маньяк находится в медитации (3 минуты).
+    После окончания музыки в течение 2 минут твои его мгновенно нокаутируют с 1 попадания и позволяют казнить жертву.
   action: INFO
-  defaultDuration: 30
-- id: toll
-  name: Пошлина
-  description: Ударь себя и вслух назови номер своей текущей комнаты.
+  defaultDuration: 300
+
+- id: rage-call
+  name: "Приказ: Ярость Ронина"
+  description: >
+    Звучит боевая музыка Ронина!
+    Ты обязан громко кричать «Я здесь!» каждые 10 секунд, пока играет музыка.
+    Маньяк нокаутирует с 1 удара.
   action: INFO
-  defaultDuration: 10
-- id: free-run
-  name: Свободный бег
-  description: Тебе разрешено бегать без ограничений.
+  defaultDuration: 210
+
+- id: sabotage-escape
+  name: Замок сломан
+  description: >
+    Клетка взломана с помощью саботажа.
+    Ты (или спасённый союзник) можешь немедленно покинуть клетку.
   action: INFO
   defaultDuration: null
-- id: shield
-  name: Щит
-  description: Ты неуязвим. Атаки маньяка не действуют 30 секунд.
+
+- id: dejavu-request
+  name: "Дежавю: Требование подсказки"
+  description: >
+    Выживший применил к тебе способность «Дежавю».
+    Ты обязан дать ему одну правдивую подсказку по текущему квесту или окружению.
   action: INFO
-  defaultDuration: 30
+  defaultDuration: 60
+
+
+- id: healme
+  name: Хилка
+  description: Оказана медицинская помощь. Восстановлено 1 HP.
+  action: HEAL
+  params:
+    quantity: 1
+  defaultDuration: null

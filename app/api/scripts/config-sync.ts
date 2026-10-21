@@ -206,16 +206,18 @@ async function main() {
       )
     }
 
-    if (!Array.isArray(ability.buffs) || ability.buffs.length === 0) {
+    if ((!Array.isArray(ability.buffs) || ability.buffs.length === 0) && ability.type === 'ACTIVE') {
       throw new Error(`Ability ${ability.id} must inflict at least one buff`)
     }
-    for (const link of ability.buffs) {
-      if (!buffIds.has(link.buffId)) {
-        throw new Error(
-          `Ability ${ability.id} references unknown buff ${link.buffId}`,
-        )
+    if (ability.buffs) {
+      for (const link of ability.buffs) {
+        if (!buffIds.has(link.buffId)) {
+          throw new Error(
+            `Ability ${ability.id} references unknown buff ${link.buffId}`,
+          )
+        }
+        validateDuration(link.duration, `Ability ${ability.id}`)
       }
-      validateDuration(link.duration, `Ability ${ability.id}`)
     }
   }
 
