@@ -124,7 +124,7 @@ describe('Attack / combat', () => {
     // Timed shield on the owner.
     await prisma.activeBuff.create({
       data: {
-        buffId: 'shield',
+        buffId: 'adrenaline',
         sourcePlayerId: owner.playerId,
         targetPlayerId: owner.playerId,
         appliedAt: new Date(),
@@ -155,7 +155,7 @@ describe('Attack / combat', () => {
 
     // After expiry the attack lands again and the flag clears.
     await prisma.activeBuff.updateMany({
-      where: { targetPlayerId: owner.playerId, buffId: 'shield' },
+      where: { targetPlayerId: owner.playerId, buffId: 'adrenaline' },
       data: { expiresAt: new Date(Date.now() - 1000) },
     })
 

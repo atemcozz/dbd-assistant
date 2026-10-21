@@ -176,11 +176,11 @@ export async function seedTestData(prisma: PrismaService) {
 
   // Timed invincibility buff — blocks killer attacks while active.
   await prisma.buffDefinition.upsert({
-    where: { id: 'shield' },
+    where: { id: 'adrenaline' },
     update: {},
     create: {
-      id: 'shield',
-      name: 'Shield',
+      id: 'adrenaline',
+      name: 'Adrenaline',
       description: 'You are invincible for 30 seconds.',
       action: 'INFO',
       defaultDuration: 30,
