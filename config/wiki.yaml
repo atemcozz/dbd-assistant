@@ -1,0 +1,22 @@
+sections:
+  - id: survivors
+    title: Выжившие
+    type: survivors
+
+  - id: killers
+    title: Маны
+    type: killers
+
+  - id: exits
+    title: Выходы
+    type: exits
+
+  - id: rules
+    title: Правила игры
+    type: markdown
+    file: docs/rules.md
+
+  - id: other
+    title: Прочее
+    type: markdown
+    file: docs/other.md

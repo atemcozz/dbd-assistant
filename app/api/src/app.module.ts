@@ -15,6 +15,8 @@ import { CombatService } from './combat.service'
 import { CombatController } from './combat.controller'
 import { ExitsService } from './exits.service'
 import { ExitsController } from './exits.controller'
+import { WikiController } from './wiki.controller'
+import { WikiService } from './wiki.service'
 
 // Simple health-check endpoint — useful for manual verification and LAN checks.
 @Controller()
@@ -35,6 +37,7 @@ class AppController {
     AbilitiesController,
     CombatController,
     ChatController,
+    WikiController,
   ],
 
   providers: [
@@ -47,6 +50,7 @@ class AppController {
     ChatService,
     GameGateway,
     PrismaService,
+    WikiService,
   ],
 })
 export class AppModule {}

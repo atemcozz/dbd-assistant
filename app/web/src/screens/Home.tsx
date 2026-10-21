@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -39,6 +40,14 @@ export function Home() {
           <h1 className="flex items-center gap-3 mt-5 max-w-xl font-display text-5xl font-semibold leading-[.95] tracking-tight text-foreground sm:text-7xl">
             ДБД РИЛ ЛАЙФ ЕДИШОН V0.000001
           </h1>
+          <div className="mt-8">
+            <Button asChild variant="outline">
+              <a href="?wiki">
+                <BookOpen className="size-4" />
+                Вики и правила
+              </a>
+            </Button>
+          </div>
         </section>
         <Card className="w-full mt-10">
           <Tabs

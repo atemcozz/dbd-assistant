@@ -189,6 +189,44 @@ export type GameExit = {
   definition: ExitDefinition
 }
 
+// Public wiki generated from lobby character data.
+export type WikiCharacter = CharacterType & {
+  damage: number
+  // Present on killer cards — that killer type's specific quests.
+  quests?: QuestDefinition[]
+}
+
+export type WikiSection =
+  | {
+      id: string
+      title: string
+      type: 'survivors'
+      characters: WikiCharacter[]
+    }
+  | {
+      id: string
+      title: string
+      type: 'killers'
+      characters: WikiCharacter[]
+      universalQuests: QuestDefinition[]
+    }
+  | {
+      id: string
+      title: string
+      type: 'exits'
+      exits: ExitDefinition[]
+    }
+  | {
+      id: string
+      title: string
+      type: 'markdown'
+      markdown: string
+    }
+
+export type Wiki = {
+  sections: WikiSection[]
+}
+
 type Session = { gameCode: string; playerId: string; sessionToken: string }
 export type { Session }
 
@@ -621,4 +659,10 @@ export async function loadQuestDefinitions() {
 export async function loadExitDefinitions() {
   const session = useGameStore.getState().session
   return request<ExitDefinition[]>(`/exit-definitions?code=${encodeURIComponent(session?.gameCode ?? '')}`, undefined, session?.sessionToken)
+}
+
+// Public wiki — no session required. Bypass the HTTP cache so edits to
+// config/wiki.yaml or config/docs/*.md appear on refresh.
+export async function loadWiki() {
+  return request<Wiki>('/wiki', { cache: 'no-store' })
 }

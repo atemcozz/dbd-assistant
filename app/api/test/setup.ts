@@ -9,6 +9,7 @@ import { AbilitiesService } from '../src/abilities.service'
 import { QuestsService } from '../src/quests.service'
 import { ExitsService } from '../src/exits.service'
 import { CharactersService } from '../src/characters.service'
+import { WikiService } from '../src/wiki.service'
 
 // Integration tests share one SQLite file, so every spec file gets a
 // fresh module registry but the same database. That is why each file has
@@ -28,6 +29,7 @@ export type TestContext = {
   questsService: QuestsService
   exitsService: ExitsService
   charactersService: CharactersService
+  wikiService: WikiService
 }
 
 export async function createTestContext(): Promise<TestContext> {
@@ -47,6 +49,7 @@ export async function createTestContext(): Promise<TestContext> {
     questsService: app.get(QuestsService),
     exitsService: app.get(ExitsService),
     charactersService: app.get(CharactersService),
+    wikiService: app.get(WikiService),
   }
 }
 

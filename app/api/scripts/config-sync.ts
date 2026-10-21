@@ -60,6 +60,17 @@ type ExitConfig = {
   description: string
 }
 
+type WikiSectionConfig = {
+  id: string
+  title: string
+  type: 'survivors' | 'killers' | 'exits' | 'markdown'
+  file?: string
+}
+
+type WikiConfig = {
+  sections: WikiSectionConfig[]
+}
+
 const configPath = resolve(process.cwd(), '../../config')
 
 const VALID_TARGETS = new Set([
@@ -71,6 +82,12 @@ const VALID_TARGETS = new Set([
 ])
 const VALID_BUFF_ACTIONS = new Set(['HEAL', 'HURT', 'INFO'])
 const VALID_ABILITY_TYPES = new Set(['ACTIVE', 'PASSIVE'])
+const WIKI_SECTION_TYPES = new Set([
+  'survivors',
+  'killers',
+  'exits',
+  'markdown',
+])
 
 // Duration override rule: explicit number, or null to inherit
 // (buff.defaultDuration — itself null for permanent buffs).
@@ -105,6 +122,67 @@ async function main() {
   const buffsJson = await readConfig<BuffConfig[]>('buffs')
 
   const exitsJson = await readConfig<ExitConfig[]>('exits')
+
+  const wikiJson = await readConfig<WikiConfig>('wiki')
+
+  // Wiki is static reference content, not runtime state. Validate it here
+  // so a broken table of contents or missing docs file fails before a game.
+  if (!Array.isArray(wikiJson.sections) || wikiJson.sections.length === 0) {
+    throw new Error('Wiki config must contain a non-empty sections list')
+  }
+
+  const docsDir = resolve(configPath, 'docs')
+  const wikiIds = new Set<string>()
+  const generatedWikiTypes = new Set<string>()
+
+  for (const section of wikiJson.sections) {
+    if (!section.id || !section.title) {
+      throw new Error(
+        `Wiki section missing id or title: ${JSON.stringify(section)}`,
+      )
+    }
+
+    if (!WIKI_SECTION_TYPES.has(section.type)) {
+      throw new Error(
+        `Wiki section ${section.id} has unknown type ${section.type}`,
+      )
+    }
+
+    if (wikiIds.has(section.id)) {
+      throw new Error(`Duplicate wiki section id: ${section.id}`)
+    }
+    wikiIds.add(section.id)
+
+    if (section.type === 'markdown') {
+      if (!section.file) {
+        throw new Error(
+          `Wiki section ${section.id} needs a markdown file`,
+        )
+      }
+
+      const resolved = resolve(configPath, section.file)
+
+      if (
+        !resolved.startsWith(docsDir + sep) ||
+        !resolved.endsWith('.md') ||
+        !existsSync(resolved) ||
+        !statSync(resolved).isFile()
+      ) {
+        throw new Error(
+          `Wiki section ${section.id} references unknown markdown file ${section.file}`,
+        )
+      }
+
+      continue
+    }
+
+    if (generatedWikiTypes.has(section.type)) {
+      throw new Error(
+        `Wiki has more than one ${section.type} section`,
+      )
+    }
+    generatedWikiTypes.add(section.type)
+  }
 
   const charactersJson = [...survivorsJson, ...killersJson]
 

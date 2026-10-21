@@ -1,5 +1,4 @@
-import { ChevronDown, ChevronUp, Shield, Skull } from 'lucide-react'
-import { useState } from 'react'
+import { Shield, Skull } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   Card,
@@ -10,6 +9,7 @@ import {
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { CharacterCover } from '@/components/shared/CharacterCover'
+import { CharacterDetails } from '@/components/shared/CharacterDetails'
 import {
   Select,
   SelectContent,
@@ -43,10 +43,6 @@ export function PlayerCard({
   )
 
   const character = player.characterType
-  const abilities = character?.abilities ?? []
-  const startingBuffs = character?.startingBuffs ?? []
-  // Abilities list starts expanded; collapsible to keep long kits compact.
-  const [abilitiesExpanded, setAbilitiesExpanded] = useState(true)
 
   return (
     <Card className="relative overflow-hidden">
@@ -117,76 +113,7 @@ export function PlayerCard({
 
         {/* Character info — shown to everyone once a character is assigned. */}
         {character ? (
-          <div className="grid gap-3">
-            <p className="text-sm leading-6 text-muted-foreground">
-              {character.description}
-            </p>
-            {(abilities.length > 0 || startingBuffs.length > 0) && (
-              <div>
-                <button
-                  type="button"
-                  aria-label={abilitiesExpanded ? 'Свернуть абилки' : 'Раскрыть абилки'}
-                  onClick={() => setAbilitiesExpanded((value) => !value)}
-                  className="flex w-full items-center justify-between gap-2"
-                >
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                    Абилки
-                  </p>
-                  {abilitiesExpanded ? (
-                    <ChevronUp className="size-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="size-4 text-muted-foreground" />
-                  )}
-                </button>
-                {abilitiesExpanded && (
-                <ul className="mt-2 grid gap-2">
-                  {abilities.map((ability) => (
-                    <li
-                      key={ability.abilityId}
-                      className="rounded-md border border-border bg-background/50 p-2"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium">{ability.name}</p>
-                        <div className="flex shrink-0 gap-1">
-                          {ability.duration !== null && (
-                            <Badge variant="outline" className="text-xs">
-                              {ability.duration}с.
-                            </Badge>
-                          )}
-                          {ability.cooldown > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                              К/д {ability.cooldown}с.
-                            </Badge>
-                          )}
-                          {ability.count !== null && (
-                            <Badge variant="outline" className="text-xs">
-                              Зарядов {ability.count}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {ability.description}
-                      </p>
-                    </li>
-                  ))}
-                  {/* Permanent starting buffs — name + description only. */}
-                  {startingBuffs.map((buff) => (
-                    <li
-                      key={buff.buffId}
-                      className="rounded-md border border-border bg-background/50 p-2"
-                    >
-                      <p className="text-sm font-medium">{buff.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {buff.description}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-                )}
-              </div>
-            )}
-          </div>
+          <CharacterDetails character={character} />
         ) : (
           <p className="text-sm leading-6 text-muted-foreground">
             Ждем выбора персонажа...

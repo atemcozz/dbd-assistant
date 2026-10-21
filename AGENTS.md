@@ -152,6 +152,10 @@ config/
   buffs.yaml
   quests.yaml
   exits.yaml
+  wiki.yaml
+  docs/
+    rules.md
+    other.md
 ```
 
 YAML is the source of truth for reusable game content.
@@ -721,6 +725,7 @@ Main screens:
 * Join Game
 * Lobby
 * Game
+* Wiki (`?wiki`, public)
 
 Owner controls may be integrated into the lobby/game rather than creating a separate admin system.
 
@@ -749,6 +754,36 @@ Should contain roughly:
 
 Only appropriate actions should be visible in the UI, while the server independently enforces permissions.
 
+## Wiki
+
+The public wiki is available at `?wiki` (or `#wiki`) and does not require
+a session or a game. The home screen has a visible “Вики и правила” button.
+
+`config/wiki.yaml` defines the ordered tabs. Supported section types:
+
+* `survivors` — generated from survivor character types (same data as lobby
+  cards);
+* `killers` — generated from killer character types, with each killer's
+  specific quests grouped by `killerCharacterTypeId`;
+* `exits` — generated from exit definitions;
+* `markdown` — reads a file under `config/docs/` (for example
+  `file: docs/rules.md`).
+
+Universal killer quests (`killerCharacterTypeId === null`) are shown once
+after the killer cards. Quests with `type: EXIT` are excluded because exits
+have their own definitions.
+
+The API exposes a public `GET /wiki` endpoint. It reads `wiki.yaml` and
+Markdown files on every request, so editing docs or the wiki config only
+needs a browser refresh — no database write, `config:sync`, or rebuild.
+`config:sync` validates the wiki config and that referenced Markdown files
+exist under `config/docs/`.
+
+Generated sections reuse `CharactersService.list()`, the same flattened
+data used by lobby character cards. The shared `CharacterDetails` component
+renders descriptions and abilities in both places. Markdown is rendered
+client-side with `react-markdown` + `remark-gfm`; raw HTML is not enabled.
+
 ## Testing
 
 Do not aim for exhaustive testing.
@@ -772,7 +807,9 @@ Important tests include:
 * completed quest cannot be completed twice;
 * blocked quest rejects completion until the block lapses;
 * killer-specific quest visibility/filtering works;
-* universal quests are visible to all relevant killers.
+* universal quests are visible to all relevant killers;
+* wiki generated sections include characters, killer-specific quests, and exits;
+* wiki Markdown sections load from `config/docs/`.
 
 Do not spend large amounts of time testing trivial UI rendering.
 

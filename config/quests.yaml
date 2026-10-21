@@ -22,7 +22,6 @@
 - id: blue-symbol
   name: Синие символы
   description: В работе
-    слева направо.
   type: PUZZLE
   radius: null
   cost: 120
