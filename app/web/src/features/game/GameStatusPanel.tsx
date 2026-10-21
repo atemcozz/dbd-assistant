@@ -38,26 +38,29 @@ export function GameStatusPanel({
           </CardDescription> */}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="rounded-md border border-border p-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              Твоя роль
-            </p>
-            <p className="mt-1 uppercase text-2xl font-semibold">
-              {player.characterType?.name ?? player.role}
-            </p>
+          <div className="relative overflow-hidden rounded-md border border-border p-4">
+            <CharacterCover
+              coverImage={player.characterType?.coverImage ?? null}
+            />
+            <div className="relative">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Твоя роль
+              </p>
+              <p className="mt-1 uppercase text-2xl font-semibold">
+                {player.characterType?.name ?? player.role}
+              </p>
 
-             
-
-            <div className="mt-3">
-              <HealthDisplay
-                health={player.health}
-                maxHealth={player.characterType?.maxHealth ?? null}
-                knockouts={player.knockouts}
-              />
-            </div>
+              <div className="mt-3">
+                <HealthDisplay
+                  health={player.health}
+                  maxHealth={player.characterType?.maxHealth ?? null}
+                  knockouts={player.knockouts}
+                />
+              </div>
               <p className="mt-1">
-              {player.characterType?.description ?? ''}
-            </p>
+                {player.characterType?.description ?? ''}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
