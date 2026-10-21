@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common'
 import { PlayerRole, PlayerStatus, Prisma, QuestStatus } from '@prisma/client'
 import { PrismaService } from './prisma.service'
+import { applyDamage } from './player-damage'
 import type {
   AbilityUseResult,
   AppliedInstantEffect,
@@ -175,6 +176,7 @@ export class AbilitiesService {
         // Health changes accumulate locally so an ability that inflicts
         // multiple HEAL/HURT buffs applies each one on top of the last.
         let health = target.health
+        let knockouts = target.knockouts
         let status = target.status
 
         for (const link of owned.ability.buffs) {
@@ -219,9 +221,15 @@ export class AbilitiesService {
               throw new ConflictException('TARGET_CANNOT_TAKE_DAMAGE')
             }
 
-            health = Math.max(0, health - this.getQuantity(buff.params))
+            const damage = applyDamage(
+              health,
+              knockouts,
+              this.getQuantity(buff.params),
+            )
+            health = damage.health
+            knockouts = damage.knockouts
 
-            if (health === 0) {
+            if (damage.died) {
               status = PlayerStatus.DEAD
             }
 
@@ -263,10 +271,14 @@ export class AbilitiesService {
           }
         }
 
-        if (health !== target.health || status !== target.status) {
+        if (
+          health !== target.health ||
+          knockouts !== target.knockouts ||
+          status !== target.status
+        ) {
           await tx.player.update({
             where: { id: target.id },
-            data: { health, status },
+            data: { health, knockouts, status },
           })
         }
       }
@@ -488,13 +500,18 @@ export class AbilitiesService {
         throw new ConflictException('TARGET_CANNOT_TAKE_DAMAGE')
       }
 
-      const health = Math.max(0, source.health - this.getQuantity(buff.params))
+      const damage = applyDamage(
+        source.health,
+        source.knockouts,
+        this.getQuantity(buff.params),
+      )
 
       await this.prisma.player.update({
         where: { id: source.id },
         data: {
-          health,
-          ...(health === 0 ? { status: PlayerStatus.DEAD } : {}),
+          health: damage.health,
+          knockouts: damage.knockouts,
+          ...(damage.died ? { status: PlayerStatus.DEAD } : {}),
         },
       })
       return true

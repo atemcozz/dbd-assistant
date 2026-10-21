@@ -70,10 +70,11 @@ describe('Attack / combat', () => {
     expect(ownerPlayer.health).toBe(2)
   })
 
-  it('death occurs at 0 HP', async () => {
+  it('lethal hit knocks out instead of removing the last HP', async () => {
     const { owner, survivor } = await setupRunningGame(ctx)
 
-    // Attack 3 times (medic has 3 HP).
+    // Medic: 3 HP → 2 → 1, then the third hit is lethal. It must not
+    // reduce HP to 0: the survivor is knocked out at 1 HP instead.
     await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
     await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
     await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
@@ -83,7 +84,43 @@ describe('Attack / combat', () => {
       survivor.sessionToken,
     )
     const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+    expect(ownerPlayer.health).toBe(1)
+    expect(ownerPlayer.knockouts).toBe(1)
+    expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
+  })
+
+  it('second lethal hit increments knockouts and stays alive', async () => {
+    const { owner, survivor } = await setupRunningGame(ctx)
+
+    for (let hit = 0; hit < 4; hit++) {
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    }
+
+    const state = await gamesService.getState(
+      owner.state.code,
+      survivor.sessionToken,
+    )
+    const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+    expect(ownerPlayer.health).toBe(1)
+    expect(ownerPlayer.knockouts).toBe(2)
+    expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
+  })
+
+  it('third knockout kills the survivor', async () => {
+    const { owner, survivor } = await setupRunningGame(ctx)
+
+    // 3 HP, then 3 lethal hits: knockout, knockout, death.
+    for (let hit = 0; hit < 5; hit++) {
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    }
+
+    const state = await gamesService.getState(
+      owner.state.code,
+      survivor.sessionToken,
+    )
+    const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
     expect(ownerPlayer.health).toBe(0)
+    expect(ownerPlayer.knockouts).toBe(2)
     expect(ownerPlayer.status).toBe(PlayerStatus.DEAD)
   })
 
@@ -103,10 +140,10 @@ describe('Attack / combat', () => {
   it('dead survivor cannot be attacked', async () => {
     const { owner, survivor } = await setupRunningGame(ctx)
 
-    // Kill the owner first.
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    // Kill the owner: 3 HP + 2 knockouts = 5 lethal hits.
+    for (let hit = 0; hit < 5; hit++) {
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    }
 
     // Try to attack again — should fail.
     await expect(

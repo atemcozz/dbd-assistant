@@ -95,6 +95,30 @@ describe('Abilities and buffs', () => {
     expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
   })
 
+  it('lethal HURT buff knocks the target out instead of killing', async () => {
+    const { owner, survivor } = await setupRunningGame(ctx)
+
+    // Drop the owner to 1 HP, then hit with the HURT ability.
+    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+
+    await abilitiesService.use(
+      owner.state.code,
+      'attack-survivor',
+      owner.playerId,
+      survivor.sessionToken,
+    )
+
+    const state = await gamesService.getState(
+      owner.state.code,
+      survivor.sessionToken,
+    )
+    const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+    expect(ownerPlayer.health).toBe(1)
+    expect(ownerPlayer.knockouts).toBe(1)
+    expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
+  })
+
   it('ability the player does not own is rejected', async () => {
     const { owner } = await setupRunningGame(ctx)
 
@@ -193,10 +217,10 @@ describe('Abilities and buffs', () => {
   it('dead survivor cannot use abilities', async () => {
     const { owner, survivor } = await setupRunningGame(ctx)
 
-    // Kill the owner (medic has 3 HP).
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    // Kill the owner: medic 3 HP + 2 knockouts = 5 lethal hits.
+    for (let hit = 0; hit < 5; hit++) {
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    }
 
     await expect(
       abilitiesService.use(
@@ -524,6 +548,29 @@ describe('Abilities and buffs', () => {
     expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
   })
 
+  it('manual lethal HURT buff knocks the player out', async () => {
+    const { owner, survivor } = await setupRunningGame(ctx)
+
+    // Drop the owner to 1 HP, then self-apply the HURT buff.
+    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+
+    await abilitiesService.applyBuffToSelf(
+      owner.state.code,
+      'attack-survivor',
+      owner.sessionToken,
+    )
+
+    const state = await gamesService.getState(
+      owner.state.code,
+      owner.sessionToken,
+    )
+    const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
+    expect(ownerPlayer.health).toBe(1)
+    expect(ownerPlayer.knockouts).toBe(1)
+    expect(ownerPlayer.status).toBe(PlayerStatus.ALIVE)
+  })
+
   it('unknown or empty manual buff id is rejected', async () => {
     const { owner } = await setupRunningGame(ctx)
 
@@ -547,10 +594,10 @@ describe('Abilities and buffs', () => {
   it('dead survivor cannot apply a buff manually', async () => {
     const { owner, survivor } = await setupRunningGame(ctx)
 
-    // Kill the owner (medic has 3 HP).
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    // Kill the owner: medic 3 HP + 2 knockouts = 5 lethal hits.
+    for (let hit = 0; hit < 5; hit++) {
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    }
 
     await expect(
       abilitiesService.applyBuffToSelf(

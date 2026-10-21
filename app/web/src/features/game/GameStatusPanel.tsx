@@ -52,6 +52,7 @@ export function GameStatusPanel({
               <HealthDisplay
                 health={player.health}
                 maxHealth={player.characterType?.maxHealth ?? null}
+                knockouts={player.knockouts}
               />
             </div>
               <p className="mt-1">
@@ -162,6 +163,7 @@ function CharacterIntelCard({
               <HealthDisplay
                 health={target.health}
                 maxHealth={character?.maxHealth ?? null}
+                knockouts={target.knockouts}
               />
             </div>
           )}

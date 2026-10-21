@@ -215,10 +215,10 @@ describe('Exits', () => {
   it('dead survivor cannot escape', async () => {
     const { owner, survivor } = await setupGameWithUnlockedExits()
 
-    // Kill the owner (medic, 3 HP).
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    // Kill the owner (medic 3 HP + 2 knockouts = 5 lethal hits).
+    for (let hit = 0; hit < 5; hit++) {
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    }
 
     await expect(
       exitsService.use(

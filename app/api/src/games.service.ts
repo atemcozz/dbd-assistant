@@ -408,6 +408,7 @@ export class GamesService {
         role: player.role,
         characterTypeId: player.characterTypeId,
         health: player.health,
+        knockouts: player.knockouts,
         status: player.status,
         isInvincible: invincibleUntilByPlayer.has(player.id),
         invincibleUntil: invincibleUntilByPlayer.get(player.id) ?? null,

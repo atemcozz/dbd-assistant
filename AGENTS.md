@@ -206,6 +206,7 @@ A player should roughly contain:
 * `characterTypeId`
 * `health`
 * `maxHealth`
+* `knockouts` — knockouts taken this game (0..2)
 * `status`
 
 Roles:
@@ -222,6 +223,15 @@ Statuses:
 Dead players are not deleted.
 
 When health reaches `0`, the player becomes `DEAD`.
+
+Lethal damage — damage that would reduce HP to `0` or below — does not
+remove the last HP until the survivor has used up their knockouts. It
+leaves them at `1 HP`, increments `knockouts`, and keeps them `ALIVE`.
+The next lethal hit at `MAX_KNOCKOUTS = 2` kills. The limit is a constant
+in `src/player-damage.ts`, not configuration. Healing does not reset
+knockouts. A knocked-out survivor stays `ALIVE` in the app; the physical
+"await the cage" instruction is shown as a timed modal. Heart color shows
+the count to every player: green at 0, yellow at 1, red at 2.
 
 A dead survivor no longer participates in normal survivor actions.
 
@@ -596,9 +606,9 @@ A killer can:
 * use allowed abilities (including quest-blocking ones);
 * see quests relevant to their killer type plus universal quests.
 
-Attack removes `1 HP`.
-
-When health reaches `0`, the survivor becomes `DEAD`.
+Attack deals `1` damage. Lethal damage follows the knockout rule above:
+the survivor is knocked out at 1 HP on the first two lethal hits, and dies
+on the third.
 
 A survivor holding an active `shield` buff cannot be attacked — the server
 rejects with `TARGET_INVINCIBLE` and the player is flagged `isInvincible`

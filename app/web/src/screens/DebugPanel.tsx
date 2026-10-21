@@ -172,7 +172,7 @@ export function DebugPanel() {
       `socket=${connectionStatus}`,
       `session=${session ? `${session.gameCode}/${session.playerId}` : 'none'}`,
       `game=${state ? `${state.id} status=${state.status}` : 'none'}`,
-      `player=${player ? `${player.name} ${player.role} ${player.status} hp=${player.health}` : 'none'}`,
+      `player=${player ? `${player.name} ${player.role} ${player.status} hp=${player.health} ko=${player.knockouts}` : 'none'}`,
       `players=${state ? state.players.length : 0}`,
       `error=${error ?? 'none'}`,
       `ua=${navigator.userAgent}`,
@@ -222,7 +222,7 @@ export function DebugPanel() {
             <Row k="Игроков" v={state ? String(state.players.length) : '—'} />
             <Row
               k="Текущий игрок"
-              v={player ? `${player.name} · ${player.role} · ${player.status} · hp=${player.health}` : '—'}
+              v={player ? `${player.name} · ${player.role} · ${player.status} · hp=${player.health} · ko=${player.knockouts}` : '—'}
             />
             <Row k="Последняя ошибка" v={error ?? 'нет'} bad={!!error} />
             <Row k="User agent" v={navigator.userAgent} />

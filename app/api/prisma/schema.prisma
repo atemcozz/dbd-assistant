@@ -119,6 +119,9 @@ model Player {
   characterTypeId String?
   characterType   CharacterType? @relation(fields: [characterTypeId], references: [id])
   health          Int?
+  // Lethal damage knocks a survivor out instead of killing them until this
+  // reaches MAX_KNOCKOUTS (see src/player-damage.ts). Persists for the game.
+  knockouts       Int           @default(0)
   status          PlayerStatus  @default(ALIVE)
   // When this player escaped through an exit (null unless ESCAPED).
   escapedAt       DateTime?

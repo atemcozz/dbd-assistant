@@ -34,6 +34,9 @@ export type LobbyPlayer = {
   role: PlayerRole
   characterTypeId: string | null
   health: number | null
+  // Knockouts taken this game (0..MAX_KNOCKOUTS). Drives the heart color
+  // shown to every player: green / yellow / red.
+  knockouts: number
   status: PlayerStatus
   // True while the player holds an active `shield` buff — the killer
   // cannot attack them (server rejects with TARGET_INVINCIBLE).

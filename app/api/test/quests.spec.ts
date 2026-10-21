@@ -436,10 +436,10 @@ describe('Quests', () => {
     )
     await gamesService.startGame(owner.state.code, owner.sessionToken)
 
-    // Kill the owner.
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
-    await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    // Kill the owner: 3 HP + 2 knockouts = 5 lethal hits.
+    for (let hit = 0; hit < 5; hit++) {
+      await combatService.attack(owner.state.code, owner.playerId, survivor.sessionToken)
+    }
 
     const state = await gamesService.getState(
       owner.state.code,

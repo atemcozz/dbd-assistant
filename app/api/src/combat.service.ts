@@ -9,6 +9,7 @@ import {
   PlayerStatus,
 } from '@prisma/client'
 import { PrismaService } from './prisma.service'
+import { applyDamage } from './player-damage'
 
 // Timed buff that makes its target immune to killer attacks while active.
 // Single-use by design: only the `adrenaline` ability inflicts it, so a plain
@@ -95,17 +96,18 @@ export class CombatService {
       throw new ConflictException('TARGET_INVINCIBLE')
     }
 
-    // Обычная физическая атака всегда снимает ровно 1 HP.
-    const health = Math.max(0, target.health - 1)
+    // Обычная физическая атака всегда наносит ровно 1 урон. Смертельный
+    // удар при этом сначала расходует нокаут, а не снимает последнее HP.
+    const damage = applyDamage(target.health, target.knockouts, 1)
 
     await this.prisma.player.update({
       where: { id: target.id },
       data: {
-        health,
-        status:
-          health === 0
-            ? PlayerStatus.DEAD
-            : PlayerStatus.ALIVE,
+        health: damage.health,
+        knockouts: damage.knockouts,
+        status: damage.died
+          ? PlayerStatus.DEAD
+          : target.status,
       },
     })
 

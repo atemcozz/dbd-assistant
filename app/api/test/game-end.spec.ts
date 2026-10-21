@@ -150,22 +150,14 @@ describe('Game end conditions', () => {
   it('killing the last survivor finishes the game with killer win', async () => {
     const { owner, survivor } = await setupRunningGame(ctx)
 
-    // Owner is the only survivor (medic, 3 HP). Killer attacks three times.
-    await combatService.attack(
-      owner.state.code,
-      owner.playerId,
-      survivor.sessionToken,
-    )
-    await combatService.attack(
-      owner.state.code,
-      owner.playerId,
-      survivor.sessionToken,
-    )
-    await combatService.attack(
-      owner.state.code,
-      owner.playerId,
-      survivor.sessionToken,
-    )
+    // Owner is the only survivor (medic, 3 HP + 2 knockouts = 5 hits).
+    for (let hit = 0; hit < 5; hit++) {
+      await combatService.attack(
+        owner.state.code,
+        owner.playerId,
+        survivor.sessionToken,
+      )
+    }
 
     // getState runs finishIfDecided — killing the last survivor ends the game.
     const state = await gamesService.getState(

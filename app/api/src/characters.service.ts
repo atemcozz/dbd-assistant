@@ -230,6 +230,8 @@ export class CharactersService {
       data: {
         characterTypeId: character.id,
         health,
+        // A fresh kit starts with no knockouts (lobby reassignment only).
+        knockouts: 0,
         status: PlayerStatus.ALIVE,
       },
     })

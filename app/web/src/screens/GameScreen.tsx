@@ -85,6 +85,9 @@ export function GameScreen() {
   )!
 
   const previousHealth = useRef(currentPlayer.health)
+  // Knockouts are separate from HP: a lethal hit leaves HP untouched, so
+  // the damage modal alone would miss it.
+  const previousKnockouts = useRef(currentPlayer.knockouts)
   // Track which timed buff IDs we've already shown a modal for,
   // so we don't re-show the same buff every state broadcast.
   const shownBuffModals = useRef<Set<string>>(new Set())
@@ -132,11 +135,23 @@ export function GameScreen() {
     setEndModalOpen(true)
   }, [state.status, state.id])
 
-  // Detect health drops and show a timed damage modal.
+  // Detect health drops and knockouts, and show one timed modal.
+  // A knockout wins over the generic damage modal so a single hit never
+  // pops two modals in a row.
   useEffect(() => {
     const currentHealth = currentPlayer.health
     const previousHealthValue = previousHealth.current
-    if (
+    const knockedOut =
+      currentPlayer.knockouts > previousKnockouts.current
+
+    if (knockedOut) {
+      setModal({
+        kind: 'timed',
+        title: 'Тебя нокаутировали',
+        body: 'Ты не можешь двигаться и должен ожидать своего помещения в клетку.',
+        seconds: 5,
+      })
+    } else if (
       currentHealth !== null &&
       previousHealthValue !== null &&
       currentHealth < previousHealthValue &&
@@ -149,8 +164,14 @@ export function GameScreen() {
         seconds: 5,
       })
     }
+
     previousHealth.current = currentHealth
-  }, [currentPlayer.health, currentPlayer.status])
+    previousKnockouts.current = currentPlayer.knockouts
+  }, [
+    currentPlayer.health,
+    currentPlayer.knockouts,
+    currentPlayer.status,
+  ])
 
   // Detect new buffs applied to this player and show a modal.
   // Timed buffs get the countdown modal; permanent buffs received from a

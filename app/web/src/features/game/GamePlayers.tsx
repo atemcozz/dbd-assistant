@@ -81,6 +81,7 @@ export function GamePlayers({
             <HealthDisplay
               health={player.health}
               maxHealth={player.characterType?.maxHealth ?? null}
+              knockouts={player.knockouts}
             />
             {isKiller && player.status === 'ALIVE' && !shielded && (
               <Button
