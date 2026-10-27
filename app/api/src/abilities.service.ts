@@ -12,6 +12,7 @@ import type {
   AbilityUseResult,
   AppliedInstantEffect,
   AppliedQuestBlock,
+  BuffDefinitionView,
   PlayerAbilityView,
   PlayerBuffView,
 } from './game.types'
@@ -24,6 +25,48 @@ import type {
 @Injectable()
 export class AbilitiesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // Buff definitions available for in-game effect search. Only alive
+  // players in a started game can list them — manual application is an
+  // instructed in-game action, not lobby content.
+  async listDefinitions(
+    codeInput: string,
+    sessionToken: string,
+  ): Promise<BuffDefinitionView[]> {
+    const code = codeInput.toUpperCase()
+
+    const player = await this.prisma.player.findUnique({
+      where: { sessionToken },
+      include: { game: true },
+    })
+
+    if (!player) {
+      throw new NotFoundException('PLAYER_NOT_FOUND')
+    }
+
+    if (player.game.code !== code) {
+      throw new NotFoundException('GAME_NOT_FOUND')
+    }
+
+    if (player.game.status === 'LOBBY') {
+      throw new ConflictException('GAME_NOT_RUNNING')
+    }
+
+    if (player.status !== PlayerStatus.ALIVE) {
+      throw new ConflictException('PLAYER_NOT_ACTIVE')
+    }
+
+    const rows = await this.prisma.buffDefinition.findMany({
+      orderBy: { name: 'asc' },
+    })
+
+    return rows.map((buff) => ({
+      id: buff.id,
+      name: buff.name,
+      description: buff.description,
+      action: buff.action,
+    }))
+  }
 
   // Abilities the player owns (from their character kit), with cooldown state.
   async getAbilities(playerId: string): Promise<PlayerAbilityView[]> {

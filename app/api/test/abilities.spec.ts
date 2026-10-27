@@ -10,7 +10,7 @@ import {
   seedTestData,
 } from './setup'
 import type { TestContext } from './setup'
-import { setupRunningGame } from './helpers'
+import { setupLobbyGame, setupRunningGame } from './helpers'
 
 describe('Abilities and buffs', () => {
   let ctx: TestContext
@@ -589,6 +589,62 @@ describe('Abilities and buffs', () => {
         owner.sessionToken,
       ),
     ).rejects.toThrow('BUFF_ID_REQUIRED')
+  })
+
+  it('lists buff definitions for the in-game effect search', async () => {
+    const { owner } = await setupRunningGame(ctx)
+
+    const definitions = await abilitiesService.listDefinitions(
+      owner.state.code,
+      owner.sessionToken,
+    )
+
+    expect(definitions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'field-dressing',
+          name: 'Field Dressing',
+          action: 'HEAL',
+        }),
+        expect.objectContaining({
+          id: 'attack-survivor',
+          action: 'HURT',
+        }),
+        expect.objectContaining({
+          id: 'stay-still',
+          action: 'INFO',
+        }),
+      ]),
+    )
+  })
+
+  it('hides the effect search outside a running game or from dead players', async () => {
+    const lobby = await setupLobbyGame(ctx)
+
+    await expect(
+      abilitiesService.listDefinitions(
+        lobby.owner.state.code,
+        lobby.owner.sessionToken,
+      ),
+    ).rejects.toThrow('GAME_NOT_RUNNING')
+
+    const { owner, survivor } = await setupRunningGame(ctx)
+
+    // Kill the owner: medic 3 HP + 2 knockouts = 5 lethal hits.
+    for (let hit = 0; hit < 5; hit++) {
+      await combatService.attack(
+        owner.state.code,
+        owner.playerId,
+        survivor.sessionToken,
+      )
+    }
+
+    await expect(
+      abilitiesService.listDefinitions(
+        owner.state.code,
+        owner.sessionToken,
+      ),
+    ).rejects.toThrow('PLAYER_NOT_ACTIVE')
   })
 
   it('dead survivor cannot apply a buff manually', async () => {

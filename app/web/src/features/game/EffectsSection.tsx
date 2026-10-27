@@ -1,4 +1,4 @@
-import { Clock3, Info, Sparkles, User } from 'lucide-react'
+import { Clock3, Info, Search, Sparkles, User, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import type { GameQuest, LobbyPlayer, PlayerAbility, PlayerBuff } from '@/gameStore'
+import { loadBuffDefinitions } from '@/gameStore'
+import type {
+  BuffDefinition,
+  GameQuest,
+  LobbyPlayer,
+  PlayerAbility,
+  PlayerBuff,
+} from '@/gameStore'
 
 // Effects tab panel — shows the viewer's active abilities (usable, with
 // cooldown), passive abilities (display-only traits), active buffs with time
@@ -32,10 +39,15 @@ export function EffectsSection({
   quests: GameQuest[]
   currentPlayerId: string
   onUse: (abilityId: string, targetPlayerId?: string, targetQuestNumber?: number) => void
-  onApplyBuff: (buffId: string) => void
+  // Resolves true when the server applied the effect.
+  onApplyBuff: (buffId: string) => Promise<boolean>
 }) {
-  // Typed buff id for manual self-application (instructed during play).
-  const [buffIdInput, setBuffIdInput] = useState('')
+  // Effect search for instructed self-application. An empty query shows no
+  // results on purpose — the player only searches when instructed in play.
+  const [buffQuery, setBuffQuery] = useState('')
+  const [buffDefinitions, setBuffDefinitions] = useState<BuffDefinition[]>([])
+  const [buffLoadError, setBuffLoadError] = useState<string | null>(null)
+  const [applyingBuffId, setApplyingBuffId] = useState<string | null>(null)
   // Active abilities — usable actions with cooldowns and targets.
   const activeAbilities = abilities.filter(
     (ability) => ability.type === 'ACTIVE',
@@ -52,6 +64,46 @@ export function EffectsSection({
   )
   // Permanent buffs — always-on character stats (e.g. free-run).
   const permanentBuffs = buffs.filter((buff) => buff.expiresAt === null)
+
+  // Load the searchable effect list when the effects panel opens. Buffs are
+  // static config data, so one fetch per mount is enough.
+  useEffect(() => {
+    let cancelled = false
+    void loadBuffDefinitions()
+      .then((definitions) => {
+        if (!cancelled) setBuffDefinitions(definitions)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBuffLoadError('Не удалось загрузить список эффектов')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Empty/whitespace query yields no results by design.
+  const normalizedQuery = normalizeSearch(buffQuery)
+  const matchingBuffs =
+    normalizedQuery === ''
+      ? []
+      : buffDefinitions.filter(
+          (buff) =>
+            normalizeSearch(buff.id).includes(normalizedQuery) ||
+            normalizeSearch(buff.name).includes(normalizedQuery),
+        )
+
+  async function applyEffect(buffId: string) {
+    setApplyingBuffId(buffId)
+    try {
+      // Clear the search once the server confirms the effect was applied.
+      const applied = await onApplyBuff(buffId)
+      if (applied) setBuffQuery('')
+    } finally {
+      setApplyingBuffId(null)
+    }
+  }
 
   return (
     <div className="grid gap-4">
@@ -135,41 +187,87 @@ export function EffectsSection({
         </Card>
       )}
 
-      {/* Manual self-application by buff id — instructed use only. */}
+      {/* Effect search for instructed self-application. */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Info className="size-5" />
-            Ручное применение
+            <Search className="size-5" />
+            Поиск эффектов
           </CardTitle>
           <CardDescription>
             Используйте этот раздел только когда вас инструктируют в ходе
-            игры. Введи id баффа — он будет применён на тебя.
+            игры. Начни вводить название или id эффекта.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form
-            className="flex flex-wrap gap-2"
-            onSubmit={(event) => {
-              event.preventDefault()
-              const value = buffIdInput.trim()
-              if (!value) return
-              onApplyBuff(value)
-              setBuffIdInput('')
-            }}
-          >
+        <CardContent className="grid gap-3">
+          <div className="flex gap-2">
             <Input
-              value={buffIdInput}
-              onChange={(event) => setBuffIdInput(event.target.value)}
-              placeholder="id баффа, напр. stay-still"
+              value={buffQuery}
+              onChange={(event) => setBuffQuery(event.target.value)}
+              placeholder="Название или id эффекта"
               className="flex-1"
               autoCapitalize="none"
               autoCorrect="off"
+              aria-label="Поиск эффектов"
             />
-            <Button type="submit" disabled={!buffIdInput.trim()}>
-              Применить
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setBuffQuery('')}
+              disabled={buffQuery === ''}
+              aria-label="Очистить поиск"
+            >
+              <X className="size-4" />
             </Button>
-          </form>
+          </div>
+
+          {buffLoadError && (
+            <p className="text-sm text-destructive">{buffLoadError}</p>
+          )}
+
+          {normalizedQuery !== '' && matchingBuffs.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Эффекты не найдены
+            </p>
+          )}
+
+          {matchingBuffs.length > 0 && (
+            <div className="grid gap-2">
+              {matchingBuffs.map((buff) => (
+                <div
+                  key={buff.id}
+                  className="rounded-md border border-border p-3"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">{buff.name}</p>
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-xs"
+                        >
+                          {buff.id}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {buff.description}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={applyingBuffId !== null}
+                      onClick={() => void applyEffect(buff.id)}
+                    >
+                      {applyingBuffId === buff.id
+                        ? 'Применяю…'
+                        : 'Применить'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -202,6 +300,17 @@ export function EffectsSection({
       )}
     </div>
   )
+}
+
+// Search normalization: case-insensitive, ё = е, and punctuation (including
+// the dashes in ids) treated as spaces, so "Shock Therapy" matches both the
+// name and the id "shock-therapy".
+function normalizeSearch(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
 }
 
 // Helper: seconds remaining until an ISO timestamp.

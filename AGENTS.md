@@ -535,12 +535,18 @@ Persist the result before broadcasting the resulting realtime event.
 
 ### Manual buff application
 
-A player may apply a buff to themselves by typing a buff id into the input
-on the effects screen. This exists for physical-game instructions given
-during play ("apply buff X to yourself").
+A player may apply a buff to themselves through the effect search on the
+effects screen. This exists for physical-game instructions given during
+play ("apply buff X to yourself").
 
-The server normalizes the typed value (trim, lowercase, whitespace to
-dashes), looks up the buff, and applies it to the entering player:
+The search input is empty by default and shows no results until the player
+starts typing. It matches both the buff name and the buff id from
+`config/buffs.yaml`; input is normalized (trim, lowercase, punctuation and
+whitespace collapsed, `ё` = `е`). Matching buffs are shown as cards with an
+apply button, and the input clears itself after a successful application or
+via the clear button. The server still normalizes the submitted id (trim,
+lowercase, whitespace to dashes), looks up the buff, and applies it to the
+entering player:
 
 * `INFO` — creates an `ActiveBuff` row using the standard duration rule
   (`buff.defaultDuration`, `null` = permanent), shown in a modal
@@ -803,6 +809,7 @@ Important tests include:
 * permanent starting buff is listed (expiresAt null);
 * limited ability count is consumed and rejected when exhausted;
 * manual self-application normalizes the buff id and respects the buff's default duration (null = permanent);
+* effect search lists buff definitions only in a running game and only for alive players;
 * killer cannot perform survivor-only actions;
 * completed quest cannot be completed twice;
 * blocked quest rejects completion until the block lapses;

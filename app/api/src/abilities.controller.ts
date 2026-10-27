@@ -1,9 +1,11 @@
 import {
   Controller,
+  Get,
   Headers,
   Param,
   Post,
   Body,
+  Query,
 } from '@nestjs/common'
 import { GameGateway } from './game.gateway'
 import { GamesService } from './games.service'
@@ -16,6 +18,18 @@ export class AbilitiesController {
     private readonly gamesService: GamesService,
     private readonly gameGateway: GameGateway,
   ) {}
+
+  // Buff definitions for the in-game effect search.
+  @Get('buff-definitions')
+  listDefinitions(
+    @Headers('x-session-token') sessionToken: string,
+    @Query('code') code?: string,
+  ) {
+    return this.abilitiesService.listDefinitions(
+      code ?? '',
+      sessionToken,
+    )
+  }
 
   @Post('games/:code/abilities/:abilityId/use')
   async use(

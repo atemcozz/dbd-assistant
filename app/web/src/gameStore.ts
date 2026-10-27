@@ -151,6 +151,13 @@ export type PlayerBuff = {
   // Name of the player who applied this buff (null for starting/manual buffs).
   sourcePlayerName: string | null
 }
+// A buff definition exposed for the in-game effect search.
+export type BuffDefinition = {
+  id: string
+  name: string
+  description: string
+  action: 'HEAL' | 'HURT' | 'INFO'
+}
 export type ChatMessage = { id: string; text: string; createdAt: string; playerId: string; playerName: string; playerStatus: PlayerStatus }
 
 export type QuestDefinition = {
@@ -659,6 +666,13 @@ export async function loadQuestDefinitions() {
 export async function loadExitDefinitions() {
   const session = useGameStore.getState().session
   return request<ExitDefinition[]>(`/exit-definitions?code=${encodeURIComponent(session?.gameCode ?? '')}`, undefined, session?.sessionToken)
+}
+
+// Buff definitions for the in-game effect search — running game and an
+// alive player only (enforced by the server).
+export async function loadBuffDefinitions() {
+  const session = useGameStore.getState().session
+  return request<BuffDefinition[]>(`/buff-definitions?code=${encodeURIComponent(session?.gameCode ?? '')}`, undefined, session?.sessionToken)
 }
 
 // Public wiki — no session required. Bypass the HTTP cache so edits to

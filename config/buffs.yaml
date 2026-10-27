@@ -7,9 +7,7 @@
 - id: corruption
   name: Порча
   description: Запрещено бегать, лечиться и взаимодействовать с предметами. Найди антидот в течение 5 минут или получи нокаут.
-  action: HURT
-  params:
-    quantity: 1
+  action: INFO
   defaultDuration: 300
 
 - id: slowdown

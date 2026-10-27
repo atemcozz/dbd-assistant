@@ -121,6 +121,15 @@ export type PlayerAbilityView = {
   allowedTargets: string[]
 }
 
+// Read-only buff definition exposed for in-game effect search.
+export type BuffDefinitionView = {
+  id: string
+  name: string
+  description: string
+  // What the buff does: HEAL | HURT | INFO.
+  action: string
+}
+
 // UI specific view — a buff currently applied to the viewer (from ActiveBuff).
 export type PlayerBuffView = {
   // ActiveBuff row id — used by the frontend to dedupe apply modals.

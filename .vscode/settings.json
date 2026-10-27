@@ -1,6 +1,6 @@
 {
-    "chat.agent.sandbox.allowNetwork": true,
     "chat.agent.sandbox.allowUnsandboxedCommands": false,
     "chat.agent.sandbox.allowAutoApprove": true,
-    "chat.agent.sandbox.enabled": "on"
+    "chat.agent.sandbox.enabled": "on",
+    "chat.agent.sandbox.network.allowNetwork": true
 }

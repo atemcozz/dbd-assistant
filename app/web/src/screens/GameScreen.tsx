@@ -378,17 +378,23 @@ export function GameScreen() {
     })
   }
 
-  // Manual buff application — an unknown id pops a modal instead of the
-  // inline error line, echoing what the player typed (the input is cleared).
-  function handleApplyBuff(buffId: string) {
-    void applySelfBuff(buffId).then((code) => {
-      if (code !== 'BUFF_NOT_FOUND') return
+  // Effect search application — resolves true when the server applied the
+  // buff, so the search input can clear itself. An unknown id (e.g. config
+  // changed mid-game) pops a modal instead of the inline error line.
+  async function handleApplyBuff(buffId: string): Promise<boolean> {
+    const code = await applySelfBuff(buffId)
+
+    if (code === null) return true
+
+    if (code === 'BUFF_NOT_FOUND') {
       setModal({
         kind: 'info',
         title: 'Эффект не найден',
         body: `Не удалось найти эффект «${buffId}». Проверь id и попробуй ещё раз.`,
       })
-    })
+    }
+
+    return false
   }
 
   function confirmQuestComplete(questId: string) {
