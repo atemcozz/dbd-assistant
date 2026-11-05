@@ -178,3 +178,110 @@
   type: EXPLORATION
   cost: 0
   killerCharacterTypeId: trapper
+
+# nobody quests
+
+- id: nobody-broken-pixel
+  name: Битый пиксель
+  description: |
+    Найди и исправь неправильную ячейку в сообщении
+  type: PUZZLE
+  cost: 90
+  killerCharacterTypeId: nobody
+
+- id: nobody-caesar
+  name: Гай Юлий Цезарь
+  description: |
+    Закончи дешифрацию послания, оставленного другим бедолагой
+  type: PUZZLE
+  cost: 125
+  killerCharacterTypeId: nobody
+
+- id: nobody-generator
+  name: Починка генератора
+  description: |
+    Определи общий ток эл. цепи по схеме
+  type: PUZZLE
+  cost: 90
+  killerCharacterTypeId: nobody
+
+- id: nobody-blind-spot
+  name: Вне поля зрения
+  description: |
+    Определи на схеме путь от точки A до X с наименьшим числом камер
+  type: PUZZLE
+  cost: 125
+  killerCharacterTypeId: nobody
+
+- id: nobody-radio-amateur
+  name: Радиолюбитель
+  description: |
+    Прослушай фрагмент аудиозаписи хакера и определи ключ доступа к серверу
+  type: PUZZLE
+  cost: 160
+  killerCharacterTypeId: nobody
+
+- id: nobody-dutch-wheel
+  name: Голландский киберштурвал
+  description: |
+    Удерживай рубильники в комнате одновременно с другим игроком в течение 120 секунд, чтобы отключить центр связи хакера. Если ты остался один в живых, держи рубильник 180 секунд
+  type: EXPLORATION
+  cost: 155
+  killerCharacterTypeId: nobody
+
+- id: nobody-courier
+  name: Курьер
+  description: |
+    Найти и доставить коробку с оборудованием на чердак. Пока коробка в руках, можно передвигаться только шагом, кидать коробку нельзя
+  type: EXPLORATION
+  cost: 145
+  killerCharacterTypeId: nobody
+
+- id: nobody-bruteforce
+  name: Брутфорс
+  description: |
+    Перегрузи датчики маньяка, заполнив пакетный буфер недостающими числовыми значениями
+  type: PUZZLE
+  cost: 160
+  killerCharacterTypeId: nobody
+
+- id: nobody-detective
+  name: Детектив
+  description: |
+    По раскиданным запискам определи местоположение первых жертв маньяка на момент взлома
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: nobody
+
+- id: nobody-hotfix
+  name: Хотфикс
+  description: |
+    Собери ссылку по отрывкам, разбросанным по локации, и отправь числовой запрос в базу данных
+  type: EXPLORATION
+  cost: 125
+  killerCharacterTypeId: nobody
+
+- id: nobody-anonymous
+  name: Анонимус
+  description: |
+    Ожидай 180 секунд в указанном месте, прикрыв половину лица руками или одеждой от камеры
+  type: EXPLORATION
+  cost: 115
+  killerCharacterTypeId: nobody
+
+- id: nobody-cinephile
+  name: Киноман
+  description: |
+    Найди 3 диска на локации и принеси их в комнату с проектором (на чердаке)
+  type: EXPLORATION
+  cost: 185
+  killerCharacterTypeId: nobody
+
+- id: nobody-victor-vulnerability
+  name: "Квест Виктора: Уязвимость"
+  description: |
+    Воспользуйся уязвимостью в системе клеток: найди и отнеси ключ-карту в указанное место
+  type: EXPLORATION
+  cost: 0
+  killerCharacterTypeId: nobody
+
