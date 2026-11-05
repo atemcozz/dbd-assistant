@@ -1,96 +1,3 @@
-- id: find-red-marker
-  name: Красный маркер
-  description: В работе
-  type: EXPLORATION
-  radius: null
-  cost: 100
-  killerCharacterTypeId: null
-- id: three-room-sequence
-  name: Три комнаты
-  description: В работе
-  type: PUZZLE
-  radius: null
-  cost: 120
-  killerCharacterTypeId: null
-- id: missing-key
-  name: Пропавший ключ
-  description: В работе
-  type: OBJECT
-  radius: null
-  cost: 80
-  killerCharacterTypeId: null
-- id: blue-symbol
-  name: Синие символы
-  description: В работе
-  type: PUZZLE
-  radius: null
-  cost: 120
-  killerCharacterTypeId: null
-- id: medical-note
-  name: Медицинская записка
-  description: В работе
-  type: OBJECT
-  radius: null
-  cost: 90
-  killerCharacterTypeId: null
-- id: king-spades-black-cards
-  name: Чёрные карты
-  description: В работе
-  type: PUZZLE
-  radius: null
-  cost: 130
-  killerCharacterTypeId: king
-- id: king-spades-throne
-  name: Трон Короля
-  description: В работе
-  type: EXPLORATION
-  radius: null
-  cost: 110
-  killerCharacterTypeId: king
-- id: doctor-prescription
-  name: Рецепт Доктора
-  description: В работе
-  type: PUZZLE
-  radius: null
-  cost: 130
-  killerCharacterTypeId: mask
-- id: doctor-cabinet
-  name: Кабинет Доктора
-  description: В работе
-  type: EXPLORATION
-  radius: null
-  cost: 110
-  killerCharacterTypeId: mask
-- id: puppet-strings
-  name: Нити Кукловода
-  description: В работе
-  type: PUZZLE
-  radius: null
-  cost: 130
-  killerCharacterTypeId: nobody
-- id: puppet-room
-  name: Комната Кукловода
-  description: В работе
-  type: EXPLORATION
-  radius: null
-  cost: 110
-  killerCharacterTypeId: nobody
-- id: ronin-mark
-  name: Знак Ронина
-  description: В работе
-  type: EXPLORATION
-  radius: null
-  cost: 100
-  killerCharacterTypeId: ronin
-- id: ronin-blades
-  name: Три клинка
-  description: В работе
-  type: PUZZLE
-  radius: null
-  cost: 140
-  killerCharacterTypeId: ronin
-
-
 # points universal quests
 - id: generator-simple-1
   name: Починка генератора 1
@@ -180,11 +87,94 @@
   radius: null
   cost: 150
   killerCharacterTypeId: null
+
 - id: generator-simple-12
   name: Починка генератора 12
   description: |
     Удерживай позицию у генератора под номером 12
   type: EXPLORATION
-  radius: null
   cost: 150
   killerCharacterTypeId: null
+
+
+# trapper quests
+
+- id: trapper-message
+  name: Послание дьявола
+  description: |
+    Найти все руны на карте, на каждой руне указана цифра, сложите их между собой и получите ответ
+  type: EXPLORATION
+  cost: 300
+  killerCharacterTypeId: trapper
+
+- id: trapper-puzzle
+  name: Загадка
+  description: |
+    Решить загадку
+  type: PUZZLE
+  cost: 300
+  killerCharacterTypeId: trapper
+
+- id: trapper-probe
+  name: Кажется, нащупал
+  description: |
+    Понять, что находится в коробке, полагаясь на осязание
+  type: PUZZLE
+  cost: 200
+  killerCharacterTypeId: trapper
+
+- id: trapper-pallete
+  name: Палитра
+  description: |
+    Решить ребус из карточек
+  type: PUZZLE
+  cost: 100
+  killerCharacterTypeId: trapper
+
+- id: trapper-splinters
+  name: Осколки прошлого
+  description: |
+    Найти и собрать фрагменты фотографии, прийти в указанное место и узнать ответ на свой вопрос
+  type: EXPLORATION
+  cost: 200
+  killerCharacterTypeId: trapper
+
+- id: trapper-cypher
+  name: Шифр
+  description: |
+    Решить пример, сопоставив символы с цифрами
+  type: PUZZLE
+  cost: 200
+  killerCharacterTypeId: trapper
+
+- id: trapper-fidelity
+  name: Верность
+  description: |
+    Расшифровать предложение
+  type: PUZZLE
+  cost: 100
+  killerCharacterTypeId: trapper
+
+- id: trapper-future
+  name: А что будет потом? 
+  description: |
+    Определить последовательность и вставить правильное число
+  type: PUZZLE
+  cost: 100
+  killerCharacterTypeId: trapper
+
+- id: trapper-treasure
+  name: Поиски клада 
+  description: |
+    Найти ключ в локации
+  type: EXPLORATION
+  cost: 100
+  killerCharacterTypeId: trapper
+
+- id: trapper-trick-treat
+  name: (КВЕСТ ВИКТОРА) Сладость или гадость
+  description: |
+    Решить загадку (КВЕСТ ВИКТОРА) 
+  type: EXPLORATION
+  cost: 0
+  killerCharacterTypeId: trapper
