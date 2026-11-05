@@ -89,3 +89,102 @@
   radius: null
   cost: 140
   killerCharacterTypeId: ronin
+
+
+# points universal quests
+- id: generator-simple-1
+  name: Починка генератора 1
+  description: |
+    Удерживай позицию у генератора под номером 1
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-2
+  name: Починка генератора 2
+  description: |
+    Удерживай позицию у генератора под номером 2
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-3
+  name: Починка генератора 3
+  description: |
+    Удерживай позицию у генератора под номером 3
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-4
+  name: Починка генератора 4
+  description: |
+    Удерживай позицию у генератора под номером 4
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-5
+  name: Починка генератора 5
+  description: |
+    Удерживай позицию у генератора под номером 5
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-6
+  name: Починка генератора 6
+  description: |
+    Удерживай позицию у генератора под номером 6
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-7
+  name: Починка генератора 7
+  description: |
+    Удерживай позицию у генератора под номером 7
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-8
+  name: Починка генератора 8
+  description: |
+    Удерживай позицию у генератора под номером 8
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-9
+  name: Починка генератора 9
+  description: |
+    Удерживай позицию у генератора под номером 9
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-10
+  name: Починка генератора 10
+  description: |
+    Удерживай позицию у генератора под номером 10
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-11
+  name: Починка генератора 11
+  description: |
+    Удерживай позицию у генератора под номером 11
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
+- id: generator-simple-12
+  name: Починка генератора 12
+  description: |
+    Удерживай позицию у генератора под номером 12
+  type: EXPLORATION
+  radius: null
+  cost: 150
+  killerCharacterTypeId: null
