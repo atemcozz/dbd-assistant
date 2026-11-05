@@ -172,9 +172,9 @@
   killerCharacterTypeId: trapper
 
 - id: trapper-trick-treat
-  name: (КВЕСТ ВИКТОРА) Сладость или гадость
+  name: "Квест Виктора: Сладость или гадость"
   description: |
-    Решить загадку (КВЕСТ ВИКТОРА) 
+    Решить загадку. Может выполнять только Виктор 
   type: EXPLORATION
   cost: 0
   killerCharacterTypeId: trapper
@@ -281,7 +281,90 @@
   name: "Квест Виктора: Уязвимость"
   description: |
     Воспользуйся уязвимостью в системе клеток: найди и отнеси ключ-карту в указанное место
+    Может выполнять только Виктор
   type: EXPLORATION
   cost: 0
   killerCharacterTypeId: nobody
+
+# king quests
+
+- id: king-lucky-card
+  name: Счастливая карта
+  description: |
+    Найди спрятанную карту Пик и принеси её Королю.
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-royal-secret
+  name: Королевская тайна
+  description: |
+    Найди записку на локации и прочитай Королю написанное на ней послание.
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-little-prank
+  name: Маленькая пакость
+  description: |
+    Незаметно переставь два предмета, оставленных организатором, на другие места.
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-curious-joker
+  name: Любопытный Джокер
+  description: |
+    Найди спрятанный символ Джокера и покажи его Королю
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-stolen-order
+  name: Украденный приказ
+  description: |
+    Найди записку, спрятанную на карте, и отнеси её другому Выжившему, выдав за приказ Короля.
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-deck-swap
+  name: Подмена колоды
+  description: |
+    Найди две карточки с разными мастями и поменяй их местами.
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-betrayal
+  name: Предательская помощь
+  description: |
+    Начни помогать союзнику, но отвлеки его жестами и уведи от текущего занятия.
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-secret-bet
+  name: Секретная ставка
+  description: |
+    Найди три спрятанные цифры, сложи их и назови Королю полученный код
+  type: PUZZLE
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-four-suits-curse
+  name: Проклятие четырёх мастей
+  description: |
+    Найди на карте четыре карточки разных мастей и расположи их в правильном порядке, указанном в загадке Короля
+  type: PUZZLE
+  cost: 160
+  killerCharacterTypeId: king
+
+- id: king-last-pawn
+  name: Последняя пешка
+  description: |
+    Найди спрятанную записку, выполни указанную в ней пакость над союзником, отыщи ключ и вернись с ним к Королю.
+  type: EXPLORATION
+  cost: 160
+  killerCharacterTypeId: king
 
