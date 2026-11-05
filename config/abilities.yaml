@@ -16,16 +16,19 @@
     - buffId: scumbags-siren
       duration: 60
 
-- id: shock-therapy
-  name: Шоковая терапия
-  description: Удар электрошокером. Выбранный выживший обездвижен и не может совершать действий 2 минуты.
+- id: quarantine
+  name: Карантин
+  description: | 
+    Доктор выбирает этаж и заражает его на 3 минуты,
+    игроки должны немедленно покинуть этаж.
+    Игрокам запрещено приближаться друг к другу ближе, чем на 15 метров.
   type: ACTIVE
-  cooldown: 180
+  cooldown: 360
   allowedTargets:
-    - SURVIVOR
+    - ALL_SURVIVORS
   buffs:
-    - buffId: shock-therapy
-      duration: 120
+    - buffId: quarantine
+      duration: 180
 
 - id: paranoia
   name: Паранойя
@@ -259,3 +262,17 @@
   buffs:
     - buffId: self-attack
       duration: null
+
+
+- id: no-escape
+  name: Не уйдёшь
+  description: |
+    После решения квестов ворота остаются закрытыми на 120 с.
+  type: PASSIVE
+
+- id: dont-be-afraid
+  name: Не бойся
+  description: |
+     Если маньяк, смог напугать игрока (жертва издала громкий звук или крик),
+     то он получает условные очки. За 3 очка маньяк может мгновенно казнить игроков в течение 3 минут
+  type: PASSIVE

@@ -69,11 +69,13 @@
   defaultDuration: 300
 
 
-- id: shock-therapy
-  name: Паралич током
-  description: Ты поражён электрошоком. Запрещено двигаться и совершать любые действия в течение 2 минут.
+- id: quarantine
+  name: Карантин
+  description: |
+    Доктор заразил этаж, немедленно покинь его! 
+    Ты не можешь приближаться к другим игрокам ближе, чем на 15 метров на время действия карантина
   action: INFO
-  defaultDuration: 120
+  defaultDuration: 180
 
 - id: marionette-curse
   name: Подчинение Маски

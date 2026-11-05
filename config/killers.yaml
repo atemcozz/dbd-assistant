@@ -7,7 +7,7 @@
   abilities:
     - abilityId: abdication
     - abilityId: scumbags
-    - abilityId: shock-therapy
+    - abilityId: quarantine
     - abilityId: paranoia
   startingBuffs: []
 
@@ -20,6 +20,8 @@
   abilities:
     - abilityId: trap
     - abilityId: surprise
+    - abilityId: no-escape
+    - abilityId: dont-be-afraid
   startingBuffs: []
 
 - id: mask
