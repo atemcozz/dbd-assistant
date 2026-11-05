@@ -43,7 +43,7 @@ model Game {
   durationSeconds Int       @default(3600)
   // Total quest points needed to unlock the exits.
   // Sum of completed quest costs is compared against this value.
-  requiredQuestPoints Int    @default(500)
+  requiredQuestPoints Int    @default(1000)
   // Who won when the game finished: 'SURVIVORS' | 'KILLER' | 'DRAW' | null.
   // DRAW = time out with survivors still alive and not escaped (both lose).
   winner        String?
