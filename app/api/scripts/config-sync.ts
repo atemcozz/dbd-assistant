@@ -48,6 +48,8 @@ type QuestConfig = {
   id: string
   name: string
   description: string
+  // Optional in-game-only extra information (may contain links to the task).
+  details?: string | null
   type: string
   radius: number | null
   cost: number
@@ -426,6 +428,13 @@ async function main() {
         `Quest ${quest.id} must define a non-negative numeric cost`,
       )
     }
+    if (
+      quest.details !== undefined &&
+      quest.details !== null &&
+      typeof quest.details !== 'string'
+    ) {
+      throw new Error(`Quest ${quest.id} has invalid details`)
+    }
     if (quest.killerCharacterTypeId && !characterIds.has(quest.killerCharacterTypeId)) {
       throw new Error(
         `Quest ${quest.id} references unknown killer ${quest.killerCharacterTypeId}`,
@@ -590,6 +599,7 @@ async function main() {
             id: quest.id,
             name: quest.name,
             description: quest.description,
+            details: quest.details ?? null,
             type: quest.type,
             radius: quest.radius,
             cost: quest.cost,
@@ -598,6 +608,7 @@ async function main() {
           update: {
             name: quest.name,
             description: quest.description,
+            details: quest.details ?? null,
             type: quest.type,
             radius: quest.radius,
             cost: quest.cost,

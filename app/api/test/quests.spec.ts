@@ -74,6 +74,49 @@ describe('Quests', () => {
     ).rejects.toThrow('QUEST_ALREADY_COMPLETED')
   })
 
+  it('quest details are exposed only in the running game, never in the lobby or wiki', async () => {
+    const { owner } = await setupLobbyGame(ctx)
+
+    await questsService.select(
+      owner.state.code,
+      owner.sessionToken,
+      ['universal-quest'],
+    )
+
+    const lobbyState = await gamesService.getState(
+      owner.state.code,
+      owner.sessionToken,
+    )
+    expect(lobbyState.quests[0].definition.details).toBeNull()
+
+    const definitions = await questsService.listDefinitions(
+      owner.state.code,
+      owner.sessionToken,
+    )
+    expect(
+      definitions.find((quest) => quest.id === 'universal-quest'),
+    ).not.toHaveProperty('details')
+
+    await gamesService.startGame(owner.state.code, owner.sessionToken)
+
+    const runningState = await gamesService.getState(
+      owner.state.code,
+      owner.sessionToken,
+    )
+    expect(runningState.quests[0].definition.details).toBe(
+      'Task link: https://example.com/universal-quest',
+    )
+
+    const wiki = await ctx.wikiService.getWiki()
+    const killers = wiki.sections.find(
+      (section) => section.type === 'killers',
+    )!
+    const wikiQuest = killers.universalQuests.find(
+      (quest) => quest.id === 'universal-quest',
+    )!
+    expect(wikiQuest).not.toHaveProperty('details')
+  })
+
   it('in-game quest list is visible to every player regardless of killer type', async () => {
     const owner = await createGameWithOwner(ctx)
     const killerPlayer = await joinSurvivor(ctx, owner.state.code, 'Killer')

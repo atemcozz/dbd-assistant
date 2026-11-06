@@ -201,6 +201,8 @@
   name: Починка генератора
   description: |
     Определи общий ток эл. цепи по схеме
+  details: |
+    Схема цепи: https://example.com/tasks/nobody-generator
   type: PUZZLE
   cost: 90
   killerCharacterTypeId: nobody
@@ -209,6 +211,8 @@
   name: Вне поля зрения
   description: |
     Определи на схеме путь от точки A до X с наименьшим числом камер
+  details: |
+    Схема с камерами: https://example.com/tasks/nobody-blind-spot
   type: PUZZLE
   cost: 125
   killerCharacterTypeId: nobody
@@ -217,6 +221,8 @@
   name: Радиолюбитель
   description: |
     Прослушай фрагмент аудиозаписи хакера и определи ключ доступа к серверу
+  details: |
+    Аудиозапись: https://example.com/tasks/nobody-radio-amateur
   type: PUZZLE
   cost: 160
   killerCharacterTypeId: nobody
@@ -257,6 +263,8 @@
   name: Хотфикс
   description: |
     Собери ссылку по отрывкам, разбросанным по локации, и отправь числовой запрос в базу данных
+  details: |
+    Форма для запроса: https://example.com/tasks/nobody-hotfix
   type: EXPLORATION
   cost: 125
   killerCharacterTypeId: nobody

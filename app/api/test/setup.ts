@@ -456,6 +456,7 @@ export async function seedTestData(prisma: PrismaService) {
       id: 'universal-quest',
       name: 'Universal Quest',
       description: 'A quest visible to all killers.',
+      details: 'Task link: https://example.com/universal-quest',
       type: 'EXPLORATION',
       radius: null,
       cost: 100,

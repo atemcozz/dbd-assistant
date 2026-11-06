@@ -43,6 +43,16 @@ export class QuestsService {
   // player's killer type changes.
     return this.prisma.questDefinition.findMany({
       orderBy: { id: 'asc' },
+      // Definitions are lobby content — never expose in-game-only details.
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        type: true,
+        radius: true,
+        cost: true,
+        killerCharacterTypeId: true,
+      },
     })
   }
 

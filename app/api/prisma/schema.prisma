@@ -57,6 +57,9 @@ model QuestDefinition {
   id                    String      @id
   name                  String
   description           String
+  // Optional in-game-only details (may contain links to the physical task).
+  // Exposed only in a running/finished game state, never in the lobby or wiki.
+  details               String?
   type                  String
   radius                Int?
   // Point value of this quest. Completed quest costs sum toward requiredQuestPoints.

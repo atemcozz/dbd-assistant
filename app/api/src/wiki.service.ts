@@ -29,10 +29,14 @@ type WikiConfig = {
   sections: WikiSectionConfig[]
 }
 
+// Wiki quests are static reference data — the in-game-only `details` field
+// is intentionally excluded so task links never appear in the wiki.
+type WikiQuestDefinition = Omit<QuestDefinition, 'details'>
+
 type WikiCharacter = Awaited<
   ReturnType<CharactersService['list']>
 >[number] & {
-  quests?: QuestDefinition[]
+  quests?: WikiQuestDefinition[]
 }
 
 export type WikiSection =
@@ -47,7 +51,7 @@ export type WikiSection =
       title: string
       type: 'killers'
       characters: WikiCharacter[]
-      universalQuests: QuestDefinition[]
+      universalQuests: WikiQuestDefinition[]
     }
   | {
       id: string
@@ -88,6 +92,15 @@ export class WikiService {
       this.prisma.questDefinition.findMany({
         where: { type: { not: 'EXIT' } },
         orderBy: { id: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          type: true,
+          radius: true,
+          cost: true,
+          killerCharacterTypeId: true,
+        },
       }),
       this.prisma.exitDefinition.findMany({
         orderBy: { id: 'asc' },

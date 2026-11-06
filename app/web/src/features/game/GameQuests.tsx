@@ -168,6 +168,17 @@ function GameQuestCard({
           <p className="text-sm leading-6 text-muted-foreground">
             {quest.definition.description}
           </p>
+          {quest.definition.details && (
+            <div className="rounded-md border border-border bg-muted/30 p-2">
+              <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                Детали
+              </p>
+              <LinkifiedText
+                text={quest.definition.details}
+                className="text-sm leading-6 text-muted-foreground"
+              />
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">
               {quest.definition.cost} очков
@@ -194,5 +205,46 @@ function GameQuestCard({
         </div>
       )}
     </div>
+  )
+}
+
+// Render plain-text quest details with clickable http(s) links that open in
+// a new tab. Newlines are preserved so YAML block scalars stay readable.
+const LINK_PATTERN = /(https?:\/\/[^\s<>"']+)/g
+
+function LinkifiedText({
+  text,
+  className,
+}: {
+  text: string
+  className?: string
+}) {
+  return (
+    <p className={cn('whitespace-pre-line break-words', className)}>
+      {text.split(LINK_PATTERN).map((part, index) => {
+        if (!/^https?:\/\//.test(part)) {
+          return part
+        }
+
+        // Keep trailing punctuation outside the anchor.
+        const match = part.match(/^(.*?)([.,;:!?]*)$/)
+        const href = match?.[1] ?? part
+        const trailing = match?.[2] ?? ''
+
+        return (
+          <span key={index}>
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              {href}
+            </a>
+            {trailing}
+          </span>
+        )
+      })}
+    </p>
   )
 }

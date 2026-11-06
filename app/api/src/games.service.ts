@@ -45,6 +45,7 @@ type QuestWithDefinition = {
     id: string
     name: string
     description: string
+    details: string | null
     type: string
     radius: number | null
     cost: number
@@ -432,7 +433,12 @@ export class GamesService {
       completedQuestPoints >= game.requiredQuestPoints
 
     if (canSeeQuests) {
-      quests = this.filterQuests(game.quests, exitsUnlocked)
+      quests = this.filterQuests(
+        game.quests,
+        exitsUnlocked,
+        // Details are in-game content: lobby viewers never receive them.
+        game.status !== GameStatus.LOBBY,
+      )
     }
 
     // Exits are shown to all players once the game runs.
@@ -732,6 +738,7 @@ async getStateById(
   private filterQuests(
     quests: QuestWithDefinition[],
     exitsUnlocked: boolean,
+    includeDetails: boolean,
   ): GameQuestView[] {
     const result: GameQuestView[] = []
 
@@ -753,6 +760,7 @@ async getStateById(
           id: quest.questDefinition.id,
           name: quest.questDefinition.name,
           description: quest.questDefinition.description,
+          details: includeDetails ? quest.questDefinition.details : null,
           type: quest.questDefinition.type,
           radius: quest.questDefinition.radius,
           cost: quest.questDefinition.cost,

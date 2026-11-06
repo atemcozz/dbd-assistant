@@ -164,6 +164,9 @@ export type QuestDefinition = {
   id: string
   name: string
   description: string
+  // In-game-only extra information (may contain task links). The lobby and
+  // wiki responses omit it; the running-game state fills it in.
+  details?: string | null
   type: string
   radius: number | null
   // Point value of this quest. Completed quest costs sum toward requiredQuestPoints.

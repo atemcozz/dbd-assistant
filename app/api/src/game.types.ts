@@ -78,6 +78,9 @@ export type GameQuestView = {
     id: string
     name: string
     description: string
+    // In-game-only extra information (may contain task links). Null in the
+    // lobby; populated once the game runs.
+    details: string | null
     type: string
     radius: number | null
     cost: number
