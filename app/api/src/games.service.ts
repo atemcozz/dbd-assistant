@@ -14,6 +14,7 @@ import { PrismaService } from './prisma.service'
 import { AbilitiesService } from './abilities.service'
 import { CharactersService } from './characters.service'
 import { INVINCIBILITY_BUFF_ID } from './combat.service'
+import { hasEnoughEscapes } from './game-rules'
 import type {
   CharacterAbilityInfo,
   CharacterStartBuffInfo,
@@ -221,8 +222,8 @@ export class GamesService {
     })
 
     // A game with no survivors is a misconfigured lobby, but it is NOT an
-    // instant killer win — the killer only wins when every survivor is dead.
-    // The game simply runs until the timeout (draw) or the owner finishes it.
+    // instant killer win — the game simply runs until the timeout or the
+    // owner finishes it.
 
     return this.getState(game.code, sessionToken)
   }
@@ -316,8 +317,8 @@ export class GamesService {
       throw new NotFoundException('GAME_NOT_FOUND')
     }
 
-    // Mid-game win checks first (all escaped / all dead / no killers left)
-    // so timeout only applies when someone is still alive and not escaped.
+    // Mid-game win checks first (enough escaped / no survivors left /
+    // no killers left) so timeout only applies while the outcome is open.
     await this.finishIfDecided(game.id)
     await this.finishIfExpired(game)
 
@@ -373,6 +374,7 @@ export class GamesService {
           name: player.characterType.name,
           description: player.characterType.description,
           maxHealth: player.characterType.maxHealth,
+          damage: player.characterType.damage,
           coverImage: player.characterType.coverImage,
           // Flatten abilities and starting buffs into read-only summaries.
           // duration = effective first-buff length (ability override ?? default)
@@ -642,22 +644,22 @@ async getStateById(
       return
     }
 
-    // Time is out and the game is still running — nobody secured a win.
-    // finishIfDecided already handled all-escaped / all-dead cases.
-    // Remaining case: some survivors are still alive and not escaped → both lose.
+    // Time is out and the game is still running — the survivors failed to
+    // reach the escape threshold, so the killer wins (rules: otherwise,
+    // including on timeout, the killer wins).
     await this.prisma.game.update({
       where: { id: game.id },
       data: {
         status: GameStatus.FINISHED,
         finishedAt: new Date(end),
-        winner: 'DRAW',
+        winner: 'KILLER',
       },
     })
   }
 
   // Win conditions that can fire mid-game (not only on timeout):
-  // - every survivor has escaped → survivors win;
-  // - every survivor is dead → killer wins;
+  // - at least half of the survivors (rounded up) escaped → survivors win;
+  // - every survivor is dead or already escaped → killer wins;
   // - every killer is dead → survivors win.
   // Disconnects never decide a game. A player who only reloaded their
   // phone comes back ALIVE on reconnect, so a temporary network loss
@@ -680,11 +682,12 @@ async getStateById(
     const survivors = players.filter((p) => p.role === PlayerRole.SURVIVOR)
     const killers = players.filter((p) => p.role === PlayerRole.KILLER)
 
-    // All survivors escaped — survivors win.
-    if (
-      survivors.length > 0 &&
-      survivors.every((s) => s.status === PlayerStatus.ESCAPED)
-    ) {
+    const escaped = survivors.filter(
+      (s) => s.status === PlayerStatus.ESCAPED,
+    ).length
+
+    // Enough survivors escaped — survivors win.
+    if (hasEnoughEscapes(escaped, survivors.length)) {
       await this.prisma.game.update({
         where: { id: gameId },
         data: {
@@ -696,15 +699,17 @@ async getStateById(
       return
     }
 
-    // Every survivor is dead — killer wins. Covers killing the last
-    // survivor mid-game, not only the clock running out.
+    // No survivor can escape anymore: everyone is dead or already escaped,
+    // but the escaped count did not reach the threshold — killer wins.
     // DISCONNECTED deliberately does not count: a survivor who only
     // reloaded their phone must not hand the killer a free win.
-    // (A mix of escaped and dead survivors never gives the killer a win —
-    // the escaped ones are still in the game as survivors.)
     if (
       survivors.length > 0 &&
-      survivors.every((s) => s.status === PlayerStatus.DEAD)
+      survivors.every(
+        (s) =>
+          s.status === PlayerStatus.DEAD ||
+          s.status === PlayerStatus.ESCAPED,
+      )
     ) {
       await this.prisma.game.update({
         where: { id: gameId },

@@ -17,7 +17,7 @@
   defaultDuration: 300
 
 - id: sluggishness
-  name: Оцепенение
+  name: Вялохуйный
   description: Ты не можешь совершать никаких игровых действий, кроме перемещения.
   action: INFO
   defaultDuration: 300
@@ -58,7 +58,7 @@
 
 - id: adrenaline
   name: Адреналин
-  description: Ты неуязвим. Любые атаки маньяка не действуют в течение 3 минут.
+  description: Ты неуязвим. Любые атаки маньяка не действуют в течение 2 минут.
   action: INFO
   defaultDuration: 120
 

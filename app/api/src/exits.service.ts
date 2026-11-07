@@ -11,11 +11,13 @@ import {
   QuestStatus,
 } from '@prisma/client'
 import { PrismaService } from './prisma.service'
+import { hasEnoughEscapes } from './game-rules'
 
 // Exits are physical escape routes. The owner selects them in the lobby
 // (at least 1 required to start). During the game, alive survivors can
 // escape through an exit once enough quest points are collected.
-// When every survivor has escaped, the game ends and the killer loses.
+// When at least half of the survivors (rounded up) have escaped, the game
+// ends and the killer loses.
 @Injectable()
 export class ExitsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -81,7 +83,7 @@ export class ExitsService {
 
   // A survivor escapes through an exit. This is the win action for that player:
   // killer can no longer interact with them, and other players see them as ESCAPED.
-  // If every survivor has now escaped, the game finishes — killer loses.
+  // If enough survivors have now escaped, the game finishes — killer loses.
   async use(codeInput: string, exitDefinitionId: string, sessionToken: string) {
     const code = codeInput.toUpperCase()
 
@@ -109,7 +111,7 @@ export class ExitsService {
       throw new NotFoundException('GAME_NOT_FOUND')
     }
 
-    if (game.status === GameStatus.LOBBY) {
+    if (game.status !== GameStatus.RUNNING) {
       throw new ConflictException('GAME_NOT_RUNNING')
     }
 
@@ -142,8 +144,8 @@ export class ExitsService {
       },
     })
 
-    // If every survivor has escaped, the killer loses — finish the game.
-    await this.finishIfAllSurvivorsEscaped(game.id)
+    // If enough survivors have escaped, the killer loses — finish the game.
+    await this.finishIfSurvivorsWin(game.id)
 
     return game
   }
@@ -160,7 +162,7 @@ export class ExitsService {
     )
   }
 
-  private async finishIfAllSurvivorsEscaped(gameId: string) {
+  private async finishIfSurvivorsWin(gameId: string) {
     const survivors = await this.prisma.player.findMany({
       where: {
         gameId,
@@ -172,11 +174,11 @@ export class ExitsService {
     // No survivors to evaluate — nothing to finish.
     if (survivors.length === 0) return
 
-    const allEscaped = survivors.every(
+    const escaped = survivors.filter(
       (survivor) => survivor.status === PlayerStatus.ESCAPED,
-    )
+    ).length
 
-    if (!allEscaped) return
+    if (!hasEnoughEscapes(escaped, survivors.length)) return
 
     await this.prisma.game.update({
       where: { id: gameId },

@@ -72,17 +72,17 @@ describe('Game end conditions', () => {
       owner.sessionToken,
     )
 
-    // Killer wins only when every survivor is dead — a game with no
-    // survivors at all is a misconfigured lobby, not a win.
+    // A game with no survivors at all is a misconfigured lobby, not an
+    // instant killer win.
     expect(state.status).toBe(GameStatus.RUNNING)
     expect(state.winner).toBeNull()
   })
 
-  it('timeout with survivors still alive is a draw — both lose', async () => {
+  it('timeout with survivors still alive is a killer win', async () => {
     const { owner } = await setupRunningGame(ctx)
 
     // Backdate startedAt so the 3600s timer is already expired.
-    // Owner is still ALIVE — nobody secured a win.
+    // Owner is still ALIVE but did not reach the escape threshold.
     const game = await prisma.game.findUnique({
       where: { code: owner.state.code },
     })
@@ -99,7 +99,7 @@ describe('Game end conditions', () => {
     )
 
     expect(state.status).toBe(GameStatus.FINISHED)
-    expect(state.winner).toBe('DRAW')
+    expect(state.winner).toBe('KILLER')
   })
 
   it('timeout after all survivors dead is a killer win', async () => {
@@ -185,8 +185,7 @@ describe('Game end conditions', () => {
       survivor.sessionToken,
     )
 
-    // Killer wins only when every survivor is DEAD — a disconnect
-    // (phone reload, bad signal) must not decide the game.
+    // A disconnect (phone reload, bad signal) must not decide the game.
     expect(state.status).toBe(GameStatus.RUNNING)
     expect(state.winner).toBeNull()
   })
@@ -194,7 +193,7 @@ describe('Game end conditions', () => {
   it('actions still work after the game officially finishes', async () => {
     const { owner, survivor } = await setupRunningGame(ctx)
 
-    // Finish via timeout (draw — owner still alive).
+    // Finish via timeout (killer win — owner still alive, threshold not met).
     const game = await prisma.game.findUnique({
       where: { code: owner.state.code },
     })
@@ -208,7 +207,7 @@ describe('Game end conditions', () => {
       owner.state.code,
       owner.sessionToken,
     )
-    expect(finished.winner).toBe('DRAW')
+    expect(finished.winner).toBe('KILLER')
 
     // Informal continue-play: killer can still attack an alive survivor.
     await combatService.attack(
@@ -224,5 +223,17 @@ describe('Game end conditions', () => {
     expect(state.status).toBe(GameStatus.FINISHED)
     const ownerPlayer = state.players.find((p) => p.id === owner.playerId)!
     expect(ownerPlayer.health).toBe(2) // medic 3 → 2 after attack
+  })
+
+  it('owner can finish a running game manually', async () => {
+    const { owner } = await setupRunningGame(ctx)
+
+    const state = await gamesService.finishGame(
+      owner.state.code,
+      owner.sessionToken,
+    )
+
+    expect(state.status).toBe(GameStatus.FINISHED)
+    expect(state.winner).toBeNull()
   })
 })

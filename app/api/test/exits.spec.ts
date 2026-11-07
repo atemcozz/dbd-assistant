@@ -269,23 +269,31 @@ describe('Exits', () => {
     ).rejects.toThrow('EXIT_NOT_IN_GAME')
   })
 
-  it('partially escaped team keeps playing until timeout or full escape', async () => {
+  it('five survivors need three escapes (rounded up)', async () => {
     const { owner } = await setupLobbyGame(ctx)
 
-    // Add a third player as survivor so not everyone escapes at once.
-    const third = await joinSurvivor(ctx, owner.state.code, 'Third')
-    await charactersService.assignRole(
-      owner.state.code,
-      third.playerId,
-      owner.sessionToken,
-      PlayerRole.SURVIVOR,
-    )
-    await charactersService.assignCharacter(
-      owner.state.code,
-      third.playerId,
-      owner.sessionToken,
-      'medic',
-    )
+    // setupLobbyGame has one survivor (owner) and one killer. Add four more
+    // survivors so the starting survivor count is five.
+    const extraSurvivors: {
+      playerId: string
+      sessionToken: string
+    }[] = []
+    for (const name of ['Second', 'Third', 'Fourth', 'Fifth']) {
+      const extra = await joinSurvivor(ctx, owner.state.code, name)
+      await charactersService.assignRole(
+        owner.state.code,
+        extra.playerId,
+        owner.sessionToken,
+        PlayerRole.SURVIVOR,
+      )
+      await charactersService.assignCharacter(
+        owner.state.code,
+        extra.playerId,
+        owner.sessionToken,
+        'medic',
+      )
+      extraSurvivors.push(extra)
+    }
 
     await questsService.select(
       owner.state.code,
@@ -305,13 +313,12 @@ describe('Exits', () => {
       owner.sessionToken,
     )
 
-    // Owner escapes — game should still be running (Third has not escaped).
+    // 1 of 5 escaped — game continues.
     await exitsService.use(
       owner.state.code,
       'main-gate',
       owner.sessionToken,
     )
-
     let state = await gamesService.getState(
       owner.state.code,
       owner.sessionToken,
@@ -319,21 +326,80 @@ describe('Exits', () => {
     expect(state.status).toBe('RUNNING')
     expect(state.winner).toBeNull()
 
-    const ownerPlayer = state.players.find((p) => p.id === owner.playerId)
-    expect(ownerPlayer?.status).toBe('ESCAPED')
-
-    // Third escapes — now both survivors have escaped → game ends.
+    // 2 of 5 escaped — still below ceil(5 / 2) = 3.
     await exitsService.use(
       owner.state.code,
       'main-gate',
-      third.sessionToken,
+      extraSurvivors[0].sessionToken,
     )
+    state = await gamesService.getState(
+      owner.state.code,
+      owner.sessionToken,
+    )
+    expect(state.status).toBe('RUNNING')
+    expect(state.winner).toBeNull()
 
+    // 3 of 5 escaped — survivors win.
+    await exitsService.use(
+      owner.state.code,
+      'main-gate',
+      extraSurvivors[1].sessionToken,
+    )
     state = await gamesService.getState(
       owner.state.code,
       owner.sessionToken,
     )
     expect(state.status).toBe('FINISHED')
     expect(state.winner).toBe('SURVIVORS')
+  })
+
+  it('escape is rejected after the game has already finished', async () => {
+    const { owner } = await setupLobbyGame(ctx)
+
+    // Add one more survivor so one escape is enough to finish (1 of 2).
+    const second = await joinSurvivor(ctx, owner.state.code, 'Second')
+    await charactersService.assignRole(
+      owner.state.code,
+      second.playerId,
+      owner.sessionToken,
+      PlayerRole.SURVIVOR,
+    )
+    await charactersService.assignCharacter(
+      owner.state.code,
+      second.playerId,
+      owner.sessionToken,
+      'medic',
+    )
+
+    await questsService.select(
+      owner.state.code,
+      owner.sessionToken,
+      ['universal-quest'],
+    )
+    await gamesService.startGame(owner.state.code, owner.sessionToken)
+
+    const startedState = await gamesService.getState(
+      owner.state.code,
+      owner.sessionToken,
+    )
+    await questsService.complete(
+      owner.state.code,
+      startedState.quests[0].id,
+      owner.sessionToken,
+    )
+
+    await exitsService.use(
+      owner.state.code,
+      'main-gate',
+      owner.sessionToken,
+    )
+
+    await expect(
+      exitsService.use(
+        owner.state.code,
+        'main-gate',
+        second.sessionToken,
+      ),
+    ).rejects.toThrow('GAME_NOT_RUNNING')
   })
 })

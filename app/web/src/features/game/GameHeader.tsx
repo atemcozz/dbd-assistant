@@ -1,22 +1,26 @@
 import { Clock3, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HealthDisplay } from '@/components/shared/HealthDisplay'
+import { OwnerFinishButton } from '@/features/game/OwnerFinishButton'
 import type { LobbyPlayer, LobbyState } from '@/gameStore'
 import { formatTime } from '@/lib/format'
 
-// Sticky game header — shows game name, connection status, HP, timer, leave.
+// Sticky game header — shows game name, connection status, HP, timer,
+// owner finish control, and leave.
 export function GameHeader({
   state,
   player,
   remainingSeconds,
   connectionStatus,
   onLeave,
+  onFinish,
 }: {
   state: LobbyState
   player: LobbyPlayer
   remainingSeconds: number
   connectionStatus: 'idle' | 'connecting' | 'connected' | 'disconnected'
   onLeave: () => void
+  onFinish: () => void
 }) {
   return (
     <header className="sticky top-0 z-20 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:-mx-8 sm:px-8 lg:-mx-16 lg:px-16">
@@ -49,6 +53,10 @@ export function GameHeader({
             {/* Timer text: live countdown, or "time is out" once the clock hits zero. */}
             {remainingSeconds <= 0 ? 'Время вышло' : formatTime(remainingSeconds)}
           </div>
+          {state.status === 'RUNNING' &&
+            state.ownerPlayerId === player.id && (
+              <OwnerFinishButton onFinish={onFinish} />
+            )}
           <Button
             aria-label="Покинуть игру"
             onClick={onLeave}

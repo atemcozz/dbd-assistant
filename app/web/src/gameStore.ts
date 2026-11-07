@@ -40,6 +40,9 @@ export type CharacterType = {
   name: string
   description: string
   maxHealth: number | null
+  // Basic-attack damage. Survivors have the default 1; some killers overkill
+  // (e.g. King's 999), which the knockout rule turns into a one-hit knockout.
+  damage: number
   // Cover art path relative to config/images/ (null = no cover).
   coverImage: string | null
   // Abilities and permanent starting buffs this character type has.
@@ -86,7 +89,8 @@ export type LobbyState = {
   // Selected exits for this game — visible to all players once the game runs.
   exits: GameExit[]
   // Winner when the game has finished: 'SURVIVORS' | 'KILLER' | 'DRAW' | null.
-  // DRAW = time out with survivors still alive and not escaped (both lose).
+  // DRAW is retained for games finished by older versions; current timeout
+  // and manual finish rules do not produce it.
   winner: string | null
   chatMessages: ChatMessage[]
   // Abilities the current player owns (usable, with cooldown).

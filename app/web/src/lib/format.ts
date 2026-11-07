@@ -24,7 +24,7 @@ export function formatTime(totalSeconds: number) {
 }
 
 // Human-readable end-of-game announcement shown in the shared end modal.
-// Reasons cover: timeout draw, all escaped, all dead/left, no killers left,
+// Reasons cover: escape threshold, timeout, all dead/left, no killers left,
 // no survivors at start, and owner-forced finish (winner null).
 export function describeGameEnd(state: {
   winner: string | null

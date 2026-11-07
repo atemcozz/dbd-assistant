@@ -19,6 +19,7 @@ import { GameHeader } from '@/features/game/GameHeader'
 import { GamePlayers } from '@/features/game/GamePlayers'
 import { GameQuests } from '@/features/game/GameQuests'
 import { GameStatusPanel } from '@/features/game/GameStatusPanel'
+import { OwnerFinishButton } from '@/features/game/OwnerFinishButton'
 import { describeGameEnd, getRemainingSeconds } from '@/lib/format'
 import { useGameStore, type AppliedInstantEffect, type AppliedQuestBlock, type LobbyState } from '@/gameStore'
 
@@ -77,12 +78,14 @@ export function GameScreen() {
   const sendChat = useGameStore((store) => store.sendChat)
   const triggerAbility = useGameStore((store) => store.useAbility)
   const applySelfBuff = useGameStore((store) => store.applySelfBuff)
+  const finishGame = useGameStore((store) => store.finishGame)
   const clearSession = useGameStore((store) => store.clearSession)
   const refreshState = useGameStore((store) => store.refreshState)
 
   const currentPlayer = state.players.find(
     (player) => player.id === session.playerId,
   )!
+  const isOwner = state.ownerPlayerId === session.playerId
 
   const previousHealth = useRef(currentPlayer.health)
   // Knockouts are separate from HP: a lethal hit leaves HP untouched, so
@@ -126,7 +129,7 @@ export function GameScreen() {
   }, [remainingSeconds, state.status, refreshState])
 
   // Show the shared end-game modal once when the game finishes.
-  // Covers timeout, all escaped, no killers left, and no survivors at start.
+  // Covers timeout, enough escapes, no killers left, and no survivors at start.
   useEffect(() => {
     if (state.status !== 'FINISHED') return
     const key = state.id
@@ -269,6 +272,8 @@ export function GameScreen() {
       <EscapedScreen
         onLeave={clearSession}
         state={state}
+        isOwner={isOwner}
+        onFinish={() => void finishGame()}
         endModalOpen={endModalOpen}
         onCloseEndModal={() => setEndModalOpen(false)}
       />
@@ -281,6 +286,8 @@ export function GameScreen() {
       <DeathScreen
         onLeave={clearSession}
         state={state}
+        isOwner={isOwner}
+        onFinish={() => void finishGame()}
         endModalOpen={endModalOpen}
         onCloseEndModal={() => setEndModalOpen(false)}
       />
@@ -298,10 +305,24 @@ export function GameScreen() {
   }).length
 
   function confirmDamage(playerId: string, playerName: string) {
+    const target = state.players.find((player) => player.id === playerId)
+    const damage = currentPlayer.characterType?.damage ?? 1
+    const lethal = target?.health !== null && target?.health !== undefined
+      ? damage >= target.health
+      : false
+
+    let outcome = ''
+    if (lethal && target) {
+      outcome =
+        target.knockouts >= 2
+          ? ' Это добьёт цель.'
+          : ' Это нокаутирует цель.'
+    }
+
     setModal({
       kind: 'confirm',
       title: 'Атаковать?',
-      body: `Атаковать ${playerName}? Это отнимет у цели 1 HP.`,
+      body: `Атаковать ${playerName}? Удар нанесёт ${damage} урона.${outcome}`,
       confirmLabel: 'Атаковать',
       onConfirm: () => {
         setModal(null)
@@ -445,6 +466,7 @@ export function GameScreen() {
           remainingSeconds={remainingSeconds}
           connectionStatus={connectionStatus}
           onLeave={confirmLeave}
+          onFinish={() => void finishGame()}
         />
         {error && <p className="my-3 text-sm text-destructive">{error}</p>}
         {/* Winner banner — shown once the game has finished. */}
@@ -614,11 +636,15 @@ export function GameScreen() {
 function DeathScreen({
   onLeave,
   state,
+  isOwner,
+  onFinish,
   endModalOpen,
   onCloseEndModal,
 }: {
   onLeave: () => void
   state: LobbyState
+  isOwner: boolean
+  onFinish: () => void
   endModalOpen: boolean
   onCloseEndModal: () => void
 }) {
@@ -633,13 +659,17 @@ function DeathScreen({
         <p className="mt-4 text-muted-foreground">
           Покойся с миром
         </p>
-        <Button
-          className="mt-8"
-          onClick={() => setConfirmLeaveOpen(true)}
-          variant="outline"
-        >
-          Ливнуть
-        </Button>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <Button
+            onClick={() => setConfirmLeaveOpen(true)}
+            variant="outline"
+          >
+            Ливнуть
+          </Button>
+          {isOwner && state.status === 'RUNNING' && (
+            <OwnerFinishButton onFinish={onFinish} compact={false} />
+          )}
+        </div>
         {confirmLeaveOpen && (
           <Modal
             title="Покинуть игру?"
@@ -664,11 +694,15 @@ function DeathScreen({
 function EscapedScreen({
   onLeave,
   state,
+  isOwner,
+  onFinish,
   endModalOpen,
   onCloseEndModal,
 }: {
   onLeave: () => void
   state: LobbyState
+  isOwner: boolean
+  onFinish: () => void
   endModalOpen: boolean
   onCloseEndModal: () => void
 }) {
@@ -683,13 +717,17 @@ function EscapedScreen({
         <p className="mt-4 text-muted-foreground">
           Молодец! Возьми с полки пирожок
         </p>
-        <Button
-          className="mt-8"
-          onClick={() => setConfirmLeaveOpen(true)}
-          variant="outline"
-        >
-          Ливнуть
-        </Button>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <Button
+            onClick={() => setConfirmLeaveOpen(true)}
+            variant="outline"
+          >
+            Ливнуть
+          </Button>
+          {isOwner && state.status === 'RUNNING' && (
+            <OwnerFinishButton onFinish={onFinish} compact={false} />
+          )}
+        </div>
         {confirmLeaveOpen && (
           <Modal
             title="Покинуть игру?"
