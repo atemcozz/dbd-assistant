@@ -226,7 +226,7 @@
   description: |
     Прослушай фрагмент аудиозаписи хакера и определи ключ доступа к серверу
   details: |
-    Аудиозапись: https://example.com/tasks/nobody-radio-amateur
+    Аудиозапись: https://forms.gle/1N1Rk6X65Rk82GF79
   type: PUZZLE
   cost: 160
   killerCharacterTypeId: nobody
