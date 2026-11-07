@@ -9,6 +9,7 @@
     - abilityId: scumbags
     - abilityId: quarantine
     - abilityId: paranoia
+    - abilityId: apocalypse
   startingBuffs: []
 
 - id: trapper

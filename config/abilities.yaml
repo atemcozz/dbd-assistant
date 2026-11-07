@@ -276,3 +276,17 @@
      Если маньяк, смог напугать игрока (жертва издала громкий звук или крик),
      то он получает условные очки. За 3 очка маньяк может мгновенно казнить игроков в течение 3 минут
   type: PASSIVE
+
+
+
+- id: apocalypse
+  name: Апокалипсис
+  description: >
+   Все игроки получают эффект порчи.
+  type: ACTIVE
+  cooldown: 0
+  allowedTargets:
+    - ALL_SURVIVORS
+  buffs:
+    - buffId: corruption
+      duration: 300
