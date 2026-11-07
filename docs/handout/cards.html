@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Карточки квеста</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, "Helvetica Neue", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #000;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      width: 100%;
+      height: 278mm;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 3mm;
+      page-break-after: always;
+    }
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    /* Стиль карты */
+    .card {
+      border: 1.5px dashed #333;
+      border-radius: 8px;
+      padding: 7px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .card-top {
+      width: 100%;
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 4px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      display: block;
+      width: 100%;
+    }
+    .buff .tag { background: #15803d; color: #fff; }
+    .debuff .tag { background: #b91c1c; color: #fff; }
+
+    .title {
+      font-size: 16px;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin: 5px 0 0 0;
+      line-height: 1.15;
+    }
+
+    /* ИКОНКА СТРОГО ПО ЦЕНТРУ */
+    .card-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+      width: 100%;
+      margin: 4px 0;
+    }
+    .icon {
+      font-size: 46px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .desc {
+      font-size: 13.5px;
+      font-weight: 700;
+      line-height: 1.25;
+      margin: 0;
+      color: #111;
+    }
+
+    /* БЛОК ДЕЙСТВИЯ */
+    .card-bottom {
+      width: 100%;
+    }
+    .action-box {
+      border: 2px solid #b91c1c;
+      background: #fef2f2;
+      border-radius: 6px;
+      padding: 5px 4px;
+      width: 100%;
+    }
+    .action-box.positive {
+      border-color: #15803d;
+      background: #f0fdf4;
+    }
+    .action-title {
+      font-size: 10.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .action-box.positive .action-title { color: #15803d; }
+    .action-box:not(.positive) .action-title { color: #b91c1c; }
+
+    .action-text {
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.2;
+      display: block;
+    }
+    .app-hint {
+      display: block;
+      margin-top: 3px;
+      font-size: 9.5px;
+      background: rgba(0,0,0,0.08);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: 700;
+      color: #222;
+    }
+
+    /* Спец-блок для Галлюцинации */
+    .scream-box {
+      border: 2.5px solid #991b1b;
+      background: #fff1f2;
+      padding: 5px 4px;
+      border-radius: 6px;
+      width: 100%;
+    }
+    .scream-title {
+      color: #991b1b;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      display: block;
+    }
+    .scream-text {
+      font-size: 14.5px;
+      font-weight: 900;
+      color: #000;
+      margin-top: 2px;
+      line-height: 1.2;
+    }
+
+    /* СТРАНИЦА ЖЕТОНОВ */
+    .tokens-page {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 6mm;
+      padding: 6mm;
+      page-break-after: auto;
+      justify-items: center;
+      align-items: center;
+    }
+    .token {
+      width: 32mm;
+      height: 32mm;
+      border: 2px dashed #000;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: #fff;
+    }
+    .token-icon {
+      font-size: 26px;
+      line-height: 1;
+      margin-bottom: 1px;
+    }
+    .token-title {
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- СТРАНИЦА 1: ПОЛЕЗНЫЕ ПРЕДМЕТЫ -->
+  <div class="page">
+    <!-- Аптечка -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Аптечка</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🧰</div>
+        <div class="desc">Восстанавливает здоровье.<br>Имеет 2 заряда.</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box positive">
+          <span class="action-title">Действие в приложении</span>
+          <span class="action-text">Наложите эффект «Аптечка»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Дым -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Дымовая завеса</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🌫️</div>
+        <div class="desc">Делает помещение ядовитым для всех игроков и маньяка.</div>
+      </div>
+      <div class="card-bottom"></div>
+    </div>
+
+    <!-- Адреналин -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Адреналин</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">💉</div>
+        <div class="desc">Полная неуязвимость на 2 минуты.</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box positive">
+          <span class="action-title">Действие в приложении</span>
+          <span class="action-text">Наложите эффект «Адреналин»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- АКБ -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">АКБ для фонарика</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🔋</div>
+        <div class="desc">Полностью возобновляет заряд фонарика.</div>
+      </div>
+      <div class="card-bottom"></div>
+    </div>
+
+    <!-- Фильтр -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Фильтр</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🎭</div>
+        <div class="desc">Позволяет находиться в дымовой завесе в течение 3 минут.</div>
+      </div>
+      <div class="card-bottom"></div>
+    </div>
+
+    <!-- Зелье здоровья 1 -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Зелье здоровья</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">❤️</div>
+        <div class="desc">Восстанавливает 1 единицу здоровья игрока.</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box positive">
+          <span class="action-title">Действие в приложении</span>
+          <span class="action-text">Наложите эффект «Зелье здоровья»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Зелье здоровья 2 -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Зелье здоровья</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">❤️</div>
+        <div class="desc">Восстанавливает 1 единицу здоровья игрока.</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box positive">
+          <span class="action-title">Действие в приложении</span>
+          <span class="action-text">Наложите эффект «Зелье здоровья»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Лупа 1 -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Лупа</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🔍</div>
+        <div class="desc">Дает 2 подсказки.</div>
+      </div>
+      <div class="card-bottom"></div>
+    </div>
+
+    <!-- Лупа 2 -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Лупа</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🔍</div>
+        <div class="desc">Дает 2 подсказки.</div>
+      </div>
+      <div class="card-bottom"></div>
+    </div>
+  </div>
+
+  <!-- СТРАНИЦА 2: ДЕБАФФЫ И ЛОВУШКИ -->
+  <div class="page">
+    <!-- Зелье порчи -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">Зелье порчи</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">☠️</div>
+        <div class="desc">Вы отравлены порчей!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box">
+          <span class="action-title">Обязательное действие</span>
+          <span class="action-text">Наложите на себя эффект «Порча»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вялохуйный -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">«Вялохуйный»</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🥀</div>
+        <div class="desc">Отрицательный эффект!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box">
+          <span class="action-title">Обязательное действие</span>
+          <span class="action-text">Наложите на себя эффект «Вялохуйный»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Равнодушие -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">Равнодушие</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">😐</div>
+        <div class="desc">Отрицательный эффект!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box">
+          <span class="action-title">Обязательное действие</span>
+          <span class="action-text">Наложите на себя эффект «Равнодушие»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Тише едешь (1) -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">Тише едешь — дальше будешь</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🐢</div>
+        <div class="desc">Ограничение на перемещение!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box">
+          <span class="action-title">Обязательное действие</span>
+          <span class="action-text">Наложите на себя эффект «Тише едешь — дальше будешь»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Тише едешь (2) -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">Тише едешь — дальше будешь</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🐢</div>
+        <div class="desc">Ограничение на перемещение!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box">
+          <span class="action-title">Обязательное действие</span>
+          <span class="action-text">Наложите на себя эффект «Тише едешь — дальше будешь»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Тише едешь (3) -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">Тише едешь — дальше будешь</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🐢</div>
+        <div class="desc">Ограничение на перемещение!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box">
+          <span class="action-title">Обязательное действие</span>
+          <span class="action-text">Наложите на себя эффект «Тише едешь — дальше будешь»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Галлюцинация (1) -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">Галлюцинация</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🗣️</div>
+        <div class="desc">Вы обнаружены!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="scream-box">
+          <span class="scream-title">Обязательное действие</span>
+          <div class="scream-text">КРИЧИТЕ «Я ЗДЕСЬ!» В ТЕЧЕНИЕ 20 СЕКУНД</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Галлюцинация (2) -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">Галлюцинация</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🗣️</div>
+        <div class="desc">Вы обнаружены!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="scream-box">
+          <span class="scream-title">Обязательное действие</span>
+          <div class="scream-text">КРИЧИТЕ «Я ЗДЕСЬ!» В ТЕЧЕНИЕ 20 СЕКУНД</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Галлюцинация (3) -->
+    <div class="card debuff">
+      <div class="card-top">
+        <span class="tag">Ловушка</span>
+        <div class="title">Галлюцинация</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🗣️</div>
+        <div class="desc">Вы обнаружены!</div>
+      </div>
+      <div class="card-bottom">
+        <div class="scream-box">
+          <span class="scream-title">Обязательное действие</span>
+          <div class="scream-text">КРИЧИТЕ «Я ЗДЕСЬ!» В ТЕЧЕНИЕ 20 СЕКУНД</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- СТРАНИЦА 3: АНТИДОТЫ (1 - 9) -->
+  <div class="page">
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+  </div>
+
+  <!-- СТРАНИЦА 4: АНТИДОТЫ (10 - 18) -->
+  <div class="page">
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+  </div>
+
+  <!-- СТРАНИЦА 5: ОСТАТОК АНТИДОТОВ И ИДЕНТИЧНЫЕ ДУБЛИКАТЫ -->
+  <div class="page">
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+    <div class="card buff"><div class="card-top"><span class="tag">Положительный тайник</span><div class="title">Антидот</div></div><div class="card-center"><div class="icon">🧪</div><div class="desc">Лекарство от порчи.</div></div><div class="card-bottom"><div class="action-box positive"><span class="action-title">Свойство карты</span><span class="action-text">Позволяет игнорировать наложенный эффект порчи 1 раз (сбросьте карту)</span></div></div></div>
+
+    <!-- Аптечка -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Аптечка</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🧰</div>
+        <div class="desc">Восстанавливает здоровье.<br>Имеет 2 заряда.</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box positive">
+          <span class="action-title">Действие в приложении</span>
+          <span class="action-text">Наложите эффект «Аптечка»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Адреналин -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Адреналин</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">💉</div>
+        <div class="desc">Полная неуязвимость на 2 минуты.</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box positive">
+          <span class="action-title">Действие в приложении</span>
+          <span class="action-text">Наложите эффект «Адреналин»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- АКБ -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">АКБ для фонарика</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🔋</div>
+        <div class="desc">Полностью возобновляет заряд фонарика.</div>
+      </div>
+      <div class="card-bottom"></div>
+    </div>
+
+    <!-- Фильтр -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Фильтр</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">🎭</div>
+        <div class="desc">Позволяет находиться в дымовой завесе в течение 3 минут.</div>
+      </div>
+      <div class="card-bottom"></div>
+    </div>
+
+    <!-- Зелье здоровья -->
+    <div class="card buff">
+      <div class="card-top">
+        <span class="tag">Положительный тайник</span>
+        <div class="title">Зелье здоровья</div>
+      </div>
+      <div class="card-center">
+        <div class="icon">❤️</div>
+        <div class="desc">Восстанавливает 1 единицу здоровья игрока.</div>
+      </div>
+      <div class="card-bottom">
+        <div class="action-box positive">
+          <span class="action-title">Действие в приложении</span>
+          <span class="action-text">Наложите эффект «Зелье здоровья»</span>
+          <span class="app-hint">[Эффекты] ➔ Поиск эффектов</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- СТРАНИЦА 6: ЖЕТОНЫ-МОНЕТЫ -->
+  <div class="tokens-page">
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+    <div class="token"><span class="token-icon">🪙</span><span class="token-title">ЖЕТОН</span></div>
+  </div>
+
+</body>
+</html>
