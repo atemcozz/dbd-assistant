@@ -185,6 +185,8 @@
   name: Битый пиксель
   description: |
     Найди и исправь неправильную ячейку в сообщении
+  details: |
+    Условие: https://forms.gle/Wc34zEDC5eKX3MC98
   type: PUZZLE
   cost: 90
   killerCharacterTypeId: nobody
@@ -193,18 +195,20 @@
   name: Гай Юлий Цезарь
   description: |
     Закончи дешифрацию послания, оставленного другим бедолагой
+  details: |
+    Условие: https://forms.gle/2pPjLqULYj1X3SfP9
   type: PUZZLE
-  cost: 125
+  cost: 100
   killerCharacterTypeId: nobody
 
 - id: nobody-generator
-  name: Починка генератора
+  name: Электромонтажник
   description: |
     Определи общий ток эл. цепи по схеме
   details: |
-    Схема цепи: https://example.com/tasks/nobody-generator
+    Условие: https://forms.gle/RWgSKJ5M8Zv4FGJY6
   type: PUZZLE
-  cost: 90
+  cost: 115
   killerCharacterTypeId: nobody
 
 - id: nobody-blind-spot
@@ -212,7 +216,7 @@
   description: |
     Определи на схеме путь от точки A до X с наименьшим числом камер
   details: |
-    Схема с камерами: https://example.com/tasks/nobody-blind-spot
+    Условие: https://forms.gle/EZi9Ckoren5WmA76A
   type: PUZZLE
   cost: 125
   killerCharacterTypeId: nobody
@@ -230,7 +234,7 @@
 - id: nobody-dutch-wheel
   name: Голландский киберштурвал
   description: |
-    Удерживай рубильники в комнате одновременно с другим игроком в течение 120 секунд, чтобы отключить центр связи хакера. Если ты остался один в живых, держи рубильник 180 секунд
+    Найди комнату с рубильниками и удерживай их в комнате одновременно с другим игроком в течение 120 секунд, чтобы отключить центр связи хакера. Если ты остался один в живых, держи рубильник 180 секунд
   type: EXPLORATION
   cost: 155
   killerCharacterTypeId: nobody
@@ -247,6 +251,8 @@
   name: Брутфорс
   description: |
     Перегрузи датчики маньяка, заполнив пакетный буфер недостающими числовыми значениями
+  details: |
+    Условие: https://forms.gle/V2T5Z38rmFGMaGs2A
   type: PUZZLE
   cost: 160
   killerCharacterTypeId: nobody
@@ -255,6 +261,8 @@
   name: Детектив
   description: |
     По раскиданным запискам определи местоположение первых жертв маньяка на момент взлома
+  details: |
+    Условие: https://forms.gle/ACKUGDs1pG6u7LTX7
   type: EXPLORATION
   cost: 160
   killerCharacterTypeId: nobody
@@ -263,8 +271,6 @@
   name: Хотфикс
   description: |
     Собери ссылку по отрывкам, разбросанным по локации, и отправь числовой запрос в базу данных
-  details: |
-    Форма для запроса: https://example.com/tasks/nobody-hotfix
   type: EXPLORATION
   cost: 125
   killerCharacterTypeId: nobody
@@ -273,6 +279,8 @@
   name: Анонимус
   description: |
     Ожидай 180 секунд в указанном месте, прикрыв половину лица руками или одеждой от камеры
+  details: |
+    Локация: актовый зал на 3 этаже
   type: EXPLORATION
   cost: 115
   killerCharacterTypeId: nobody
@@ -290,6 +298,8 @@
   description: |
     Воспользуйся уязвимостью в системе клеток: найди и отнеси ключ-карту в указанное место
     Может выполнять только Виктор
+  details: |
+    Локация: комната у лестницы на 1 этаже (не сейф зона)
   type: EXPLORATION
   cost: 0
   killerCharacterTypeId: nobody
